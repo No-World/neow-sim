@@ -325,6 +325,30 @@ enum Q {
     UpgradeAllBurnPiles,
     /// 灼伤回合末自伤（THORNS 管线：无力量/虚弱/易伤乘区；格挡吸收；无形截断）
     PlayerFlatDamage(i32),
+    // —— Act 2 怪物 ——
+    /// Centurion Protect：随机其他存活怪（无则自己）获得格挡（exec 时消耗 aiRng）
+    MonsterBlockRandomOther {
+        src: usize,
+        amount: i32,
+    },
+    /// Healer：全部存活怪回血
+    HealAllMonsters(i32),
+    /// Healer：全部存活怪 +力量
+    StrAllMonsters(i32),
+    /// ShelledParasite 吸取：吸血（按实际掉血治疗自己）
+    MonsterVampire {
+        src: usize,
+        base: i32,
+    },
+    /// Mugger 偷金（先于伤害，无条件）：min(amount, player.gold)
+    StealGold {
+        src: usize,
+        amount: i32,
+    },
+    /// Mugger/Looter 逃离（不判负；全员离场=战斗结束）
+    MonsterEscape {
+        src: usize,
+    },
 }
 
 /// 探素卡池（returnTrulyRandomCardInCombat(type) / Colorless 变体）
@@ -348,6 +372,10 @@ fn power_kind(pid: &str) -> Option<PowerKind> {
         "LoseDexterityPower" | "DexLoss" => Some(PowerKind::LoseDexterity),
         "DuplicationPower" => Some(PowerKind::Duplication),
         "Plated Armor" => Some(PowerKind::PlatedArmor),
+        "Flight" => Some(PowerKind::Flight),
+        "Malleable" => Some(PowerKind::Malleable),
+        "Hex" => Some(PowerKind::Hex),
+        "Confusion" => Some(PowerKind::Confusion),
         "Dexterity" => Some(PowerKind::Dexterity),
         "Poison" => Some(PowerKind::Poison),
         "Metallicize" => Some(PowerKind::Metallicize),
@@ -494,6 +522,56 @@ impl Combat {
                         false,
                     );
                 }
+                // 球形守护者：壁垒 + 神器 3 + 40 格挡（usePreBattleAction）
+                MonsterKind::SphericGuardian => {
+                    apply_power(
+                        &mut c.monsters[i].creature.powers,
+                        PowerKind::Barricade,
+                        1,
+                        false,
+                        false,
+                    );
+                    apply_power(
+                        &mut c.monsters[i].creature.powers,
+                        PowerKind::Artifact,
+                        3,
+                        false,
+                        false,
+                    );
+                    c.monsters[i].creature.block = 40;
+                }
+                // 灼壳寄生生：多层护甲 14 + 14 格挡
+                MonsterKind::ShelledParasite => {
+                    apply_power(
+                        &mut c.monsters[i].creature.powers,
+                        PowerKind::PlatedArmor,
+                        14,
+                        false,
+                        false,
+                    );
+                    c.monsters[i].creature.block = 14;
+                }
+                // 伯德鸟：飞行 3/4 层
+                MonsterKind::Byrd => {
+                    let flight = c.monsters[i].bellow_str;
+                    apply_power(
+                        &mut c.monsters[i].creature.powers,
+                        PowerKind::Flight,
+                        flight,
+                        false,
+                        false,
+                    );
+                }
+                // 咬人蛇草：可延展 3（起效值 3，受击递增）
+                MonsterKind::SnakePlant => {
+                    apply_power(
+                        &mut c.monsters[i].creature.powers,
+                        PowerKind::Malleable,
+                        3,
+                        false,
+                        false,
+                    );
+                }
                 _ => {}
             }
             c.roll_move(i);
@@ -502,11 +580,13 @@ impl Combat {
     }
 
     fn alive(&self, i: usize) -> bool {
-        !self.monsters[i].creature.is_dead()
+        !self.monsters[i].creature.is_dead() && !self.monsters[i].escaped
     }
 
     fn all_monsters_dead(&self) -> bool {
-        self.monsters.iter().all(|m| m.creature.is_dead())
+        self.monsters
+            .iter()
+            .all(|m| m.creature.is_dead() || m.escaped)
     }
 
     fn needs_target(card: &CardInst) -> bool {
@@ -1066,6 +1146,25 @@ impl Combat {
         }
         for &eff in card.def.effects {
             self.apply_effect(eff, card, ti, x_cost, &mut q, 0);
+        }
+        // HexPower.onUseCard：打出非攻击牌 → 抽牌堆随机位置塞 amount 张晕眩
+        if card.def.card_type != "ATTACK" {
+            if let Some(hex) = self
+                .player
+                .creature
+                .powers
+                .iter()
+                .find(|pw| pw.kind == PowerKind::Hex)
+            {
+                if let Some(dazed) = CardInst::new_by_class("Dazed") {
+                    for _ in 0..hex.amount {
+                        q.push(Q::MakeInDraw {
+                            inst: dazed,
+                            random: true,
+                        });
+                    }
+                }
+            }
         }
         // DuplicationPower.onUseCard：下一张牌额外免费结算一次（同目标同 X 费，
         // 不再扣能量/移牌；重播也触发 Rage/Finisher 计数）
@@ -1789,13 +1888,11 @@ impl Combat {
             }
             for mi in 0..self.monsters.len() {
                 if self.alive(mi) {
-                    self.monsters[mi].creature.apply_damage(combust_damage);
+                    self.hit_monster(mi, combust_damage, DamageType::Thorns);
+                    if self.over {
+                        return;
+                    }
                 }
-            }
-            if self.all_monsters_dead() {
-                self.over = true;
-                self.won = true;
-                return;
             }
         }
         // TriggerEndOfTurnOrbsAction：逐球 onEndOfTurn（被动效果）
@@ -1823,10 +1920,7 @@ impl Combat {
                         if let Some(m) = alive.len().checked_sub(1) {
                             let roll = self.rng.card_random.random_start_end(0, m as i32);
                             let t = alive[(roll.max(0) as usize).min(alive.len() - 1)];
-                            self.monsters[t].creature.apply_damage(passive);
-                            if self.monsters[t].creature.is_dead() {
-                                self.on_monster_death(t);
-                            }
+                            self.hit_monster(t, passive, DamageType::Normal);
                         }
                     }
                     crate::state::OrbKind::Dark => {
@@ -1856,9 +1950,15 @@ impl Combat {
         let hand = std::mem::take(&mut self.player.hand);
         self.player.discard.extend(hand);
         // MonsterStartTurnAction（AbstractRoom:406 单次入队）：
-        // 怪物回合开始时对全部存活怪统一掉格挡（非逐怪）
+        // 怪物回合开始时对全部存活怪统一掉格挡（非逐怪；壁垒例外）
         for m in &mut self.monsters {
-            if !m.creature.is_dead() {
+            if !m.creature.is_dead()
+                && !m
+                    .creature
+                    .powers
+                    .iter()
+                    .any(|p| p.kind == PowerKind::Barricade)
+            {
                 m.creature.block = 0;
             }
         }
@@ -1873,9 +1973,15 @@ impl Combat {
                 }
                 let executed = self.monsters[i].next_move;
                 let mut q = self.monster_turn(i);
-                // Hexaghost 的 Activate 在 takeTurn 内 setMove(DIVIDER)，
-                // 不追加 RollMoveAction —— 不消耗 aiRng（流序对拍关键）
-                let skip_roll = self.monsters[i].kind == MonsterKind::Hexaghost && executed == 5;
+                // Hexaghost Activate / Byrd 头槌：takeTurn 内 setMove 后 return；
+                // Mugger：takeTurn 完全由 SetMoveAction 驱动——均不追加 RollMoveAction，
+                // 不消耗 aiRng（流序对拍关键）
+                let skip_roll = match self.monsters[i].kind {
+                    MonsterKind::Hexaghost => executed == 5,
+                    MonsterKind::Byrd => executed == 5,
+                    MonsterKind::Mugger => true,
+                    _ => false,
+                };
                 if !skip_roll {
                     q.push(Q::RollMove(i));
                 }
@@ -2380,6 +2486,288 @@ impl Combat {
                     _ => {}
                 }
             }
+            // ══════════ Act 2（TheCity）普通遭遇 ══════════
+            // 球形守护者：1=重击×2  2=充能（大格挡）  3=硬化打击  4=脆化打击
+            MonsterKind::SphericGuardian => match m.next_move {
+                1 => {
+                    for _ in 0..2 {
+                        q.push(Q::MonsterDamage {
+                            src: i,
+                            base: m.chomp_dmg,
+                        });
+                    }
+                }
+                2 => q.push(Q::MonsterBlock {
+                    target: i,
+                    amount: m.thrash_dmg,
+                }),
+                3 => {
+                    q.push(Q::MonsterBlock {
+                        target: i,
+                        amount: m.thrash_block,
+                    });
+                    q.push(Q::MonsterDamage {
+                        src: i,
+                        base: m.chomp_dmg,
+                    });
+                }
+                4 => {
+                    q.push(Q::MonsterDamage {
+                        src: i,
+                        base: m.chomp_dmg,
+                    });
+                    q.push(Q::ApplyPowerToPlayerFromMonster {
+                        kind: PowerKind::Frail,
+                        amount: m.bellow_str,
+                    });
+                }
+                _ => {}
+            },
+            // 天选者：1=电击  2=汲取  3=衰弱  4=咒缚  5=戳刺×2
+            MonsterKind::Chosen => match m.next_move {
+                1 => q.push(Q::MonsterDamage {
+                    src: i,
+                    base: m.chomp_dmg,
+                }),
+                2 => {
+                    q.push(Q::ApplyPowerToPlayerFromMonster {
+                        kind: PowerKind::Weak,
+                        amount: m.bellow_block,
+                    });
+                    q.push(Q::ApplyPowerToMonster {
+                        target: i,
+                        kind: PowerKind::Strength,
+                        amount: m.bellow_str,
+                    });
+                }
+                3 => {
+                    q.push(Q::MonsterDamage {
+                        src: i,
+                        base: m.thrash_dmg,
+                    });
+                    q.push(Q::ApplyPowerToPlayerFromMonster {
+                        kind: PowerKind::Vulnerable,
+                        amount: m.dark_strike_dmg,
+                    });
+                }
+                4 => q.push(Q::ApplyPowerToPlayerFromMonster {
+                    kind: PowerKind::Hex,
+                    amount: m.ritual_amt,
+                }),
+                5 => {
+                    for _ in 0..2 {
+                        q.push(Q::MonsterDamage {
+                            src: i,
+                            base: m.thrash_block,
+                        });
+                    }
+                }
+                _ => {}
+            },
+            // 灼壳寄生生：1=猛击+脆弱  2=双重打击  3=吸取（吸血）  4=破甲眩晕
+            MonsterKind::ShelledParasite => match m.next_move {
+                1 => {
+                    q.push(Q::MonsterDamage {
+                        src: i,
+                        base: m.chomp_dmg,
+                    });
+                    q.push(Q::ApplyPowerToPlayerFromMonster {
+                        kind: PowerKind::Frail,
+                        amount: m.bellow_str,
+                    });
+                }
+                2 => {
+                    for _ in 0..2 {
+                        q.push(Q::MonsterDamage {
+                            src: i,
+                            base: m.thrash_dmg,
+                        });
+                    }
+                }
+                3 => q.push(Q::MonsterVampire {
+                    src: i,
+                    base: m.thrash_block,
+                }),
+                _ => {} // 4 眩晕：无动作（RollMove 接续）
+            },
+            // 伯德鸟：1=啄×N  2=起飞  3=俯冲  4=落地眩晕  5=头槌→setMove(2)  6=鸣叫
+            MonsterKind::Byrd => match m.next_move {
+                1 => {
+                    for _ in 0..m.bellow_block {
+                        q.push(Q::MonsterDamage {
+                            src: i,
+                            base: m.chomp_dmg,
+                        });
+                    }
+                }
+                2 => q.push(Q::ApplyPowerToMonster {
+                    target: i,
+                    kind: PowerKind::Flight,
+                    amount: m.bellow_str,
+                }),
+                3 => q.push(Q::MonsterDamage {
+                    src: i,
+                    base: m.thrash_dmg,
+                }),
+                5 => {
+                    // 头槌：takeTurn 内 setMove(2 UNKNOWN) 后 return——不消耗 aiRng
+                    q.push(Q::MonsterDamage {
+                        src: i,
+                        base: m.thrash_block,
+                    });
+                    self.monsters[i].move_history.push(2);
+                    self.monsters[i].next_move = 2;
+                }
+                6 => q.push(Q::ApplyPowerToMonster {
+                    target: i,
+                    kind: PowerKind::Strength,
+                    amount: m.ritual_amt,
+                }),
+                _ => {} // 4 眩晕：无动作
+            },
+            // 劫匪：takeTurn 驱动（无 RollMove）；1=抢劫  2=烟雾  3=逃离  4=重扫
+            MonsterKind::Mugger => {
+                let (nm, mug, big, smoke, gold) = (
+                    m.next_move,
+                    m.chomp_dmg,
+                    m.thrash_dmg,
+                    m.thrash_block,
+                    m.bellow_str,
+                );
+                match nm {
+                    1 | 4 => {
+                        let (dmg, next) = if nm == 1 {
+                            // 偷金（先于伤害，无条件）：min(goldAmt, player.gold)
+                            q.push(Q::StealGold {
+                                src: i,
+                                amount: gold,
+                            });
+                            q.push(Q::MonsterDamage { src: i, base: mug });
+                            let mugs_done = self.monsters[i]
+                                .move_history
+                                .iter()
+                                .filter(|&&x| x == 1)
+                                .count();
+                            if mugs_done >= 2 {
+                                // 第 2 次抢劫后：50% 烟雾 / 50% 重扫（消耗 aiRng）
+                                if self.rng.ai.random_boolean_chance(0.5) {
+                                    (mug, 2)
+                                } else {
+                                    (mug, 4)
+                                }
+                            } else {
+                                (mug, 1)
+                            }
+                        } else {
+                            q.push(Q::StealGold {
+                                src: i,
+                                amount: gold,
+                            });
+                            q.push(Q::MonsterDamage { src: i, base: big });
+                            (big, 2)
+                        };
+                        let _ = dmg;
+                        self.monsters[i].move_history.push(next as u8);
+                        self.monsters[i].next_move = next as u8;
+                    }
+                    2 => {
+                        let block = smoke + if self.ascension >= 17 { 6 } else { 0 };
+                        q.push(Q::MonsterBlock {
+                            target: i,
+                            amount: block,
+                        });
+                        self.monsters[i].move_history.push(3);
+                        self.monsters[i].next_move = 3;
+                    }
+                    3 => q.push(Q::MonsterEscape { src: i }),
+                    _ => {}
+                }
+            }
+            // 咬人蛇草：1=撕咬×3  2=孢子（脆弱+虚弱）
+            MonsterKind::SnakePlant => match m.next_move {
+                1 => {
+                    for _ in 0..m.thrash_dmg {
+                        q.push(Q::MonsterDamage {
+                            src: i,
+                            base: m.chomp_dmg,
+                        });
+                    }
+                }
+                2 => {
+                    q.push(Q::ApplyPowerToPlayerFromMonster {
+                        kind: PowerKind::Frail,
+                        amount: m.bellow_str,
+                    });
+                    q.push(Q::ApplyPowerToPlayerFromMonster {
+                        kind: PowerKind::Weak,
+                        amount: m.bellow_block,
+                    });
+                }
+                _ => {}
+            },
+            // 斯涅克：1=瞪视（混乱）  2=咬  3=尾击+弱/易
+            MonsterKind::Snecko => match m.next_move {
+                1 => q.push(Q::ApplyPowerToPlayerFromMonster {
+                    kind: PowerKind::Confusion,
+                    amount: 1,
+                }),
+                2 => q.push(Q::MonsterDamage {
+                    src: i,
+                    base: m.chomp_dmg,
+                }),
+                3 => {
+                    q.push(Q::MonsterDamage {
+                        src: i,
+                        base: m.thrash_dmg,
+                    });
+                    let kind = if self.ascension >= 17 {
+                        PowerKind::Weak
+                    } else {
+                        PowerKind::Vulnerable
+                    };
+                    q.push(Q::ApplyPowerToPlayerFromMonster {
+                        kind,
+                        amount: m.bellow_str,
+                    });
+                }
+                _ => {}
+            },
+            // 百夫长：1=斩击  2=护卫（随机其他怪格挡）  3=狂怒×3
+            MonsterKind::Centurion => match m.next_move {
+                1 => q.push(Q::MonsterDamage {
+                    src: i,
+                    base: m.chomp_dmg,
+                }),
+                2 => q.push(Q::MonsterBlockRandomOther {
+                    src: i,
+                    amount: m.bellow_block,
+                }),
+                3 => {
+                    for _ in 0..m.thrash_block {
+                        q.push(Q::MonsterDamage {
+                            src: i,
+                            base: m.thrash_dmg,
+                        });
+                    }
+                }
+                _ => {}
+            },
+            // 拜蛇教祭司：1=魔法+脆弱  2=群体治疗  3=群体力量
+            MonsterKind::Healer => match m.next_move {
+                1 => {
+                    q.push(Q::MonsterDamage {
+                        src: i,
+                        base: m.chomp_dmg,
+                    });
+                    q.push(Q::ApplyPowerToPlayerFromMonster {
+                        kind: PowerKind::Frail,
+                        amount: m.bellow_block,
+                    });
+                }
+                2 => q.push(Q::HealAllMonsters(m.thrash_dmg)),
+                3 => q.push(Q::StrAllMonsters(m.thrash_block)),
+                _ => {}
+            },
             MonsterKind::FungiBeast => match m.next_move {
                 1 => q.push(Q::MonsterDamage {
                     src: i,
@@ -2519,10 +2907,7 @@ impl Combat {
                             self.monsters[target].creature.block += amt;
                         }
                     }
-                    self.monsters[target].creature.apply_damage(dmg);
-                    if self.monsters[target].creature.is_dead() {
-                        self.on_monster_death(target);
-                    }
+                    self.hit_monster(target, dmg, DamageType::Normal);
                 }
             }
             Q::MonsterDamage { src, base } => {
@@ -2554,10 +2939,7 @@ impl Combat {
                     .map(|pw| pw.amount)
                 {
                     if amt > 0 && self.alive(src) {
-                        self.monsters[src].creature.apply_damage(amt);
-                        if self.monsters[src].creature.is_dead() {
-                            self.on_monster_death(src);
-                        }
+                        self.hit_monster(src, amt, DamageType::Normal);
                     }
                 }
             }
@@ -2573,6 +2955,23 @@ impl Combat {
                 amount,
             } => {
                 if self.alive(target) {
+                    // 怪物侧神器（SphericGuardian）：DEBUFF 被抵消
+                    if kind.is_debuff() {
+                        if let Some(idx) = self.monsters[target]
+                            .creature
+                            .powers
+                            .iter()
+                            .position(|pw| pw.kind == PowerKind::Artifact)
+                        {
+                            if self.monsters[target].creature.powers[idx].amount > 0 {
+                                self.monsters[target].creature.powers[idx].amount -= 1;
+                                if self.monsters[target].creature.powers[idx].amount == 0 {
+                                    self.monsters[target].creature.powers.remove(idx);
+                                }
+                                return;
+                            }
+                        }
+                    }
                     apply_power(
                         &mut self.monsters[target].creature.powers,
                         kind,
@@ -2618,10 +3017,7 @@ impl Combat {
                         &self.monsters[t].creature.powers,
                         self.player.stance,
                     );
-                    self.monsters[t].creature.apply_damage(d);
-                    if self.monsters[t].creature.is_dead() {
-                        self.on_monster_death(t);
-                    }
+                    self.hit_monster(t, d, DamageType::Normal);
                 }
             }
             Q::MakeInHand(c) => {
@@ -2749,12 +3145,10 @@ impl Combat {
                         &self.monsters[target].creature.powers,
                         self.player.stance,
                     );
-                    self.monsters[target].creature.apply_damage(d);
-                    // Wallop：获得格挡 = 实际伤害
-                    self.player.creature.block += d;
-                    if self.monsters[target].creature.is_dead() {
-                        self.on_monster_death(target);
-                    }
+                    let hp0 = self.monsters[target].creature.hp;
+                    self.hit_monster(target, d, DamageType::Normal);
+                    // Wallop：获得格挡 = 实际掉血
+                    self.player.creature.block += (hp0 - self.monsters[target].creature.hp).max(0);
                 }
             }
             Q::DoExecuteEnemy { target, cutoff } => {
@@ -2806,12 +3200,10 @@ impl Combat {
                         &self.monsters[target].creature.powers,
                         self.player.stance,
                     );
-                    self.monsters[target].creature.apply_damage(d);
-                    if self.monsters[target].creature.is_dead() {
+                    if self.hit_monster(target, d, DamageType::Normal) {
                         // FeedAction：击杀时增加最大生命
                         self.player.creature.max_hp += max_hp_gain;
                         self.player.creature.hp += max_hp_gain;
-                        self.on_monster_death(target);
                     }
                 }
             }
@@ -2917,10 +3309,7 @@ impl Combat {
                             if let Some(m) = alive.len().checked_sub(1) {
                                 let roll = self.rng.card_random.random_start_end(0, m as i32);
                                 let t = alive[(roll.max(0) as usize).min(alive.len() - 1)];
-                                self.monsters[t].creature.apply_damage(passive);
-                                if self.monsters[t].creature.is_dead() {
-                                    self.on_monster_death(t);
-                                }
+                                self.hit_monster(t, passive, DamageType::Normal);
                             }
                         }
                         crate::state::OrbKind::Dark => self.player.orbs[mi].dark_growth += passive,
@@ -3212,11 +3601,9 @@ impl Combat {
                             &self.monsters[mi].creature.powers,
                             self.player.stance,
                         );
-                        self.monsters[mi].creature.apply_damage(d);
-                        total += d;
-                        if self.monsters[mi].creature.is_dead() {
-                            self.on_monster_death(mi);
-                        }
+                        let hp0 = self.monsters[mi].creature.hp;
+                        self.hit_monster(mi, d, DamageType::Normal);
+                        total += (hp0 - self.monsters[mi].creature.hp).max(0);
                     }
                 }
                 if total > 0 {
@@ -3262,10 +3649,7 @@ impl Combat {
                         &self.monsters[target].creature.powers,
                         self.player.stance,
                     );
-                    self.monsters[target].creature.apply_damage(d);
-                    if self.monsters[target].creature.is_dead() {
-                        self.on_monster_death(target);
-                    }
+                    self.hit_monster(target, d, DamageType::Normal);
                 }
             }
             Q::ExhaustNonAttacks { block_per } => {
@@ -3294,9 +3678,7 @@ impl Combat {
                             &self.monsters[target].creature.powers,
                             self.player.stance,
                         );
-                        self.monsters[target].creature.apply_damage(d);
-                        if self.monsters[target].creature.is_dead() {
-                            self.on_monster_death(target);
+                        if self.hit_monster(target, d, DamageType::Normal) || self.over {
                             break;
                         }
                     }
@@ -3306,16 +3688,13 @@ impl Combat {
             // —— 药水系统 exec ——
             Q::DamagePure { target, dmg } => {
                 if self.alive(target) {
-                    self.monsters[target].creature.apply_damage(dmg);
-                    if self.monsters[target].creature.is_dead() {
-                        self.on_monster_death(target);
-                    }
+                    self.hit_monster(target, dmg, DamageType::Normal);
                 }
             }
             Q::DamageAllPure { dmg } => {
                 for mi in 0..self.monsters.len() {
                     if self.alive(mi) {
-                        self.monsters[mi].creature.apply_damage(dmg);
+                        self.hit_monster(mi, dmg, DamageType::Thorns);
                         if self.monsters[mi].creature.is_dead() {
                             self.on_monster_death(mi);
                             if self.over {
@@ -3474,6 +3853,89 @@ impl Combat {
                     }
                 }
             }
+            Q::MonsterBlockRandomOther { src, amount } => {
+                // GainBlockRandomMonsterAction：排除自己/逃跑/死亡，空则给自己
+                let candidates: Vec<usize> = (0..self.monsters.len())
+                    .filter(|&m| m != src && self.alive(m))
+                    .collect();
+                let target = if candidates.is_empty() {
+                    src
+                } else {
+                    let roll = self.rng.ai.random_range(candidates.len() as i32 - 1);
+                    candidates[(roll.max(0) as usize).min(candidates.len() - 1)]
+                };
+                self.monsters[target].creature.block += amount;
+            }
+            Q::HealAllMonsters(amount) => {
+                for mi in 0..self.monsters.len() {
+                    if self.alive(mi) {
+                        let cr = &mut self.monsters[mi].creature;
+                        cr.hp = (cr.hp + amount).min(cr.max_hp);
+                    }
+                }
+            }
+            Q::StrAllMonsters(amount) => {
+                for mi in 0..self.monsters.len() {
+                    if self.alive(mi) {
+                        apply_power(
+                            &mut self.monsters[mi].creature.powers,
+                            PowerKind::Strength,
+                            amount,
+                            false,
+                            false,
+                        );
+                    }
+                }
+            }
+            Q::MonsterVampire { src, base } => {
+                if self.alive(src) {
+                    let d = calc_monster_damage(
+                        base,
+                        DamageType::Normal,
+                        &self.monsters[src].creature.powers,
+                        &self.player.creature.powers,
+                        self.player.stance,
+                    );
+                    let p_hp0 = self.player.creature.hp;
+                    // VampireDamageAction：对玩家造成伤害，治疗=实际掉血
+                    // （无形截断与瓶中精灵与 MonsterDamage 同构）
+                    if self
+                        .player
+                        .creature
+                        .powers
+                        .iter()
+                        .any(|p| p.kind == PowerKind::IntangiblePlayer)
+                        && d > 1
+                    {
+                        self.player.creature.apply_damage(1);
+                    } else {
+                        self.player.creature.apply_damage(d);
+                    }
+                    let healed = (p_hp0 - self.player.creature.hp).max(0);
+                    if self.player.creature.is_dead() && !self.fairy_rescue() {
+                        self.over = true;
+                        self.won = false;
+                        return;
+                    }
+                    if healed > 0 {
+                        let cr = &mut self.monsters[src].creature;
+                        cr.hp = (cr.hp + healed).min(cr.max_hp);
+                    }
+                }
+            }
+            Q::StealGold { src, amount } => {
+                let steal = amount.min(self.gold).max(0);
+                self.gold -= steal;
+                self.monsters[src].burn_upgraded += steal;
+            }
+            Q::MonsterEscape { src } => {
+                // EscapeAction：离场；不触发亡语；全员离场=战斗结束
+                self.monsters[src].escaped = true;
+                if self.all_monsters_dead() {
+                    self.over = true;
+                    self.won = true;
+                }
+            }
             Q::PlayerFlatDamage(n) => {
                 // Burn.use（dontTriggerOnUseCard）：THORNS 直伤 —— 无乘区；
                 // 无形 atDamageFinalReceive 截断 >1 → 1；格挡吸收；可触发瓶中精灵
@@ -3523,22 +3985,18 @@ impl Combat {
                     .map(|m| self.rng.card_random.random_start_end(0, m as i32))
                 {
                     let t = alive[(roll.max(0) as usize).min(alive.len() - 1)];
-                    self.monsters[t].creature.apply_damage(evoke);
-                    if self.monsters[t].creature.is_dead() {
-                        self.on_monster_death(t);
-                    }
+                    self.hit_monster(t, evoke, DamageType::Normal);
                 }
             }
             crate::state::OrbKind::Dark => {
                 // DarkOrbEvokeAction：对所有敌人造成伤害（THORNS 类型）
                 for mi in 0..self.monsters.len() {
                     if self.alive(mi) {
-                        self.monsters[mi].creature.apply_damage(evoke);
+                        self.hit_monster(mi, evoke, DamageType::Thorns);
+                        if self.over {
+                            return;
+                        }
                     }
-                }
-                if self.all_monsters_dead() {
-                    self.over = true;
-                    self.won = true;
                 }
             }
             crate::state::OrbKind::Plasma => {
@@ -3563,6 +4021,81 @@ impl Combat {
             self.over = true;
             self.won = true;
         }
+    }
+
+    /// 怪物受伤统一入口（AbstractMonster.damage + powers 钩子管线，Act 2 起）。
+    /// 钩子清单：
+    /// - CurlUp：非致死伤害获得格挡后移除（先于扣血，吸收本次）
+    /// - Flight：非致死 NORMAL 受击 -1 层；归零移除 → Byrd GROUNDED（眩晕）
+    /// - Malleable：非致死 NORMAL 受击 → +amount 格挡且 amount+1
+    /// - PlatedArmor（怪物侧）：实际掉血 → -1；归零移除 → 灼壳寄生生 ARMOR_BREAK
+    ///
+    /// 返回是否死亡（含亡语/终局判定）；THORNS/HP_LOSS 不触发受击钩子
+    fn hit_monster(&mut self, target: usize, dmg: i32, ty: DamageType) -> bool {
+        if !self.alive(target) {
+            return false;
+        }
+        let mut grounded = false;
+        let mut armor_broke = false;
+        {
+            let m = &mut self.monsters[target];
+            let cr = &mut m.creature;
+            if dmg > 0 && dmg < cr.hp {
+                if let Some(idx) = cr.powers.iter().position(|p| p.kind == PowerKind::CurlUp) {
+                    let amt = cr.powers[idx].amount;
+                    cr.powers.remove(idx);
+                    cr.block += amt;
+                }
+            }
+            let hp_before = cr.hp;
+            cr.apply_damage(dmg);
+            let alive_after = cr.hp > 0;
+            let hp_lost = hp_before - cr.hp;
+            if alive_after && dmg > 0 && ty == DamageType::Normal {
+                if let Some(idx) = cr.powers.iter().position(|p| p.kind == PowerKind::Flight) {
+                    cr.powers[idx].amount -= 1;
+                    if cr.powers[idx].amount <= 0 {
+                        cr.powers.remove(idx);
+                        grounded = true;
+                    }
+                }
+                if let Some(idx) = cr
+                    .powers
+                    .iter()
+                    .position(|p| p.kind == PowerKind::Malleable)
+                {
+                    let b = cr.powers[idx].amount;
+                    cr.powers[idx].amount += 1;
+                    cr.block += b;
+                }
+            }
+            if hp_lost > 0 && ty != DamageType::HpLoss && ty != DamageType::Thorns {
+                if let Some(idx) = cr
+                    .powers
+                    .iter()
+                    .position(|p| p.kind == PowerKind::PlatedArmor)
+                {
+                    cr.powers[idx].amount -= 1;
+                    if cr.powers[idx].amount <= 0 {
+                        cr.powers.remove(idx);
+                        armor_broke = true;
+                    }
+                }
+            }
+        }
+        // 换态：GROUNDED/ARMOR_BREAK → 眩晕一回合（setMove(4)，RollMove 后自然接续）
+        if grounded || armor_broke {
+            let stunned_by_break = armor_broke || self.monsters[target].kind == MonsterKind::Byrd;
+            if stunned_by_break {
+                self.monsters[target].next_move = 4;
+                self.monsters[target].move_history.push(4);
+            }
+        }
+        if self.monsters[target].creature.is_dead() {
+            self.on_monster_death(target);
+            return true;
+        }
+        false
     }
 
     /// 对玩家施加 power：神器（Artifact）可抵消减益（Vulnerable/Weak/Frail/Poison）
@@ -3646,6 +4179,13 @@ impl Combat {
         if self.player.hand.len() >= 10 {
             return; // createHandIsFullDialog：完全停止
         }
+        // Confusion（Snecko 瞪视）：抽牌费用 0..3 重掷（永改，cardRandomRng）
+        let confused = self
+            .player
+            .creature
+            .powers
+            .iter()
+            .any(|p| p.kind == PowerKind::Confusion);
         let space = 10 - self.player.hand.len();
         let mut left = n.min(space); // 截断到 10
         while left > 0 {
@@ -3657,7 +4197,16 @@ impl Combat {
                 card_group_shuffle(&mut pile, &mut self.rng.shuffle);
                 self.player.draw = pile;
             }
-            let c = self.player.draw.pop().unwrap();
+            let mut c = self.player.draw.pop().unwrap();
+            if confused {
+                let cur = c.def.cost.unwrap_or(-2);
+                if cur >= 0 {
+                    let new_cost = self.rng.card_random.random_range(3);
+                    if cur + c.cost_delta != new_cost {
+                        c.cost_delta = new_cost - cur;
+                    }
+                }
+            }
             self.player.hand.push(c);
             left -= 1;
         }
@@ -3676,6 +4225,253 @@ impl Combat {
             3 => 3,
             _ => 6,
         }
+    }
+
+    /// SphericGuardian.getMove：首招充能，次招脆化，上次重击→硬化，否则重击
+    fn spheric_guardian_get_move(&mut self, i: usize) -> u8 {
+        let m = &self.monsters[i];
+        if m.first_move {
+            2
+        } else if m.move_history.len() == 1 {
+            4 // secondMove 一次性标志
+        } else if m.move_history.last() == Some(&1) {
+            3
+        } else {
+            1
+        }
+    }
+
+    /// Chosen.getMove：A17 首招即咒缚；否则首招戳刺，第二招咒缚；
+    /// 之后衰弱/汲取交替 → 电击/戳刺
+    fn chosen_get_move(&mut self, i: usize, num: i32) -> u8 {
+        let used_hex = self.monsters[i].move_history.contains(&4);
+        let a17 = self.ascension >= 17;
+        if !a17 && self.monsters[i].first_move {
+            return 5; // POKE ×2 起手
+        }
+        if !used_hex {
+            return 4;
+        }
+        let m = &self.monsters[i];
+        let last = m.move_history.last().copied();
+        if last != Some(3) && last != Some(2) {
+            return if num < 50 { 3 } else { 2 };
+        }
+        if num < 40 {
+            1
+        } else {
+            5
+        }
+    }
+
+    /// ShelledParasite.getMove：首招 A17=猛击，否则 randomBoolean 定双重/吸取；
+    /// num<20 且非重复猛击时重掣（递归的循环等价，每次消耗 aiRng）
+    fn shelled_parasite_get_move(&mut self, i: usize, num: i32) -> u8 {
+        if self.monsters[i].first_move {
+            if self.ascension >= 17 {
+                return 1;
+            }
+            return if self.rng.ai.random_boolean() { 2 } else { 3 };
+        }
+        let mut num = num;
+        loop {
+            let m = &self.monsters[i];
+            let last = m.move_history.last().copied();
+            let last2 = if m.move_history.len() >= 2 {
+                Some(m.move_history[m.move_history.len() - 2])
+            } else {
+                None
+            };
+            if num < 20 {
+                if last != Some(1) {
+                    return 1;
+                }
+                num = self.rng.ai.random_start_end(20, 99);
+            } else if num < 60 {
+                if !(last == Some(2) && last2 == Some(2)) {
+                    return 2;
+                }
+                return 3;
+            } else if !(last == Some(3) && last2 == Some(3)) {
+                return 3;
+            } else {
+                return 2;
+            }
+        }
+    }
+
+    /// Byrd.getMove：飞行中按 num 分段；首招与多处分支额外消耗 aiRng；
+    /// 落地（无飞行）恒头槌
+    fn byrd_get_move(&mut self, i: usize, num: i32) -> u8 {
+        let flying = self.monsters[i]
+            .creature
+            .powers
+            .iter()
+            .any(|p| p.kind == PowerKind::Flight);
+        if self.monsters[i].first_move {
+            return if self.rng.ai.random_boolean_chance(0.375) {
+                6
+            } else {
+                1
+            };
+        }
+        if !flying {
+            return 5;
+        }
+        let m = &self.monsters[i];
+        let last = m.move_history.last().copied();
+        let last2 = if m.move_history.len() >= 2 {
+            Some(m.move_history[m.move_history.len() - 2])
+        } else {
+            None
+        };
+        let last_two_peck = last == Some(1) && last2 == Some(1);
+        if num < 50 {
+            if last_two_peck {
+                if self.rng.ai.random_boolean_chance(0.4) {
+                    3
+                } else {
+                    6
+                }
+            } else {
+                1
+            }
+        } else if num < 70 {
+            if last == Some(3) {
+                if self.rng.ai.random_boolean_chance(0.375) {
+                    6
+                } else {
+                    1
+                }
+            } else {
+                3
+            }
+        } else if last == Some(6) {
+            if self.rng.ai.random_boolean_chance(0.2857) {
+                3
+            } else {
+                1
+            }
+        } else {
+            6
+        }
+    }
+
+    /// SnakePlant.getMove：num<65 且非连续两次撕咬 → 撕咬；否则孢子
+    /// （A17 else 分支额外看 lastMoveBefore）
+    fn snake_plant_get_move(&mut self, i: usize, num: i32) -> u8 {
+        let m = &self.monsters[i];
+        let last = m.move_history.last().copied();
+        let last2 = if m.move_history.len() >= 2 {
+            Some(m.move_history[m.move_history.len() - 2])
+        } else {
+            None
+        };
+        if num < 65 {
+            if last == Some(1) && last2 == Some(1) {
+                2
+            } else {
+                1
+            }
+        } else if self.ascension >= 17 {
+            if last == Some(2) || last2 == Some(2) {
+                1
+            } else {
+                2
+            }
+        } else if last == Some(2) {
+            1
+        } else {
+            2
+        }
+    }
+
+    /// Snecko.getMove：首招瞪视（混乱）；num<40 或连续两次咬 → 尾击；否则咬
+    fn snecko_get_move(&mut self, i: usize, num: i32) -> u8 {
+        if self.monsters[i].first_move {
+            return 1;
+        }
+        let m = &self.monsters[i];
+        let last = m.move_history.last().copied();
+        let last2 = if m.move_history.len() >= 2 {
+            Some(m.move_history[m.move_history.len() - 2])
+        } else {
+            None
+        };
+        if num < 40 || (last == Some(2) && last2 == Some(2)) {
+            3
+        } else {
+            2
+        }
+    }
+
+    /// Centurion.getMove：num>=65 且近两招非护卫/狂怒 → 有人护卫否则狂怒；
+    /// 近两招非斩击 → 斩击；否则护卫/狂怒
+    fn centurion_get_move(&mut self, i: usize, num: i32) -> u8 {
+        let others_alive = self
+            .monsters
+            .iter()
+            .filter(|m| !m.creature.is_dead() && !m.escaped)
+            .count()
+            > 1;
+        let m = &self.monsters[i];
+        let last = m.move_history.last().copied();
+        let last2 = if m.move_history.len() >= 2 {
+            Some(m.move_history[m.move_history.len() - 2])
+        } else {
+            None
+        };
+        let last_two = |x: u8| last == Some(x) && last2 == Some(x);
+        if num >= 65 && !last_two(2) && !last_two(3) {
+            if others_alive {
+                return 2;
+            }
+            return 3;
+        }
+        if !last_two(1) {
+            return 1;
+        }
+        if others_alive {
+            2
+        } else {
+            3
+        }
+    }
+
+    /// Healer.getMove：缺口血量（全员含己）超阈→治疗；否则 num>=40→攻击；
+    /// 否则增益；A17 阈值 20/lastMove(1)，普通 15/lastTwoMoves(1)
+    fn healer_get_move(&mut self, i: usize, num: i32) -> u8 {
+        let need_to_heal: i32 = self
+            .monsters
+            .iter()
+            .filter(|m| !m.creature.is_dead() && !m.escaped)
+            .map(|m| m.creature.max_hp - m.creature.hp)
+            .sum();
+        let m = &self.monsters[i];
+        let last = m.move_history.last().copied();
+        let last2 = if m.move_history.len() >= 2 {
+            Some(m.move_history[m.move_history.len() - 2])
+        } else {
+            None
+        };
+        let last_two_heal = last == Some(2) && last2 == Some(2);
+        let last_two_atk = last == Some(1) && last2 == Some(1);
+        let last_two_buff = last == Some(3) && last2 == Some(3);
+        let (heal_threshold, atk_cond) = if self.ascension >= 17 {
+            (20, last != Some(1))
+        } else {
+            (15, !last_two_atk)
+        };
+        if need_to_heal > heal_threshold && !last_two_heal {
+            return 2;
+        }
+        if num >= 40 && atk_cond {
+            return 1;
+        }
+        if !last_two_buff {
+            return 3;
+        }
+        1
     }
 
     /// 意图决策（逐行对照各怪 getMove；num = aiRng.random(99)）
@@ -3712,6 +4508,15 @@ impl Combat {
             MonsterKind::Guardian => self.guardian_get_move(i),
             MonsterKind::SlimeBoss => self.slime_boss_get_move(i),
             MonsterKind::Hexaghost => self.hexaghost_get_move(i),
+            MonsterKind::SphericGuardian => self.spheric_guardian_get_move(i),
+            MonsterKind::Chosen => self.chosen_get_move(i, num),
+            MonsterKind::ShelledParasite => self.shelled_parasite_get_move(i, num),
+            MonsterKind::Byrd => self.byrd_get_move(i, num),
+            MonsterKind::Mugger => 1, // getMove 恒 MUG；后续由 takeTurn 驱动
+            MonsterKind::SnakePlant => self.snake_plant_get_move(i, num),
+            MonsterKind::Snecko => self.snecko_get_move(i, num),
+            MonsterKind::Centurion => self.centurion_get_move(i, num),
+            MonsterKind::Healer => self.healer_get_move(i, num),
         };
         self.monsters[i].first_move = false;
         self.monsters[i].move_history.push(mv);
@@ -5345,6 +6150,315 @@ mod tests {
         c.player.creature.hp = 500;
         c.player.hand.clear();
         c
+    }
+
+    // ══════════════ Act 2（TheCity）普通遭遇 ══════════════
+
+    fn m_amount(c: &Combat, i: usize, k: PowerKind) -> Option<i32> {
+        c.monsters[i]
+            .creature
+            .powers
+            .iter()
+            .find(|p| p.kind == k)
+            .map(|p| p.amount)
+    }
+
+    /// 战前状态：球体（壁垒+神器+40甲）、灼壳（护甲14+14甲）、伯德（飞行）、蛇草（可延展）
+    #[test]
+    fn act2_prebattle_states() {
+        let sg = Combat::new_with(1, 20, &[MonsterKind::SphericGuardian]);
+        assert_eq!(sg.monsters[0].creature.max_hp, 20, "HP 固定 20");
+        assert_eq!(sg.monsters[0].creature.block, 40);
+        assert!(m_amount(&sg, 0, PowerKind::Barricade).is_some());
+        assert_eq!(m_amount(&sg, 0, PowerKind::Artifact), Some(3));
+        assert_eq!(sg.monsters[0].chomp_dmg, 11, "A2+ 伤害");
+
+        let sp = Combat::new_with(1, 20, &[MonsterKind::ShelledParasite]);
+        assert_eq!(sp.monsters[0].creature.block, 14);
+        assert_eq!(m_amount(&sp, 0, PowerKind::PlatedArmor), Some(14));
+
+        let byrd = Combat::new_with(1, 20, &[MonsterKind::Byrd]);
+        assert_eq!(
+            m_amount(&byrd, 0, PowerKind::Flight),
+            Some(4),
+            "A17+ 飞行 4"
+        );
+
+        let snake = Combat::new_with(1, 20, &[MonsterKind::SnakePlant]);
+        assert_eq!(m_amount(&snake, 0, PowerKind::Malleable), Some(3));
+    }
+
+    /// 球体守护者：首招充能(25)，次招脆化，壁垒保甲；神器抵消减益
+    #[test]
+    fn spheric_guardian_cycle() {
+        let mut c = Combat::new_with(3, 20, &[MonsterKind::SphericGuardian]);
+        assert_eq!(c.monsters[0].next_move, 2, "首招充能");
+        c.step(&Action::EndTurn);
+        assert_eq!(
+            c.monsters[0].creature.block,
+            40 + 35,
+            "壁垒保甲+充能(A17+35)"
+        );
+        assert_eq!(c.monsters[0].next_move, 4, "次招脆化");
+        let hp0 = c.player.creature.hp;
+        c.step(&Action::EndTurn);
+        assert_eq!(c.player.creature.hp, hp0 - 11);
+        // 神器在球体自己身上（防对它的 debuff），本回合未被消耗
+        assert_eq!(m_amount(&c, 0, PowerKind::Artifact), Some(3));
+        // 玩家受到脆 5
+        assert!(c
+            .player
+            .creature
+            .powers
+            .iter()
+            .any(|p| p.kind == PowerKind::Frail));
+        // 下一招：上次 4（非 1）→ 1 重击 ×2
+        assert_eq!(c.monsters[0].next_move, 1);
+    }
+
+    /// 球体神器：对它施加的 debuff 被抵消
+    #[test]
+    fn spheric_guardian_artifact() {
+        let mut c = Combat::new_with(3, 20, &[MonsterKind::SphericGuardian]);
+        c.exec(Q::ApplyPowerToMonster {
+            target: 0,
+            kind: PowerKind::Weak,
+            amount: 2,
+        });
+        assert_eq!(m_amount(&c, 0, PowerKind::Weak), None, "被神器抵消");
+        assert_eq!(m_amount(&c, 0, PowerKind::Artifact), Some(2));
+    }
+
+    /// 天选者：非 A17 首招戳刺×2 → 咒缚；打出非攻击牌塞晕眩
+    #[test]
+    fn chosen_hex_flow() {
+        let mut c = Combat::new_with(5, 16, &[MonsterKind::Chosen]);
+        assert_eq!(c.monsters[0].next_move, 5, "非 A17 首招戳刺");
+        let hp0 = c.player.creature.hp;
+        c.step(&Action::EndTurn);
+        assert_eq!(c.player.creature.hp, hp0 - 6 * 2, "A2+ 戳刺 6×2");
+        assert_eq!(c.monsters[0].next_move, 4, "次招咒缚");
+        c.step(&Action::EndTurn);
+        assert!(c
+            .player
+            .creature
+            .powers
+            .iter()
+            .any(|p| p.kind == PowerKind::Hex));
+        // 打出非攻击牌 → 1 张晕眩随机入抽牌堆
+        force_hand(&mut c, &["Defend_R"]);
+        let draw0 = c.player.draw.len();
+        c.step(&Action::PlayCard {
+            index: 0,
+            target: None,
+        });
+        assert_eq!(c.player.draw.len(), draw0 + 1);
+        assert_eq!(
+            c.player.draw.iter().filter(|x| x.def.id == "Dazed").count(),
+            1
+        );
+        // A17：首招直接咒缚
+        let a17 = Combat::new_with(5, 17, &[MonsterKind::Chosen]);
+        assert_eq!(a17.monsters[0].next_move, 4);
+    }
+
+    /// 灼壳寄生生：吸血按实际掉血治疗；护甲被打穿 → 破甲眩晕
+    #[test]
+    fn shelled_parasite_armor_break() {
+        let mut c = Combat::new_with(7, 20, &[MonsterKind::ShelledParasite]);
+        assert_eq!(c.monsters[0].next_move, 1, "A17 首招猛击");
+        // 玩家猛击：护甲 -1/次掉血
+        c.exec(Q::DamageMonster { target: 0, dmg: 20 });
+        // 20 打 14 甲+14 护甲：block 14 吸 14 → hp -6 → 护甲 power -1
+        assert_eq!(m_amount(&c, 0, PowerKind::PlatedArmor), Some(13));
+        // 吸血招（手动 exec）
+        let hp0 = c.monsters[0].creature.hp;
+        let php0 = c.player.creature.hp;
+        c.exec(Q::MonsterVampire { src: 0, base: 12 });
+        assert_eq!(c.player.creature.hp, php0 - 12);
+        assert_eq!(
+            c.monsters[0].creature.hp,
+            (hp0 + 12).min(c.monsters[0].creature.max_hp)
+        );
+        // 连续打击至护甲归零 → 破甲眩晕（next_move=4）；先拉高血量避免先死
+        c.monsters[0].creature.max_hp = 500;
+        c.monsters[0].creature.hp = 500;
+        for _ in 0..14 {
+            c.exec(Q::DamageMonster { target: 0, dmg: 10 });
+        }
+        assert_eq!(m_amount(&c, 0, PowerKind::PlatedArmor), None);
+        assert_eq!(c.monsters[0].next_move, 4, "ARMOR_BREAK 眩晕");
+    }
+
+    /// 伯德鸟：飞行减半 + 受击掉层 → 落地眩晕 → 头槌 → 重新起飞
+    #[test]
+    fn byrd_flight_cycle() {
+        let mut c = Combat::new_with(9, 20, &[MonsterKind::Byrd]);
+        let flight0 = m_amount(&c, 0, PowerKind::Flight).unwrap();
+        // 打击 6 走出牌管线 → 飞行减半 3，掉 1 层飞行
+        force_hand(&mut c, &["Strike_R"]);
+        let hp0 = c.monsters[0].creature.hp;
+        c.step(&Action::PlayCard {
+            index: 0,
+            target: Some(0),
+        });
+        assert_eq!(c.monsters[0].creature.hp, hp0 - 3, "飞行减半");
+        assert_eq!(m_amount(&c, 0, PowerKind::Flight), Some(flight0 - 1));
+        // 打到 0 层 → GROUNDED 眩晕
+        for _ in 0..(flight0 - 1) {
+            c.exec(Q::DamageMonster { target: 0, dmg: 2 });
+        }
+        assert_eq!(m_amount(&c, 0, PowerKind::Flight), None);
+        assert_eq!(c.monsters[0].next_move, 4, "GROUNDED 眩晕");
+        // 眩晕回合（无动作）→ 头槌 → setMove(2) 无 RollMove
+        c.step(&Action::EndTurn);
+        assert_eq!(c.monsters[0].next_move, 5, "眩晕后头槌");
+        let hp0 = c.player.creature.hp;
+        c.step(&Action::EndTurn);
+        assert_eq!(c.player.creature.hp, hp0 - 3, "头槌 3");
+        assert_eq!(c.monsters[0].next_move, 2, "头槌后起飞");
+        // 起飞 → 恢复飞行
+        c.step(&Action::EndTurn);
+        assert_eq!(m_amount(&c, 0, PowerKind::Flight), Some(flight0));
+    }
+
+    /// 劫匪：偷金 → 抢劫×2 → 烟雾 → 逃离（战斗胜利，金币损失）
+    #[test]
+    fn mugger_chain_and_escape() {
+        let mut c = Combat::new_with(11, 20, &[MonsterKind::Mugger]);
+        let gold0 = c.gold;
+        assert_eq!(c.monsters[0].next_move, 1);
+        // 抢劫 1：伤害 11 + 偷 20（A17+）
+        let hp0 = c.player.creature.hp;
+        c.step(&Action::EndTurn);
+        assert_eq!(c.player.creature.hp, hp0 - 11);
+        assert_eq!(c.gold, gold0 - 20);
+        assert_eq!(c.monsters[0].next_move, 1, "第二次抢劫");
+        c.step(&Action::EndTurn);
+        // 第 2 次后按 aiRng 走烟雾(2) 或重扫(4)——两分支都最终到烟雾→逃离
+        for _ in 0..3 {
+            if c.over || c.monsters[0].escaped {
+                break;
+            }
+            c.step(&Action::EndTurn);
+        }
+        assert!(c.monsters[0].escaped, "最终逃离");
+        assert!(c.over && c.won, "全员离场=战斗结束（胜）");
+        let stolen = c.monsters[0].burn_upgraded;
+        assert!(stolen >= 40, "至少两次抢劫各 20");
+        assert_eq!(c.gold, gold0 - stolen, "偷走不归还（逃离路径）");
+    }
+
+    /// 咬人蛇草：可延展受击得甲递增（3→4→5）
+    #[test]
+    fn snake_plant_malleable() {
+        let mut c = Combat::new_with(13, 20, &[MonsterKind::SnakePlant]);
+        assert_eq!(c.monsters[0].next_move, 1, "首招多为撕咬");
+        c.exec(Q::DamageMonster { target: 0, dmg: 5 });
+        assert_eq!(c.monsters[0].creature.block, 3, "首次 +3");
+        // 第二次：5 伤先被 3 格挡吸收 2 → 掉 2 血，再 +4 格挡
+        c.exec(Q::DamageMonster { target: 0, dmg: 5 });
+        assert_eq!(c.monsters[0].creature.block, 4, "第二次 +4");
+        assert_eq!(m_amount(&c, 0, PowerKind::Malleable), Some(5), "递增到 5");
+    }
+
+    /// 斯涅克：首招瞪视上混乱；抽牌费用重掣（确定性、X 费不变）
+    #[test]
+    fn snecko_confusion() {
+        let mut c = Combat::new_with(15, 20, &[MonsterKind::Snecko]);
+        assert_eq!(c.monsters[0].next_move, 1, "首招瞪视");
+        c.step(&Action::EndTurn);
+        assert!(c
+            .player
+            .creature
+            .powers
+            .iter()
+            .any(|p| p.kind == PowerKind::Confusion));
+        // 抽 5 张：费用应全部落在 0..=3
+        c.player.hand.clear();
+        c.player.draw = ["Bash", "Strike_R", "Defend_R", "Whirlwind", "Bash"]
+            .iter()
+            .map(|id| CardInst::new(id))
+            .collect();
+        c.draw_cards(5);
+        let whirl = c
+            .player
+            .hand
+            .iter()
+            .find(|h| h.def.id == "Whirlwind")
+            .expect("抽上手");
+        assert_eq!(whirl.cost_pay(), -1, "X 费不变");
+        assert!(c
+            .player
+            .hand
+            .iter()
+            .filter(|h| h.def.id != "Whirlwind")
+            .all(|h| (0..=3).contains(&h.cost_pay())));
+    }
+
+    /// 百夫长护卫：给随机其他存活怪格挡；单独时给自己
+    #[test]
+    fn centurion_protect() {
+        let mut c = Combat::new_with(17, 20, &[MonsterKind::Centurion, MonsterKind::Healer]);
+        // 直接执行护卫（构造局面）
+        c.monsters[0].next_move = 2;
+        c.step(&Action::EndTurn);
+        // aiRng 选择的是 0 或 1；百夫长(0)不会是目标（排除自己）
+        assert_eq!(c.monsters[1].creature.block, 20, "A17 护卫 20 给队友");
+        assert_eq!(c.monsters[0].creature.block, 0);
+
+        let mut solo = Combat::new_with(17, 20, &[MonsterKind::Centurion]);
+        solo.monsters[0].next_move = 2;
+        solo.step(&Action::EndTurn);
+        assert_eq!(solo.monsters[0].creature.block, 20, "无人时给自己");
+    }
+
+    /// 祭司：缺口大时群疗 16；群力 +2/3
+    #[test]
+    fn healer_heals_and_buffs() {
+        let mut c = Combat::new_with(19, 20, &[MonsterKind::Centurion, MonsterKind::Healer]);
+        c.monsters[0].creature.hp -= 30; // 缺口 30 > 15 → 治疗优先
+        let hp0 = c.monsters[0].creature.hp;
+        c.monsters[1].next_move = 2;
+        c.step(&Action::EndTurn);
+        assert_eq!(c.monsters[0].creature.hp, hp0 + 16, "群疗 16");
+
+        let mut c2 = Combat::new_with(19, 16, &[MonsterKind::Healer]);
+        c2.monsters[0].next_move = 3;
+        c2.step(&Action::EndTurn);
+        assert_eq!(
+            m_amount(&c2, 0, PowerKind::Strength),
+            Some(2),
+            "非 A17 力量 2"
+        );
+    }
+
+    /// Act 2 全怪物同种子重放一致
+    #[test]
+    fn act2_replay_deterministic() {
+        let play = |seed: u64| {
+            let mut c = Combat::new_with(
+                seed,
+                20,
+                &[
+                    MonsterKind::Centurion,
+                    MonsterKind::Healer,
+                    MonsterKind::Byrd,
+                ],
+            );
+            c.player.creature.max_hp = 999;
+            c.player.creature.hp = 999;
+            c.player.hand.clear();
+            for _ in 0..10 {
+                if c.over {
+                    break;
+                }
+                c.step(&Action::EndTurn);
+            }
+            c.state_hash()
+        };
+        assert_eq!(play(21), play(21));
+        assert_ne!(play(21), play(22));
     }
 
     fn pamount_monster(c: &Combat, k: PowerKind) -> Option<i32> {

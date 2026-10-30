@@ -72,6 +72,19 @@ pub enum PowerKind {
     Duplication,
     /// 敏捷失效（DexLoss：EOT 敏捷 -amount 后移除自身，LoseDexterityPower.java）
     LoseDexterity,
+    // —— Act 2 怪物系（钩子在 combat 中实现） ——
+    /// 飞行（Flight：受方 atDamageFinalReceive NORMAL 伤害减半；
+    /// 每次非致死 NORMAL 受击 -1 层，归零移除 → Byrd GROUNDED 换态）
+    Flight,
+    /// 可延展（Malleable：每次非致死 NORMAL 受击获得 amount 格挡，
+    /// 且 amount+1 递增；无衰减）
+    Malleable,
+    /// 咒缚（Hex：玩家每打出一张非攻击牌，往抽牌堆随机位置塞
+    /// amount 张晕眩，HexPower.onUseCard）
+    Hex,
+    /// 混乱（Confusion：每次抽牌时费用在 0..3 重掣（永改，
+    /// cardRandomRng.random(3)，仅 cost>=0，ConfusionPower.onCardDraw）
+    Confusion,
 }
 
 impl PowerKind {
@@ -79,7 +92,12 @@ impl PowerKind {
     pub fn is_debuff(&self) -> bool {
         matches!(
             self,
-            PowerKind::Vulnerable | PowerKind::Weak | PowerKind::Frail | PowerKind::Poison
+            PowerKind::Vulnerable
+                | PowerKind::Weak
+                | PowerKind::Frail
+                | PowerKind::Poison
+                | PowerKind::Hex
+                | PowerKind::Confusion
         )
     }
 }
@@ -156,6 +174,10 @@ impl Power {
             PowerKind::PlatedArmor => "Plated Armor",
             PowerKind::Duplication => "DuplicationPower",
             PowerKind::LoseDexterity => "DexLoss",
+            PowerKind::Flight => "Flight",
+            PowerKind::Malleable => "Malleable",
+            PowerKind::Hex => "Hex",
+            PowerKind::Confusion => "Confusion",
         }
     }
 
@@ -196,14 +218,16 @@ impl Power {
         }
     }
 
-    /// atDamageFinalGive/FinalReceive：IntangiblePlayer 在此环节把伤害 >1 截为 1（源码无类型过滤）
+    /// atDamageFinalGive/FinalReceive：IntangiblePlayer 在此环节把伤害 >1 截为 1（源码无类型过滤）；
+    /// Flight（Byrd）在受方环节把 NORMAL 伤害减半（calculateDamageTakenAmount）
     pub fn at_damage_final_give(&self, dmg: f32, _ty: DamageType) -> f32 {
         dmg
     }
 
-    pub fn at_damage_final_receive(&self, dmg: f32, _ty: DamageType) -> f32 {
+    pub fn at_damage_final_receive(&self, dmg: f32, ty: DamageType) -> f32 {
         match self.kind {
             PowerKind::IntangiblePlayer if dmg > 1.0 => 1.0,
+            PowerKind::Flight if ty == DamageType::Normal => dmg / 2.0,
             _ => dmg,
         }
     }

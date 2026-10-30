@@ -214,6 +214,16 @@ pub enum MonsterKind {
     Guardian,
     SlimeBoss,
     Hexaghost,
+    // —— Act 2（TheCity）普通遭遇 ——
+    SphericGuardian,
+    Chosen,
+    ShelledParasite,
+    Byrd,
+    Mugger,
+    SnakePlant,
+    Snecko,
+    Centurion,
+    Healer,
 }
 
 /// 通用怪物状态（M2 覆盖：大颚虫、邪教徒；M3 走数据驱动定义表）
@@ -233,8 +243,10 @@ pub struct MonsterState {
     // 邪教徒
     pub dark_strike_dmg: i32,
     pub ritual_amt: i32,
-    /// Hexaghost：Inferno 后灼烙升级标志（0/1）
+    /// 通用计数器：Hexaghost=灼伤升级标志 / Mugger=已偷金币
     pub burn_upgraded: i32,
+    /// Mugger/Looter 逃离（不计死亡，不触发亡语；全员逃离=战斗结束）
+    pub escaped: bool,
 }
 
 impl MonsterState {
@@ -371,6 +383,151 @@ impl MonsterState {
                     (hp, (5, 2, 2, 1, 0, 6, 0))
                 }
             }
+            // 球形守护者：HP 固定 20；开局壁垒+神器3+40格挡（战斗外初始化见 new_with）
+            // 字段：chomp=伤害(10/11) thrash=充能格挡(25/35) thrash_block=硬化(15)
+            // bellow_str=脆弱(5)
+            MonsterKind::SphericGuardian => (
+                20,
+                (
+                    if ascension >= 2 { 11 } else { 10 },
+                    if ascension >= 17 { 35 } else { 25 },
+                    15,
+                    5,
+                    0,
+                    0,
+                    0,
+                ),
+            ),
+            // 天选者：chomp=电击(18/21) thrash=衰弱(10/12) thrash_block=戳刺(5/6)
+            // bellow_str=汲取力量(3) bellow_block=汲取虚弱(3) dark=易伤(2) ritual=咒缚(1)
+            MonsterKind::Chosen => {
+                let (lo, hi) = if ascension >= 7 { (98, 103) } else { (95, 99) };
+                (
+                    hp_rng.random_start_end(lo, hi),
+                    (
+                        if ascension >= 2 { 21 } else { 18 },
+                        if ascension >= 2 { 12 } else { 10 },
+                        if ascension >= 2 { 6 } else { 5 },
+                        3,
+                        3,
+                        2,
+                        1,
+                    ),
+                )
+            }
+            // 灼壳寄生虫：开局多层护甲14+14格挡；chomp=猛击(18/21)
+            // thrash=双重打击(6/7) thrash_block=吸取(10/12) bellow_str=脆弱(2)
+            MonsterKind::ShelledParasite => {
+                let (lo, hi) = if ascension >= 7 { (70, 75) } else { (68, 72) };
+                (
+                    hp_rng.random_start_end(lo, hi),
+                    (
+                        if ascension >= 2 { 21 } else { 18 },
+                        if ascension >= 2 { 7 } else { 6 },
+                        if ascension >= 2 { 12 } else { 10 },
+                        2,
+                        0,
+                        0,
+                        0,
+                    ),
+                )
+            }
+            // 伯德鸟：chomp=啄(1) thrash=俯冲(12/14) thrash_block=头槌(3)
+            // bellow_str=飞行层数(3/4) bellow_block=啄次数(5/6) ritual=鸣叫力量(1)
+            MonsterKind::Byrd => {
+                let (lo, hi) = if ascension >= 7 { (26, 33) } else { (25, 31) };
+                (
+                    hp_rng.random_start_end(lo, hi),
+                    (
+                        1,
+                        if ascension >= 2 { 14 } else { 12 },
+                        3,
+                        if ascension >= 17 { 4 } else { 3 },
+                        if ascension >= 2 { 6 } else { 5 },
+                        0,
+                        1,
+                    ),
+                )
+            }
+            // 劫匪：chomp=抢劫(10/11) thrash=重扫(16/18) thrash_block=烟雾(11)
+            // bellow_str=偷金(15/20)；A17 烟雾格挡+6
+            MonsterKind::Mugger => {
+                let (lo, hi) = if ascension >= 7 { (50, 54) } else { (48, 52) };
+                (
+                    hp_rng.random_start_end(lo, hi),
+                    (
+                        if ascension >= 2 { 11 } else { 10 },
+                        if ascension >= 2 { 18 } else { 16 },
+                        11,
+                        if ascension >= 17 { 20 } else { 15 },
+                        0,
+                        0,
+                        0,
+                    ),
+                )
+            }
+            // 咬人蛇草：chomp=撕咬(7/8)×3 bellow_str=孢子脆弱(2) bellow_block=孢子虚弱(2)
+            MonsterKind::SnakePlant => {
+                let (lo, hi) = if ascension >= 7 { (78, 82) } else { (75, 79) };
+                (
+                    hp_rng.random_start_end(lo, hi),
+                    (if ascension >= 2 { 8 } else { 7 }, 3, 0, 2, 2, 0, 0),
+                )
+            }
+            // 斯涅克：chomp=咬(15/18) thrash=尾击(8/10) bellow_str=易伤/虚弱(2)
+            MonsterKind::Snecko => {
+                let (lo, hi) = if ascension >= 7 {
+                    (120, 125)
+                } else {
+                    (114, 120)
+                };
+                (
+                    hp_rng.random_start_end(lo, hi),
+                    (
+                        if ascension >= 2 { 18 } else { 15 },
+                        if ascension >= 2 { 10 } else { 8 },
+                        0,
+                        2,
+                        0,
+                        0,
+                        0,
+                    ),
+                )
+            }
+            // 百夫长：chomp=斩击(12/14) thrash=狂怒(6/7)×3 bellow_str=段数(3)
+            // bellow_block=护卫格挡(15/20)
+            MonsterKind::Centurion => {
+                let (lo, hi) = if ascension >= 7 { (78, 83) } else { (76, 80) };
+                (
+                    hp_rng.random_start_end(lo, hi),
+                    (
+                        if ascension >= 2 { 14 } else { 12 },
+                        if ascension >= 2 { 7 } else { 6 },
+                        3,
+                        0,
+                        if ascension >= 17 { 20 } else { 15 },
+                        0,
+                        0,
+                    ),
+                )
+            }
+            // 拜蛇教祭司：chomp=魔法(8/9) thrash=治疗(16) bellow_str=力量(2/3)
+            // bellow_block=脆弱(2)
+            MonsterKind::Healer => {
+                let (lo, hi) = if ascension >= 7 { (50, 58) } else { (48, 56) };
+                (
+                    hp_rng.random_start_end(lo, hi),
+                    (
+                        if ascension >= 2 { 9 } else { 8 },
+                        16,
+                        if ascension >= 17 { 3 } else { 2 },
+                        2,
+                        0,
+                        0,
+                        0,
+                    ),
+                )
+            }
         };
         Self {
             kind,
@@ -385,8 +542,9 @@ impl MonsterState {
             bellow_block: fields.4,
             dark_strike_dmg: fields.5,
             ritual_amt: fields.6,
-            // Hexaghost：灼烙是否升级（Inferno 后置 1；其余怪构 0）
+            // 通用计数器：Hexaghost=灼伤升级标志 / Mugger=已偷金币；其余怪构 0
             burn_upgraded: 0,
+            escaped: false,
         }
     }
 
@@ -494,6 +652,52 @@ impl MonsterState {
                 4 | 6 => Intent::AttackDebuff, // Sear / Inferno
                 _ => Intent::Attack,           // Divider / Tackle
             },
+            MonsterKind::SphericGuardian => match self.next_move {
+                2 => Intent::Defend,
+                3 => Intent::AttackDefend,
+                4 => Intent::AttackDebuff,
+                _ => Intent::Attack,
+            },
+            MonsterKind::Chosen => match self.next_move {
+                2 | 4 => Intent::Debuff, // Drain / Hex（STRONG_DEBUFF 归 Debuff）
+                3 => Intent::AttackDebuff,
+                _ => Intent::Attack, // Zap / Poke
+            },
+            MonsterKind::ShelledParasite => match self.next_move {
+                1 => Intent::AttackDebuff,
+                2 => Intent::Attack,
+                3 => Intent::AttackBuff, // 吸取（吸血）
+                _ => Intent::Sleep,      // 破甲眩晕
+            },
+            MonsterKind::Byrd => match self.next_move {
+                2 => Intent::Unknown, // Go Airborne
+                4 => Intent::Sleep,   // 落地眩晕
+                6 => Intent::Buff,    // Caw
+                _ => Intent::Attack,  // Peck / Swoop / Headbutt
+            },
+            MonsterKind::Mugger => match self.next_move {
+                2 => Intent::Defend,
+                3 => Intent::Escape,
+                _ => Intent::Attack, // Mug / Big Swipe
+            },
+            MonsterKind::SnakePlant => match self.next_move {
+                2 => Intent::Debuff, // Spores
+                _ => Intent::Attack, // Chomp ×3
+            },
+            MonsterKind::Snecko => match self.next_move {
+                1 => Intent::Debuff, // Glare（混乱）
+                3 => Intent::AttackDebuff,
+                _ => Intent::Attack,
+            },
+            MonsterKind::Centurion => match self.next_move {
+                2 => Intent::Defend, // Protect
+                _ => Intent::Attack, // Slash / Fury
+            },
+            MonsterKind::Healer => match self.next_move {
+                1 => Intent::AttackDebuff,
+                2 | 3 => Intent::Buff, // Heal / Buff
+                _ => Intent::Attack,
+            },
         }
     }
 
@@ -567,6 +771,51 @@ impl MonsterState {
                 2 => Some(self.chomp_dmg),       // Tackle
                 4 => Some(self.dark_strike_dmg), // Sear = 6
                 6 => Some(self.thrash_dmg),      // Inferno 每段
+                _ => None,
+            },
+            MonsterKind::SphericGuardian => match self.next_move {
+                1 | 3 | 4 => Some(self.chomp_dmg),
+                _ => None,
+            },
+            MonsterKind::Chosen => match self.next_move {
+                1 => Some(self.chomp_dmg),
+                3 => Some(self.thrash_dmg),
+                5 => Some(self.thrash_block),
+                _ => None,
+            },
+            MonsterKind::ShelledParasite => match self.next_move {
+                1 => Some(self.chomp_dmg),
+                2 => Some(self.thrash_dmg),
+                3 => Some(self.thrash_block),
+                _ => None,
+            },
+            MonsterKind::Byrd => match self.next_move {
+                1 => Some(self.chomp_dmg),
+                3 => Some(self.thrash_dmg),
+                5 => Some(self.thrash_block),
+                _ => None,
+            },
+            MonsterKind::Mugger => match self.next_move {
+                1 => Some(self.chomp_dmg),
+                4 => Some(self.thrash_dmg),
+                _ => None,
+            },
+            MonsterKind::SnakePlant => match self.next_move {
+                1 => Some(self.chomp_dmg),
+                _ => None,
+            },
+            MonsterKind::Snecko => match self.next_move {
+                2 => Some(self.chomp_dmg),
+                3 => Some(self.thrash_dmg),
+                _ => None,
+            },
+            MonsterKind::Centurion => match self.next_move {
+                1 => Some(self.chomp_dmg),
+                3 => Some(self.thrash_dmg),
+                _ => None,
+            },
+            MonsterKind::Healer => match self.next_move {
+                1 => Some(self.chomp_dmg),
                 _ => None,
             },
         }
