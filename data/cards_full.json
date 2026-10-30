@@ -4,10 +4,10 @@
   "note": "use() 效果 DSL；Unsupported 需手移植"
  },
  "stats": {
-  "parsed": 263,
+  "parsed": 270,
   "parsed_branch": 56,
   "no_use": 0,
-  "unsupported": 56
+  "unsupported": 49
  },
  "data": [
   {
@@ -3307,13 +3307,12 @@
    },
    "effects": [
     {
-     "Unsupported": "ExpertiseAction"
+     "DrawToHand": {
+      "Const": "p"
+     }
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "ExpertiseAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Finisher",
@@ -6006,13 +6005,12 @@
    },
    "effects": [
     {
-     "Unsupported": "ExpertiseAction"
+     "DrawToHand": {
+      "Const": "p"
+     }
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "ExpertiseAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "SignatureMove",
@@ -6327,13 +6325,10 @@
    },
    "effects": [
     {
-     "Unsupported": "UnravelingAction"
+     "SetHandCostZero": 1
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "UnravelingAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Vault",
@@ -6780,13 +6775,20 @@
    },
    "effects": [
     {
-     "Unsupported": "BarrageAction"
+     "Repeat": [
+      "OrbCount",
+      [
+       {
+        "Damage": [
+         "Enemy",
+         "DamageBase"
+        ]
+       }
+      ]
+     ]
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "BarrageAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Beam Cell",
@@ -7429,13 +7431,10 @@
    },
    "effects": [
     {
-     "Unsupported": "DoubleEnergyAction"
+     "GainEnergy": "CurrentEnergy"
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "DoubleEnergyAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Dualcast",
@@ -7770,13 +7769,12 @@
      ]
     },
     {
-     "Unsupported": "ForTheEyesAction"
+     "IfIntentApplyWeak": {
+      "Const": "m"
+     }
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "ForTheEyesAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Heatsinks",
@@ -7859,13 +7857,10 @@
      "Block": "BlockBase"
     },
     {
-     "Unsupported": "BetterDiscardPileToHandAction"
+     "SelectDiscardToHand": 1
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "BetterDiscardPileToHandAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Hyperbeam",

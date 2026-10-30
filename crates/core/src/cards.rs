@@ -121,6 +121,8 @@ fn effect_supported(e: &Effect) -> bool {
         Effect::VampireMaxHp(x) => expr_ok(*x),
         Effect::IfStanceBlock(_, x) => expr_ok(*x),
         Effect::IfDiscardedGainEnergy(x) => expr_ok(*x),
+        Effect::DrawToHand(x) | Effect::IfIntentApplyWeak(x) => expr_ok(*x),
+        Effect::SelectDiscardToHand => true,
         Effect::SelectPutOnDeckTop
         | Effect::SelectPutOnDeckBottom
         | Effect::SelectExhaustToHand

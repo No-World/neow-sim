@@ -2384,8 +2384,8 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: Some(1),
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("ExpertiseAction")],
+        status: "parsed",
+        effects: &[Effect::DrawToHand(Expr::Const("p"))],
     },
     CardDef {
         id: "Finisher",
@@ -4360,8 +4360,8 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: Some(0),
         flags: &["exhaust"],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("ExpertiseAction")],
+        status: "parsed",
+        effects: &[Effect::DrawToHand(Expr::Const("p"))],
     },
     CardDef {
         id: "SignatureMove",
@@ -4584,8 +4584,8 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: Some(1),
         flags: &["exhaust"],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("UnravelingAction")],
+        status: "parsed",
+        effects: &[Effect::SetHandCostZero],
     },
     CardDef {
         id: "Vault",
@@ -4915,8 +4915,11 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("BarrageAction")],
+        status: "parsed",
+        effects: &[Effect::Repeat(
+            Expr::OrbCount,
+            &[Effect::Damage(Target::Enemy, Expr::DamageBase)],
+        )],
     },
     CardDef {
         id: "Beam Cell",
@@ -5363,8 +5366,8 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: Some(0),
         flags: &["exhaust"],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("DoubleEnergyAction")],
+        status: "parsed",
+        effects: &[Effect::GainEnergy(Expr::CurrentEnergy)],
     },
     CardDef {
         id: "Dualcast",
@@ -5590,10 +5593,10 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: Some(1),
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
+        status: "parsed",
         effects: &[
             Effect::Damage(Target::Enemy, Expr::DamageBase),
-            Effect::Unsupported("ForTheEyesAction"),
+            Effect::IfIntentApplyWeak(Expr::Const("m")),
         ],
     },
     CardDef {
@@ -5654,11 +5657,8 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &["exhaust"],
-        status: "unsupported",
-        effects: &[
-            Effect::Block(Expr::BlockBase),
-            Effect::Unsupported("BetterDiscardPileToHandAction"),
-        ],
+        status: "parsed",
+        effects: &[Effect::Block(Expr::BlockBase), Effect::SelectDiscardToHand],
     },
     CardDef {
         id: "Hyperbeam",

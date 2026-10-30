@@ -197,6 +197,18 @@ def classify_action(cls: str, args: str, consts: dict, overrides: dict, lvars: d
             else:
                 n = {"Raw": "-x"}
         return {"OrbSlots": n}
+    if cls == "ExpertiseAction":
+        return {"DrawToHand": expr(parts[0], consts, overrides, lvars) if parts else 3}
+    if cls == "DoubleEnergyAction":
+        return {"GainEnergy": "CurrentEnergy"}
+    if cls == "ForTheEyesAction":
+        return {"IfIntentApplyWeak": expr(parts[1], consts, overrides, lvars) if len(parts) > 1 else 1}
+    if cls == "BarrageAction":
+        return {"Repeat": ["OrbCount", [{"Damage": ["Enemy", "DamageBase"]}]]}
+    if cls == "BetterDiscardPileToHandAction":
+        return {"SelectDiscardToHand": 1}
+    if cls == "UnravelingAction":
+        return {"SetHandCostZero": 1}
     if cls == "GainEnergyIfDiscardAction":
         return {"IfDiscardedGainEnergy": expr(parts[0], consts, overrides, lvars) if parts else 2}
     if cls == "PutOnDeckAction":

@@ -32,6 +32,10 @@ pub enum Expr {
     HandSize,
     /// 当前抽牌堆数（运行时求值）
     DrawPileSize,
+    /// 当前能量（运行时求值）
+    CurrentEnergy,
+    /// 已填充充能球数（运行时求值）
+    OrbCount,
     Const(&'static str),
     /// 未解析表达式（待手移植）
     Raw(&'static str),
@@ -120,6 +124,12 @@ pub enum Effect {
     SelectExhaustToHand,
     /// 从弃牌堆选牌放抽牌堆顶（DiscardPileToTopOfDeckAction/Headbutt）
     SelectDiscardToTop,
+    /// 抽到手牌有 N 张（ExpertiseAction：draw until hand.size() == N）
+    DrawToHand(Expr),
+    /// 目标意图含攻击时施加虚弱（ForTheEyesAction）
+    IfIntentApplyWeak(Expr),
+    /// 从弃牌堆选牌入手（BetterDiscardPileToHandAction/Hologram）
+    SelectDiscardToHand,
     /// 未支持动作（值为 Java 动作类名）——手移植清单
     Unsupported(&'static str),
 }

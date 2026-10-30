@@ -52,6 +52,7 @@ pub enum HandPickPurpose {
 pub enum PilePickPurpose {
     ExhaustToHand,
     DiscardToDeckTop,
+    DiscardToHand,
 }
 
 #[derive(Clone, Debug)]
@@ -131,6 +132,12 @@ enum Q {
     EvokeLeftmost,
     EvokeNoRemove,
     OrbSlots(i32),
+    DoDrawToHand(i32),
+    DoIfIntentApplyWeak {
+        target: usize,
+        weak_amt: i32,
+    },
+    DoSelectDiscardToHand,
     DoSelectPutOnDeckTop,
     DoSelectPutOnDeckBottom,
     DoSelectExhaustToHand,
@@ -524,6 +531,8 @@ impl Combat {
             Expr::XCost => x_cost,
             Expr::HandSize => self.player.hand.len() as i32,
             Expr::DrawPileSize => self.player.draw.len() as i32,
+            Expr::CurrentEnergy => self.player.energy,
+            Expr::OrbCount => self.player.orbs.len() as i32,
             Expr::Const(_) | Expr::Raw(_) => unreachable!("can_play 已过滤不可求值表达式"),
         }
     }
@@ -791,6 +800,12 @@ impl Combat {
                 target: ti,
                 base: self.eval(e, card, x_cost),
             }),
+            Effect::DrawToHand(e) => q.push(Q::DoDrawToHand(self.eval(e, card, x_cost))),
+            Effect::IfIntentApplyWeak(e) => q.push(Q::DoIfIntentApplyWeak {
+                target: ti,
+                weak_amt: self.eval(e, card, x_cost),
+            }),
+            Effect::SelectDiscardToHand => q.push(Q::DoSelectDiscardToHand),
             Effect::IfDiscardedGainEnergy(e) => {
                 q.push(Q::DoIfDiscardedGainEnergy(self.eval(e, card, x_cost)));
             }
@@ -1564,6 +1579,38 @@ impl Combat {
                 for &i in indices.iter().rev() {
                     let c = self.player.hand.remove(i);
                     self.player.discard.push(c);
+                }
+            }
+            Q::DoDrawToHand(target) => {
+                // ExpertiseAction：抽到手牌有 target 张
+                let to_draw = (target - self.player.hand.len() as i32).max(0);
+                if to_draw > 0 {
+                    self.draw_cards(to_draw as usize);
+                }
+            }
+            Q::DoIfIntentApplyWeak { target, weak_amt } => {
+                // ForTheEyes：意图含攻击时施加虚弱
+                if self.alive(target)
+                    && self.monsters[target]
+                        .move_base_damage()
+                        .map(|d| d >= 0)
+                        .unwrap_or(false)
+                {
+                    apply_power(
+                        &mut self.monsters[target].creature.powers,
+                        PowerKind::Weak,
+                        weak_amt,
+                        false,
+                        self.turn_has_ended,
+                    );
+                }
+            }
+            Q::DoSelectDiscardToHand => {
+                if !self.player.discard.is_empty() && self.player.hand.len() < 10 {
+                    self.pending = Some(Pending::PilePick {
+                        pile: "discard",
+                        purpose: PilePickPurpose::DiscardToHand,
+                    });
                 }
             }
             Q::DoSelectPutOnDeckTop => {

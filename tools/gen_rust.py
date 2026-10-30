@@ -24,7 +24,7 @@ def expr_rs(e) -> str:
     if isinstance(e, str):
         return {"Magic": "Expr::Magic", "DamageBase": "Expr::DamageBase",
                 "BlockBase": "Expr::BlockBase", "CurrentBlock": "Expr::CurrentBlock",
-                "XCost": "Expr::XCost", "HandSize": "Expr::HandSize", "DrawPileSize": "Expr::DrawPileSize"}.get(e, f"Expr::Raw({s(e)})")
+                "XCost": "Expr::XCost", "HandSize": "Expr::HandSize", "DrawPileSize": "Expr::DrawPileSize", "CurrentEnergy": "Expr::CurrentEnergy", "OrbCount": "Expr::OrbCount"}.get(e, f"Expr::Raw({s(e)})")
     if isinstance(e, dict):
         if "Const" in e:
             return f"Expr::Const({s(e['Const'])})"
@@ -91,6 +91,12 @@ def effect_rs(eff) -> str:
         return "Effect::EvokeLeftmost"
     if "EvokeNoRemove" in eff:
         return "Effect::EvokeNoRemove"
+    if "DrawToHand" in eff:
+        return f"Effect::DrawToHand({expr_rs(eff['DrawToHand'])})"
+    if "IfIntentApplyWeak" in eff:
+        return f"Effect::IfIntentApplyWeak({expr_rs(eff['IfIntentApplyWeak'])})"
+    if "SelectDiscardToHand" in eff:
+        return "Effect::SelectDiscardToHand"
     if "IfDiscardedGainEnergy" in eff:
         return f"Effect::IfDiscardedGainEnergy({expr_rs(eff['IfDiscardedGainEnergy'])})"
     if "SelectPutOnDeckTop" in eff:
