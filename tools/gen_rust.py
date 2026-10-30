@@ -91,6 +91,8 @@ def effect_rs(eff) -> str:
         return "Effect::EvokeLeftmost"
     if "EvokeNoRemove" in eff:
         return "Effect::EvokeNoRemove"
+    if "ShuffleDraw" in eff:
+        return "Effect::ShuffleDraw"
     if "OrbSlots" in eff:
         return f"Effect::OrbSlots({expr_rs(eff['OrbSlots'])})"
     if "Repeat" in eff:

@@ -18,7 +18,7 @@ PERFORMATIVE = {
     "WaitAction", "VFXAction", "SFXAction", "SetAnimationAction", "AnimateHopAction",
     "AnimateSlowAttackAction", "AnimateFastAttackAction", "AnimateAttackAction",
     "ShakeScreenAction", "TextAboveCreatureAction", "RelicAboveCreatureAction",
-    "TalkAction", "BlingAction",
+    "TalkAction", "BlingAction", "AnimateOrbAction",
 }
 
 POWER_IDS = {
@@ -197,6 +197,8 @@ def classify_action(cls: str, args: str, consts: dict, overrides: dict, lvars: d
             else:
                 n = {"Raw": "-x"}
         return {"OrbSlots": n}
+    if cls == "ShuffleAction":
+        return {"ShuffleDraw": 1}
     if cls == "AttackDamageRandomEnemyAction":
         # 目标 = getRandomMonster(null, true, cardRandomRng)——引擎用 card_random 流复刻
         return {"DamageRandom": "DamageBase"}

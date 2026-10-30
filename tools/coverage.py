@@ -71,6 +71,8 @@ def effect_supported(e):
         return orb in ("Frost", "Lightning", "Dark", "Plasma") and expr_ok(cnt)
     if k in ("EvokeLeftmost", "EvokeNoRemove"):
         return True
+    if k == "ShuffleDraw":
+        return True
     if k == "OrbSlots":
         return expr_ok(e[k])
     return False  # ExhaustHand / Unsupported

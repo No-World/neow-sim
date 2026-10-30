@@ -70,6 +70,7 @@ pub enum Effect {
     EvokeNoRemove,
     /// 增减槽位（IncreaseMaxOrbAction / DecreaseMaxOrbAction）
     OrbSlots(Expr),
+    ShuffleDraw,
     /// 未支持动作（值为 Java 动作类名）——手移植清单
     Unsupported(&'static str),
 }
