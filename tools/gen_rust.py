@@ -91,6 +91,12 @@ def effect_rs(eff) -> str:
         return "Effect::EvokeLeftmost"
     if "EvokeNoRemove" in eff:
         return "Effect::EvokeNoRemove"
+    if "SelectAttackDuplicate" in eff:
+        return "Effect::SelectAttackDuplicate"
+    if "SelectDrawPlayTwiceExhaust" in eff:
+        return "Effect::SelectDrawPlayTwiceExhaust"
+    if "SelectDiscardExhaust" in eff:
+        return "Effect::SelectDiscardExhaust"
     if "EvokeAllOrbs" in eff:
         return "Effect::EvokeAllOrbs"
     if "TriggerAllOrbPassives" in eff:

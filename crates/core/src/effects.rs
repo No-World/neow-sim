@@ -187,6 +187,12 @@ pub enum Effect {
     SelectExhaustGainEnergyCost,
     /// 弃牌堆中全部0费卡回手（AllCostToHandAction/All For One）
     ReturnZeroCostFromDiscard,
+    /// 选攻击牌复制入手（DualWieldAction/Dual Wield）
+    SelectAttackDuplicate,
+    /// 从抽牌堆选卡执行两次并消耗（OmniscienceAction/Omniscience）
+    SelectDrawPlayTwiceExhaust,
+    /// 从弃牌堆选卡消耗（MeditateAction/Meditate）
+    SelectDiscardExhaust,
     /// 未支持动作（值为 Java 动作类名）——手移植清单
     Unsupported(&'static str),
 }

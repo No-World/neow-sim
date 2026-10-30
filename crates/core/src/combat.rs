@@ -49,6 +49,7 @@ pub enum HandPickPurpose {
     UpgradeCard,
     FreeCost,
     ExhaustGainEnergy,
+    DuplicateAttack,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -57,6 +58,8 @@ pub enum PilePickPurpose {
     DiscardToDeckTop,
     DiscardToHand,
     DrawPileToHand,
+    DrawPlayTwiceExhaust,
+    DiscardExhaustPick,
 }
 
 #[derive(Clone, Debug)]
@@ -141,6 +144,9 @@ enum Q {
     DoModifySelfDamage(i32),
     DoSelectUpgradeCard,
     DoEvokeAllOrbs,
+    DoSelectAttackDuplicate,
+    DoSelectDrawPlayTwiceExhaust,
+    DoSelectDiscardExhaust,
     DoTriggerAllOrbPassives,
     DoTriggerDarkOrbPassives,
     DoIfKillGainGold {
@@ -550,6 +556,13 @@ impl Combat {
                         self.player.energy += energy;
                         self.player.exhaust.push(c);
                     }
+                    HandPickPurpose::DuplicateAttack => {
+                        // 原卡回手 + 一份副本（Dual Wield 基础版）
+                        self.player.hand.push(c);
+                        if self.player.hand.len() < 10 {
+                            self.player.hand.push(c);
+                        }
+                    }
                 }
             }
         }
@@ -559,6 +572,31 @@ impl Combat {
     fn resolve_pile_pick(&mut self, index: usize) {
         if let Some(Pending::PilePick { pile, .. }) = self.pending.clone() {
             match pile {
+                "draw_play" => {
+                    // Omniscience：选卡执行两次并消耗
+                    if index < self.player.draw.len() {
+                        let card = self.player.draw.remove(index);
+                        for _play in 0..2 {
+                            let mut q2 = Vec::new();
+                            for &eff in card.def.effects {
+                                self.apply_effect(eff, card, 0, 0, &mut q2, 0);
+                            }
+                            self.drain(q2);
+                        }
+                        self.player.exhaust.push(card);
+                    }
+                }
+                "discard_exhaust" => {
+                    // Meditate：从弃牌堆选卡消耗
+                    if index < self.player.discard.len() {
+                        let c = self.player.discard.remove(index);
+                        // 如果是技能获得1能量（近似）
+                        if c.def.card_type == "SKILL" {
+                            self.player.energy += 1;
+                        }
+                        self.player.exhaust.push(c);
+                    }
+                }
                 "exhaust" => {
                     if index < self.player.exhaust.len() {
                         let c = self.player.exhaust.remove(index);
@@ -876,6 +914,9 @@ impl Combat {
                 target: ti,
                 base: self.eval(e, card, x_cost),
             }),
+            Effect::SelectAttackDuplicate => q.push(Q::DoSelectAttackDuplicate),
+            Effect::SelectDrawPlayTwiceExhaust => q.push(Q::DoSelectDrawPlayTwiceExhaust),
+            Effect::SelectDiscardExhaust => q.push(Q::DoSelectDiscardExhaust),
             Effect::EvokeAllOrbs => q.push(Q::DoEvokeAllOrbs),
             Effect::TriggerAllOrbPassives => q.push(Q::DoTriggerAllOrbPassives),
             Effect::TriggerDarkOrbPassives => q.push(Q::DoTriggerDarkOrbPassives),
@@ -1722,6 +1763,30 @@ impl Combat {
                 for &i in indices.iter().rev() {
                     let c = self.player.hand.remove(i);
                     self.player.discard.push(c);
+                }
+            }
+            Q::DoSelectAttackDuplicate => {
+                let has_attack = self.player.hand.iter().any(|c| c.def.card_type == "ATTACK");
+                if has_attack && self.player.hand.len() < 10 {
+                    self.pending = Some(Pending::HandPick {
+                        purpose: HandPickPurpose::DuplicateAttack,
+                    });
+                }
+            }
+            Q::DoSelectDrawPlayTwiceExhaust => {
+                if !self.player.draw.is_empty() {
+                    self.pending = Some(Pending::PilePick {
+                        pile: "draw",
+                        purpose: PilePickPurpose::DrawPlayTwiceExhaust,
+                    });
+                }
+            }
+            Q::DoSelectDiscardExhaust => {
+                if !self.player.discard.is_empty() {
+                    self.pending = Some(Pending::PilePick {
+                        pile: "discard",
+                        purpose: PilePickPurpose::DiscardExhaustPick,
+                    });
                 }
             }
             Q::DoEvokeAllOrbs => {

@@ -523,8 +523,8 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: Some(1),
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("DualWieldAction")],
+        status: "parsed",
+        effects: &[Effect::SelectAttackDuplicate],
     },
     CardDef {
         id: "Entrench",
@@ -4048,9 +4048,9 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: Some(1),
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
+        status: "parsed",
         effects: &[
-            Effect::Unsupported("MeditateAction"),
+            Effect::SelectDiscardExhaust,
             Effect::ChangeStance("Calm"),
             Effect::ForceEndTurn,
         ],
@@ -4117,8 +4117,8 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: Some(3),
         flags: &["exhaust"],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("OmniscienceAction")],
+        status: "parsed",
+        effects: &[Effect::SelectDrawPlayTwiceExhaust],
     },
     CardDef {
         id: "Perseverance",

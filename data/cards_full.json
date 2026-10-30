@@ -4,10 +4,10 @@
   "note": "use() 效果 DSL；Unsupported 需手移植"
  },
  "stats": {
-  "parsed": 301,
+  "parsed": 304,
   "parsed_branch": 60,
   "no_use": 0,
-  "unsupported": 14
+  "unsupported": 11
  },
  "data": [
   {
@@ -726,13 +726,10 @@
    },
    "effects": [
     {
-     "Unsupported": "DualWieldAction"
+     "SelectAttackDuplicate": 1
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "DualWieldAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Entrench",
@@ -5566,7 +5563,7 @@
    },
    "effects": [
     {
-     "Unsupported": "MeditateAction"
+     "SelectDiscardExhaust": 1
     },
     {
      "ChangeStance": "Calm"
@@ -5575,10 +5572,7 @@
      "ForceEndTurn": 1
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "MeditateAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "MentalFortress",
@@ -5654,13 +5648,10 @@
    },
    "effects": [
     {
-     "Unsupported": "OmniscienceAction"
+     "SelectDrawPlayTwiceExhaust": 1
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "OmniscienceAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Perseverance",

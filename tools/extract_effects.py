@@ -197,6 +197,12 @@ def classify_action(cls: str, args: str, consts: dict, overrides: dict, lvars: d
             else:
                 n = {"Raw": "-x"}
         return {"OrbSlots": n}
+    if cls == "DualWieldAction":
+        return {"SelectAttackDuplicate": 1}
+    if cls == "OmniscienceAction":
+        return {"SelectDrawPlayTwiceExhaust": 1}
+    if cls == "MeditateAction":
+        return {"SelectDiscardExhaust": 1}
     if cls == "FissionAction":
         return [{"Draw": "OrbCount"}, {"GainEnergy": "OrbCount"}, {"EvokeAllOrbs": 1}]
     if cls == "ImpulseAction":
