@@ -94,6 +94,7 @@ enum Q {
     RandomDiscard {
         n: i32,
     },
+    ChangeStance(crate::state::Stance),
     RollMove(usize),
 }
 
@@ -165,6 +166,7 @@ impl Combat {
             .collect();
         let mut c = Combat {
             player: PlayerState {
+                stance: crate::state::Stance::Neutral,
                 // A6+：起始 90% HP（AbstractDungeon:2574）；TODO(M3)：药水栏/金币/休息治疗等局外修正
                 creature: {
                     let max_hp = 80;
@@ -259,6 +261,7 @@ impl Combat {
                 DamageType::Normal,
                 &self.monsters[m].creature.powers,
                 &self.player.creature.powers,
+                self.player.stance,
             )
         })
     }
@@ -420,6 +423,7 @@ impl Combat {
                     DamageType::Normal,
                     &self.player.creature.powers,
                     &self.monsters[ti].creature.powers,
+                    self.player.stance,
                 );
                 q.push(Q::DamageMonster { target: ti, dmg: d });
             }
@@ -434,6 +438,7 @@ impl Combat {
                         DamageType::Normal,
                         &self.player.creature.powers,
                         &mon.creature.powers,
+                        self.player.stance,
                     );
                     q.push(Q::DamageMonster { target: mi, dmg: d });
                 }
@@ -518,6 +523,11 @@ impl Combat {
                 q.push(Q::RequireScry {
                     n: self.eval(e, card, x_cost),
                 });
+            }
+            Effect::ChangeStance(sid) => {
+                if let Some(st) = crate::state::Stance::from_id(sid) {
+                    q.push(Q::ChangeStance(st));
+                }
             }
             Effect::ExhaustHand | Effect::Unsupported(_) => {
                 unreachable!("can_play 已过滤不可玩效果")
@@ -838,6 +848,7 @@ impl Combat {
                     DamageType::Normal,
                     &self.monsters[src].creature.powers,
                     &self.player.creature.powers,
+                    self.player.stance,
                 );
                 self.player.creature.apply_damage(d);
                 if self.player.creature.is_dead() {
@@ -917,6 +928,7 @@ impl Combat {
                         DamageType::Normal,
                         &self.player.creature.powers,
                         &self.monsters[t].creature.powers,
+                        self.player.stance,
                     );
                     self.monsters[t].creature.apply_damage(d);
                     if self.monsters[t].creature.is_dead() {
@@ -985,6 +997,15 @@ impl Combat {
                 let len = self.player.draw.len();
                 let shown = self.player.draw[len - cnt..].to_vec();
                 self.pending = Some(Pending::Scry { shown });
+            }
+            Q::ChangeStance(new_stance) => {
+                // ChangeStanceAction.update：同姿态无操作；切换前 onExit（平静→+2能量）
+                if self.player.stance != new_stance {
+                    if self.player.stance == crate::state::Stance::Calm {
+                        self.player.energy += 2; // CalmStance.onExitStance → GainEnergy(2)
+                    }
+                    self.player.stance = new_stance;
+                }
             }
             Q::RollMove(i) => self.roll_move(i),
         }
@@ -1157,6 +1178,7 @@ impl Combat {
 
     fn hash_public(&self, h: &mut impl Hasher) {
         self.player.creature.hp.hash(h);
+        self.player.stance.hash(h);
         self.player.creature.block.hash(h);
         self.player.energy.hash(h);
         for c in &self.player.hand {

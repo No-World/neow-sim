@@ -11,6 +11,7 @@
 //!    → 怪.atDamageFinalGive → 玩家.atDamageFinalReceive → floor → (out<0→0)`
 
 use crate::powers::{DamageType, Power};
+use crate::state::Stance;
 
 /// libgdx MathUtils.floor(float)：(int)Math.floor(value)
 pub fn floor(x: f32) -> i32 {
@@ -23,13 +24,15 @@ pub fn calc_player_card_damage(
     ty: DamageType,
     player_powers: &[Power],
     monster_powers: &[Power],
+    stance: Stance,
 ) -> i32 {
     let mut tmp = base as f32;
     // relics.atDamageModify：M2 无遗物
     for p in player_powers {
         tmp = p.at_damage_give(tmp, ty);
     }
-    // player.stance.atDamageGive：M2 无姿态（中性=原样）
+    // player.stance.atDamageGive（AbstractCard 管线：Give→姿态→Receive）
+    tmp = stance.at_damage_give(tmp, ty);
     for p in monster_powers {
         tmp = p.at_damage_receive(tmp, ty);
     }
@@ -65,6 +68,7 @@ pub fn calc_monster_damage(
     ty: DamageType,
     monster_powers: &[Power],
     player_powers: &[Power],
+    stance: Stance,
 ) -> i32 {
     let mut tmp = base as f32;
     for p in monster_powers {
@@ -73,7 +77,8 @@ pub fn calc_monster_damage(
     for p in player_powers {
         tmp = p.at_damage_receive(tmp, ty);
     }
-    // player.stance.atDamageReceive：中性
+    // stance.atDamageReceive（DamageInfo !player 分支：怪Give→玩家Receive→姿态→Final）
+    tmp = stance.at_damage_receive(tmp, ty);
     for p in monster_powers {
         tmp = p.at_damage_final_give(tmp, ty);
     }
@@ -98,7 +103,7 @@ mod tests {
         // 打击 6 打易伤大颚虫：floor(6×1.5)=9
         let worm = vec![Power::new(PowerKind::Vulnerable, 2, false, false)];
         assert_eq!(
-            calc_player_card_damage(6, DamageType::Normal, &[], &worm),
+            calc_player_card_damage(6, DamageType::Normal, &[], &worm, Stance::Neutral),
             9
         );
     }
@@ -109,7 +114,7 @@ mod tests {
         let player = vec![Power::new(PowerKind::Strength, 3, false, false)];
         let worm = vec![Power::new(PowerKind::Vulnerable, 2, false, false)];
         assert_eq!(
-            calc_player_card_damage(6, DamageType::Normal, &player, &worm),
+            calc_player_card_damage(6, DamageType::Normal, &player, &worm, Stance::Neutral),
             13
         );
     }
@@ -122,11 +127,14 @@ mod tests {
             Power::new(PowerKind::Strength, 3, false, false),
             Power::new(PowerKind::Weak, 1, false, false),
         ];
-        assert_eq!(calc_monster_damage(11, DamageType::Normal, &worm, &[]), 10);
+        assert_eq!(
+            calc_monster_damage(11, DamageType::Normal, &worm, &[], Stance::Neutral),
+            10
+        );
         // 反证：虚弱在玩家身上 → 咬噬不受影响
         let player = vec![Power::new(PowerKind::Weak, 1, true, true)];
         assert_eq!(
-            calc_monster_damage(11, DamageType::Normal, &[], &player),
+            calc_monster_damage(11, DamageType::Normal, &[], &player, Stance::Neutral),
             11
         );
     }

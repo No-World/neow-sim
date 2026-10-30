@@ -4,10 +4,10 @@
   "note": "use() 效果 DSL；Unsupported 需手移植"
  },
  "stats": {
-  "parsed": 217,
+  "parsed": 224,
   "parsed_branch": 47,
   "no_use": 0,
-  "unsupported": 111
+  "unsupported": 104
  },
  "data": [
   {
@@ -4511,7 +4511,7 @@
    },
    "effects": [
     {
-     "Unsupported": "ChangeStanceAction"
+     "ChangeStance": "Divinity"
     },
     {
      "ApplyPower": [
@@ -4521,10 +4521,7 @@
      ]
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "ChangeStanceAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "BowlingBash",
@@ -4745,13 +4742,10 @@
    },
    "effects": [
     {
-     "Unsupported": "ChangeStanceAction"
+     "ChangeStance": "Wrath"
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "ChangeStanceAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "CrushJoints",
@@ -4995,13 +4989,12 @@
      "Unsupported": "NotStanceCheckAction"
     },
     {
-     "Unsupported": "ChangeStanceAction"
+     "ChangeStance": "Neutral"
     }
    ],
    "status": "unsupported",
    "unsupported": [
-    "NotStanceCheckAction",
-    "ChangeStanceAction"
+    "NotStanceCheckAction"
    ]
   },
   {
@@ -5031,13 +5024,12 @@
      "Unsupported": "NotStanceCheckAction"
     },
     {
-     "Unsupported": "ChangeStanceAction"
+     "ChangeStance": "Neutral"
     }
    ],
    "status": "unsupported",
    "unsupported": [
-    "NotStanceCheckAction",
-    "ChangeStanceAction"
+    "NotStanceCheckAction"
    ]
   },
   {
@@ -5064,13 +5056,12 @@
      "Unsupported": "NotStanceCheckAction"
     },
     {
-     "Unsupported": "ChangeStanceAction"
+     "ChangeStance": "Neutral"
     }
    ],
    "status": "unsupported",
    "unsupported": [
-    "NotStanceCheckAction",
-    "ChangeStanceAction"
+    "NotStanceCheckAction"
    ]
   },
   {
@@ -5097,13 +5088,10 @@
      ]
     },
     {
-     "Unsupported": "ChangeStanceAction"
+     "ChangeStance": "Wrath"
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "ChangeStanceAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Establishment",
@@ -5224,13 +5212,16 @@
    },
    "effects": [
     {
-     "Unsupported": "FearNoEvilAction"
+     "ChangeStance": "Calm"
+    },
+    {
+     "Damage": [
+      "Unknown",
+      "DamageBase"
+     ]
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "FearNoEvilAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "FlurryOfBlows",
@@ -5615,7 +5606,7 @@
      "Unsupported": "MeditateAction"
     },
     {
-     "Unsupported": "ChangeStanceAction"
+     "ChangeStance": "Calm"
     },
     {
      "Unsupported": "PressEndTurnButtonAction"
@@ -5624,7 +5615,6 @@
    "status": "unsupported",
    "unsupported": [
     "MeditateAction",
-    "ChangeStanceAction",
     "PressEndTurnButtonAction"
    ]
   },
@@ -6301,13 +6291,10 @@
      ]
     },
     {
-     "Unsupported": "ChangeStanceAction"
+     "ChangeStance": "Wrath"
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "ChangeStanceAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "ThirdEye",
@@ -6357,13 +6344,10 @@
    },
    "effects": [
     {
-     "Unsupported": "ChangeStanceAction"
+     "ChangeStance": "Calm"
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "ChangeStanceAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Unraveling",
@@ -6446,13 +6430,10 @@
      "Block": "BlockBase"
     },
     {
-     "Unsupported": "ChangeStanceAction"
+     "ChangeStance": "Calm"
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "ChangeStanceAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Wallop",

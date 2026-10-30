@@ -64,6 +64,8 @@ def effect_supported(e):
         return expr_ok(e[k])
     if k in ("HandDiscard", "Scry"):
         return expr_ok(e[k][0])
+    if k == "ChangeStance":
+        return e[k] in ("Neutral", "Wrath", "Calm", "Divinity")
     return False  # ExhaustHand / Unsupported
 
 

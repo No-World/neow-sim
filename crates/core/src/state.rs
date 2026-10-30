@@ -41,9 +41,48 @@ impl Creature {
     }
 }
 
+/// 观者姿态（stances/*.java：倍率只作用于 NORMAL）
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum Stance {
+    Neutral,
+    Wrath,
+    Calm,
+    Divinity,
+}
+
+impl Stance {
+    pub fn from_id(id: &str) -> Option<Stance> {
+        match id {
+            "Neutral" => Some(Stance::Neutral),
+            "Wrath" => Some(Stance::Wrath),
+            "Calm" => Some(Stance::Calm),
+            "Divinity" => Some(Stance::Divinity),
+            _ => None,
+        }
+    }
+
+    /// WrathStance: atDamageGive ×2（NORMAL）
+    pub fn at_damage_give(self, dmg: f32, ty: crate::powers::DamageType) -> f32 {
+        match (self, ty) {
+            (Stance::Wrath, crate::powers::DamageType::Normal) => dmg * 2.0,
+            (Stance::Divinity, crate::powers::DamageType::Normal) => dmg * 3.0,
+            _ => dmg,
+        }
+    }
+
+    /// WrathStance: atDamageReceive ×2（NORMAL）
+    pub fn at_damage_receive(self, dmg: f32, ty: crate::powers::DamageType) -> f32 {
+        match (self, ty) {
+            (Stance::Wrath, crate::powers::DamageType::Normal) => dmg * 2.0,
+            _ => dmg,
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct PlayerState {
     pub creature: Creature,
+    pub stance: Stance,
     pub energy: i32,
     pub hand: Vec<CardInst>,
     /// Vec 尾 = 抽牌堆顶（CardGroup.group 末位）

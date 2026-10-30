@@ -60,6 +60,8 @@ pub enum Effect {
     HandDiscard(Expr, bool),
     /// 占卜 N（ScryAction：看抽牌堆顶 N 张，选择弃掉子集，其余保持原序置顶）
     Scry(Expr),
+    /// 切换姿态（ChangeStanceAction：退出平静+2能量；同姿态无操作）
+    ChangeStance(&'static str),
     /// 未支持动作（值为 Java 动作类名）——手移植清单
     Unsupported(&'static str),
 }

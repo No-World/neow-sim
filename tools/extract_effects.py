@@ -173,6 +173,11 @@ def classify_action(cls: str, args: str, consts: dict, overrides: dict, lvars: d
         random_spot = len(parts) > 2 and parts[2].strip() == "true"
         kind = "MakeInDrawRandom" if random_spot else "MakeInDrawTop"
         return {kind: [cm.group(1) if cm else "?", n]}
+    if cls == "ChangeStanceAction":
+        # ChangeStanceAction("Wrath") 或 (AbstractStance.XXX_STANCE_ID)
+        sid = parts[0].strip().strip('"') if parts else "Neutral"
+        sid = sid.replace("AbstractStance.", "").replace("_STANCE_ID", "")
+        return {"ChangeStance": sid}
     if cls == "AttackDamageRandomEnemyAction":
         # 目标 = getRandomMonster(null, true, cardRandomRng)——引擎用 card_random 流复刻
         return {"DamageRandom": "DamageBase"}

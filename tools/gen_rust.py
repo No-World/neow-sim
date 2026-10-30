@@ -82,6 +82,8 @@ def effect_rs(eff) -> str:
         return f"Effect::HandDiscard({expr_rs(a)}, {str(r).lower()})"
     if "Scry" in eff:
         return f"Effect::Scry({expr_rs(eff['Scry'])})"
+    if "ChangeStance" in eff:
+        return f"Effect::ChangeStance({s(eff['ChangeStance'])})"
     if "Repeat" in eff:
         cnt, inner = eff["Repeat"]
         if not inner:

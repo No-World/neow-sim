@@ -3234,9 +3234,9 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &["exhaust", "selfRetain"],
-        status: "unsupported",
+        status: "parsed",
         effects: &[
-            Effect::Unsupported("ChangeStanceAction"),
+            Effect::ChangeStance("Divinity"),
             Effect::ApplyPower(Target::SelfC, "EndTurnDeathPower", Expr::N(1)),
         ],
     },
@@ -3401,8 +3401,8 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: Some(0),
         flags: &["exhaust", "selfRetain"],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("ChangeStanceAction")],
+        status: "parsed",
+        effects: &[Effect::ChangeStance("Wrath")],
     },
     CardDef {
         id: "CrushJoints",
@@ -3594,7 +3594,7 @@ pub static CARDS: &[CardDef] = &[
         effects: &[
             Effect::Block(Expr::BlockBase),
             Effect::Unsupported("NotStanceCheckAction"),
-            Effect::Unsupported("ChangeStanceAction"),
+            Effect::ChangeStance("Neutral"),
         ],
     },
     CardDef {
@@ -3617,7 +3617,7 @@ pub static CARDS: &[CardDef] = &[
         effects: &[
             Effect::Damage(Target::Enemy, Expr::DamageBase),
             Effect::Unsupported("NotStanceCheckAction"),
-            Effect::Unsupported("ChangeStanceAction"),
+            Effect::ChangeStance("Neutral"),
         ],
     },
     CardDef {
@@ -3640,7 +3640,7 @@ pub static CARDS: &[CardDef] = &[
         effects: &[
             Effect::Draw(Expr::Magic),
             Effect::Unsupported("NotStanceCheckAction"),
-            Effect::Unsupported("ChangeStanceAction"),
+            Effect::ChangeStance("Neutral"),
         ],
     },
     CardDef {
@@ -3659,10 +3659,10 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: Some(1),
         flags: &[],
-        status: "unsupported",
+        status: "parsed",
         effects: &[
             Effect::Damage(Target::Enemy, Expr::DamageBase),
-            Effect::Unsupported("ChangeStanceAction"),
+            Effect::ChangeStance("Wrath"),
         ],
     },
     CardDef {
@@ -3749,8 +3749,11 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("FearNoEvilAction")],
+        status: "parsed",
+        effects: &[
+            Effect::ChangeStance("Calm"),
+            Effect::Damage(Target::Unknown, Expr::DamageBase),
+        ],
     },
     CardDef {
         id: "FlurryOfBlows",
@@ -4040,7 +4043,7 @@ pub static CARDS: &[CardDef] = &[
         status: "unsupported",
         effects: &[
             Effect::Unsupported("MeditateAction"),
-            Effect::Unsupported("ChangeStanceAction"),
+            Effect::ChangeStance("Calm"),
             Effect::Unsupported("PressEndTurnButtonAction"),
         ],
     },
@@ -4520,13 +4523,13 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: Some(1),
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
+        status: "parsed",
         effects: &[
             Effect::Repeat(
                 Expr::Magic,
                 &[Effect::Damage(Target::Enemy, Expr::DamageBase)],
             ),
-            Effect::Unsupported("ChangeStanceAction"),
+            Effect::ChangeStance("Wrath"),
         ],
     },
     CardDef {
@@ -4564,8 +4567,8 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: Some(0),
         flags: &["exhaust", "selfRetain"],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("ChangeStanceAction")],
+        status: "parsed",
+        effects: &[Effect::ChangeStance("Calm")],
     },
     CardDef {
         id: "Unraveling",
@@ -4624,11 +4627,8 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
-        effects: &[
-            Effect::Block(Expr::BlockBase),
-            Effect::Unsupported("ChangeStanceAction"),
-        ],
+        status: "parsed",
+        effects: &[Effect::Block(Expr::BlockBase), Effect::ChangeStance("Calm")],
     },
     CardDef {
         id: "Wallop",
