@@ -593,12 +593,18 @@ impl Combat {
         // DiscardAtEndOfTurn：无保留卡（retain）与 Runic Pyramid/Equilibrium 例外
         let hand = std::mem::take(&mut self.player.hand);
         self.player.discard.extend(hand);
+        // MonsterStartTurnAction（AbstractRoom:406 单次入队）：
+        // 怪物回合开始时对全部存活怪统一掉格挡（非逐怪）
+        for m in &mut self.monsters {
+            if !m.creature.is_dead() {
+                m.creature.block = 0;
+            }
+        }
         // 怪物序列（MonsterGroup.queueMonsters 列表序）
         for i in 0..self.monsters.len() {
             if !self.alive(i) {
                 continue;
             }
-            self.monsters[i].creature.block = 0; // pre-turn 掉格挡（调用点待 L1 核对）
             let mut q = self.monster_turn(i);
             q.push(Q::RollMove(i));
             self.drain(q);
@@ -1009,11 +1015,8 @@ impl Combat {
         amount: i32,
         source_is_monster: bool,
     ) {
-        let debuff = matches!(
-            kind,
-            PowerKind::Vulnerable | PowerKind::Weak | PowerKind::Frail | PowerKind::Poison
-        );
-        if debuff {
+        // ApplyPowerAction:125 —— 按 powerToApply.type == DEBUFF 判定，非硬编码清单
+        if kind.is_debuff() {
             if let Some(idx) = self
                 .player
                 .creature
@@ -1039,9 +1042,17 @@ impl Combat {
         );
     }
 
-    /// DrawCardAction + EmptyDeckShuffleAction：抽牌堆空 → 弃牌堆洗回（shuffleRng）
+    /// DrawCardAction + EmptyDeckShuffleAction（源码核对语义）：
+    /// - hand==10 → 本轮抽牌全部作废；amount+hand>10 → amount 截断（多余消失，不弃牌）
+    /// - 抽牌堆空且弃牌堆非空 → 洗回（shuffleRng）后继续
+    /// - 牌堆全空 → 停止
     pub fn draw_cards(&mut self, n: usize) {
-        for _ in 0..n {
+        if self.player.hand.len() >= 10 {
+            return; // createHandIsFullDialog：完全停止
+        }
+        let space = 10 - self.player.hand.len();
+        let mut left = n.min(space); // 截断到 10
+        while left > 0 {
             if self.player.draw.is_empty() {
                 if self.player.discard.is_empty() {
                     break;
@@ -1051,11 +1062,8 @@ impl Combat {
                 self.player.draw = pile;
             }
             let c = self.player.draw.pop().unwrap();
-            if self.player.hand.len() >= 10 {
-                self.player.discard.push(c);
-            } else {
-                self.player.hand.push(c);
-            }
+            self.player.hand.push(c);
+            left -= 1;
         }
     }
 

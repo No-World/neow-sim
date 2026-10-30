@@ -63,6 +63,16 @@ pub enum PowerKind {
     SporeCloud,
 }
 
+impl PowerKind {
+    /// power 的 type==DEBUFF 判定（Artifact 拦截依据：ApplyPowerAction:125）
+    pub fn is_debuff(&self) -> bool {
+        matches!(
+            self,
+            PowerKind::Vulnerable | PowerKind::Weak | PowerKind::Frail | PowerKind::Poison
+        )
+    }
+}
+
 /// atEndOfRound 衰减结果
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Decay {
