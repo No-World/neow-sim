@@ -1,0 +1,311 @@
+{
+ "meta": {
+  "generator": "neow-sim/tools/extract_data.py",
+  "source": "desktop-1.0.jar (CFR decompiled)",
+  "date": "2026-10-30",
+  "note": "草稿表：文本挖掘产物，M4 对拍统一校验"
+ },
+ "data": [
+  {
+   "id": "Ambrosia",
+   "class": "Ambrosia",
+   "rarity": null,
+   "isThrown": null,
+   "targetRequired": null
+  },
+  {
+   "id": "AncientPotion",
+   "class": "AncientPotion",
+   "rarity": null,
+   "isThrown": null,
+   "targetRequired": null
+  },
+  {
+   "id": "AttackPotion",
+   "class": "AttackPotion",
+   "rarity": null,
+   "isThrown": null,
+   "targetRequired": null
+  },
+  {
+   "id": "BlessingOfTheForge",
+   "class": "BlessingOfTheForge",
+   "rarity": null,
+   "isThrown": null,
+   "targetRequired": null
+  },
+  {
+   "id": "BlockPotion",
+   "class": "BlockPotion",
+   "rarity": null,
+   "isThrown": null,
+   "targetRequired": null
+  },
+  {
+   "id": "BloodPotion",
+   "class": "BloodPotion",
+   "rarity": null,
+   "isThrown": null,
+   "targetRequired": null
+  },
+  {
+   "id": "BottledMiracle",
+   "class": "BottledMiracle",
+   "rarity": null,
+   "isThrown": null,
+   "targetRequired": null
+  },
+  {
+   "id": "ColorlessPotion",
+   "class": "ColorlessPotion",
+   "rarity": null,
+   "isThrown": null,
+   "targetRequired": null
+  },
+  {
+   "id": "CultistPotion",
+   "class": "CultistPotion",
+   "rarity": null,
+   "isThrown": null,
+   "targetRequired": null
+  },
+  {
+   "id": "CunningPotion",
+   "class": "CunningPotion",
+   "rarity": null,
+   "isThrown": null,
+   "targetRequired": null
+  },
+  {
+   "id": "DexterityPotion",
+   "class": "DexterityPotion",
+   "rarity": null,
+   "isThrown": null,
+   "targetRequired": null
+  },
+  {
+   "id": "DistilledChaosPotion",
+   "class": "DistilledChaosPotion",
+   "rarity": null,
+   "isThrown": null,
+   "targetRequired": null
+  },
+  {
+   "id": "DuplicationPotion",
+   "class": "DuplicationPotion",
+   "rarity": null,
+   "isThrown": null,
+   "targetRequired": null
+  },
+  {
+   "id": "Elixir",
+   "class": "Elixir",
+   "rarity": null,
+   "isThrown": null,
+   "targetRequired": null
+  },
+  {
+   "id": "EnergyPotion",
+   "class": "EnergyPotion",
+   "rarity": null,
+   "isThrown": null,
+   "targetRequired": null
+  },
+  {
+   "id": "EntropicBrew",
+   "class": "EntropicBrew",
+   "rarity": null,
+   "isThrown": null,
+   "targetRequired": null
+  },
+  {
+   "id": "EssenceOfDarkness",
+   "class": "EssenceOfDarkness",
+   "rarity": null,
+   "isThrown": null,
+   "targetRequired": null
+  },
+  {
+   "id": "EssenceOfSteel",
+   "class": "EssenceOfSteel",
+   "rarity": null,
+   "isThrown": null,
+   "targetRequired": null
+  },
+  {
+   "id": "ExplosivePotion",
+   "class": "ExplosivePotion",
+   "rarity": null,
+   "isThrown": true,
+   "targetRequired": null
+  },
+  {
+   "id": "FairyPotion",
+   "class": "FairyPotion",
+   "rarity": null,
+   "isThrown": null,
+   "targetRequired": null
+  },
+  {
+   "id": "FearPotion",
+   "class": "FearPotion",
+   "rarity": null,
+   "isThrown": true,
+   "targetRequired": true
+  },
+  {
+   "id": "FirePotion",
+   "class": "FirePotion",
+   "rarity": null,
+   "isThrown": true,
+   "targetRequired": true
+  },
+  {
+   "id": "FocusPotion",
+   "class": "FocusPotion",
+   "rarity": null,
+   "isThrown": null,
+   "targetRequired": null
+  },
+  {
+   "id": "FruitJuice",
+   "class": "FruitJuice",
+   "rarity": null,
+   "isThrown": null,
+   "targetRequired": null
+  },
+  {
+   "id": "GamblersBrew",
+   "class": "GamblersBrew",
+   "rarity": null,
+   "isThrown": null,
+   "targetRequired": null
+  },
+  {
+   "id": "GhostInAJar",
+   "class": "GhostInAJar",
+   "rarity": null,
+   "isThrown": null,
+   "targetRequired": null
+  },
+  {
+   "id": "HeartOfIron",
+   "class": "HeartOfIron",
+   "rarity": null,
+   "isThrown": null,
+   "targetRequired": null
+  },
+  {
+   "id": "LiquidBronze",
+   "class": "LiquidBronze",
+   "rarity": null,
+   "isThrown": null,
+   "targetRequired": null
+  },
+  {
+   "id": "LiquidMemories",
+   "class": "LiquidMemories",
+   "rarity": null,
+   "isThrown": null,
+   "targetRequired": null
+  },
+  {
+   "id": "PoisonPotion",
+   "class": "PoisonPotion",
+   "rarity": null,
+   "isThrown": true,
+   "targetRequired": true
+  },
+  {
+   "id": "PotionOfCapacity",
+   "class": "PotionOfCapacity",
+   "rarity": null,
+   "isThrown": null,
+   "targetRequired": null
+  },
+  {
+   "id": "PotionSlot",
+   "class": "PotionSlot",
+   "rarity": null,
+   "isThrown": null,
+   "targetRequired": null
+  },
+  {
+   "id": "PowerPotion",
+   "class": "PowerPotion",
+   "rarity": null,
+   "isThrown": null,
+   "targetRequired": null
+  },
+  {
+   "id": "RegenPotion",
+   "class": "RegenPotion",
+   "rarity": null,
+   "isThrown": null,
+   "targetRequired": null
+  },
+  {
+   "id": "SkillPotion",
+   "class": "SkillPotion",
+   "rarity": null,
+   "isThrown": null,
+   "targetRequired": null
+  },
+  {
+   "id": "SmokeBomb",
+   "class": "SmokeBomb",
+   "rarity": null,
+   "isThrown": true,
+   "targetRequired": null
+  },
+  {
+   "id": "SneckoOil",
+   "class": "SneckoOil",
+   "rarity": null,
+   "isThrown": null,
+   "targetRequired": null
+  },
+  {
+   "id": "SpeedPotion",
+   "class": "SpeedPotion",
+   "rarity": null,
+   "isThrown": null,
+   "targetRequired": null
+  },
+  {
+   "id": "StancePotion",
+   "class": "StancePotion",
+   "rarity": null,
+   "isThrown": null,
+   "targetRequired": null
+  },
+  {
+   "id": "SteroidPotion",
+   "class": "SteroidPotion",
+   "rarity": null,
+   "isThrown": null,
+   "targetRequired": null
+  },
+  {
+   "id": "StrengthPotion",
+   "class": "StrengthPotion",
+   "rarity": null,
+   "isThrown": null,
+   "targetRequired": null
+  },
+  {
+   "id": "SwiftPotion",
+   "class": "SwiftPotion",
+   "rarity": null,
+   "isThrown": null,
+   "targetRequired": null
+  },
+  {
+   "id": "WeakenPotion",
+   "class": "WeakenPotion",
+   "rarity": null,
+   "isThrown": true,
+   "targetRequired": true
+  }
+ ]
+}

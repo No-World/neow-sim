@@ -1,0 +1,748 @@
+{
+ "meta": {
+  "generator": "neow-sim/tools/extract_data.py",
+  "source": "desktop-1.0.jar (CFR decompiled)",
+  "date": "2026-10-30",
+  "note": "草稿表：文本挖掘产物，M4 对拍统一校验"
+ },
+ "data": [
+  {
+   "id": "AccuracyPower",
+   "class": "AccuracyPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "AfterImagePower",
+   "class": "AfterImagePower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "AmplifyPower",
+   "class": "AmplifyPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "AngerPower",
+   "class": "AngerPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "AngryPower",
+   "class": "AngryPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "ArtifactPower",
+   "class": "ArtifactPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "AttackBurnPower",
+   "class": "AttackBurnPower",
+   "type": null,
+   "isTurnBased": true
+  },
+  {
+   "id": "BackAttackPower",
+   "class": "BackAttackPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "BarricadePower",
+   "class": "BarricadePower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "BeatOfDeathPower",
+   "class": "BeatOfDeathPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "BerserkPower",
+   "class": "BerserkPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "BiasPower",
+   "class": "BiasPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "BlurPower",
+   "class": "BlurPower",
+   "type": null,
+   "isTurnBased": true
+  },
+  {
+   "id": "BrutalityPower",
+   "class": "BrutalityPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "BufferPower",
+   "class": "BufferPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "BurstPower",
+   "class": "BurstPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "ChokePower",
+   "class": "ChokePower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "CollectPower",
+   "class": "CollectPower",
+   "type": null,
+   "isTurnBased": true
+  },
+  {
+   "id": "CombustPower",
+   "class": "CombustPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "ConfusionPower",
+   "class": "ConfusionPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "ConservePower",
+   "class": "ConservePower",
+   "type": null,
+   "isTurnBased": true
+  },
+  {
+   "id": "ConstrictedPower",
+   "class": "ConstrictedPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "CorpseExplosionPower",
+   "class": "CorpseExplosionPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "CorruptionPower",
+   "class": "CorruptionPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "CreativeAIPower",
+   "class": "CreativeAIPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "CuriosityPower",
+   "class": "CuriosityPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "CurlUpPower",
+   "class": "CurlUpPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "DarkEmbracePower",
+   "class": "DarkEmbracePower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "DemonFormPower",
+   "class": "DemonFormPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "DexterityPower",
+   "class": "DexterityPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "DoubleDamagePower",
+   "class": "DoubleDamagePower",
+   "type": null,
+   "isTurnBased": true
+  },
+  {
+   "id": "DoubleTapPower",
+   "class": "DoubleTapPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "DrawCardNextTurnPower",
+   "class": "DrawCardNextTurnPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "DrawPower",
+   "class": "DrawPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "DrawReductionPower",
+   "class": "DrawReductionPower",
+   "type": null,
+   "isTurnBased": true
+  },
+  {
+   "id": "DuplicationPower",
+   "class": "DuplicationPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "EchoPower",
+   "class": "EchoPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "ElectroPower",
+   "class": "ElectroPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "EnergizedBluePower",
+   "class": "EnergizedBluePower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "EnergizedPower",
+   "class": "EnergizedPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "EntanglePower",
+   "class": "EntanglePower",
+   "type": null,
+   "isTurnBased": true
+  },
+  {
+   "id": "EnvenomPower",
+   "class": "EnvenomPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "EquilibriumPower",
+   "class": "EquilibriumPower",
+   "type": null,
+   "isTurnBased": true
+  },
+  {
+   "id": "EvolvePower",
+   "class": "EvolvePower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "ExplosivePower",
+   "class": "ExplosivePower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "FadingPower",
+   "class": "FadingPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "FeelNoPainPower",
+   "class": "FeelNoPainPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "FireBreathingPower",
+   "class": "FireBreathingPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "FlameBarrierPower",
+   "class": "FlameBarrierPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "FlightPower",
+   "class": "FlightPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "FocusPower",
+   "class": "FocusPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "ForcefieldPower",
+   "class": "ForcefieldPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "FrailPower",
+   "class": "FrailPower",
+   "type": null,
+   "isTurnBased": true
+  },
+  {
+   "id": "GainStrengthPower",
+   "class": "GainStrengthPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "GenericStrengthUpPower",
+   "class": "GenericStrengthUpPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "GrowthPower",
+   "class": "GrowthPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "HeatsinkPower",
+   "class": "HeatsinkPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "HelloPower",
+   "class": "HelloPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "HexPower",
+   "class": "HexPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "InfiniteBladesPower",
+   "class": "InfiniteBladesPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "IntangiblePlayerPower",
+   "class": "IntangiblePlayerPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "IntangiblePower",
+   "class": "IntangiblePower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "InvinciblePower",
+   "class": "InvinciblePower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "JuggernautPower",
+   "class": "JuggernautPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "LightningMasteryPower",
+   "class": "LightningMasteryPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "LockOnPower",
+   "class": "LockOnPower",
+   "type": null,
+   "isTurnBased": true
+  },
+  {
+   "id": "LoopPower",
+   "class": "LoopPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "LoseDexterityPower",
+   "class": "LoseDexterityPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "LoseStrengthPower",
+   "class": "LoseStrengthPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "MagnetismPower",
+   "class": "MagnetismPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "MalleablePower",
+   "class": "MalleablePower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "MayhemPower",
+   "class": "MayhemPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "MetallicizePower",
+   "class": "MetallicizePower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "MinionPower",
+   "class": "MinionPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "ModeShiftPower",
+   "class": "ModeShiftPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "NextTurnBlockPower",
+   "class": "NextTurnBlockPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "NightmarePower",
+   "class": "NightmarePower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "NoBlockPower",
+   "class": "NoBlockPower",
+   "type": null,
+   "isTurnBased": true
+  },
+  {
+   "id": "NoDrawPower",
+   "class": "NoDrawPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "NoxiousFumesPower",
+   "class": "NoxiousFumesPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "PainfulStabsPower",
+   "class": "PainfulStabsPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "PanachePower",
+   "class": "PanachePower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "PenNibPower",
+   "class": "PenNibPower",
+   "type": null,
+   "isTurnBased": true
+  },
+  {
+   "id": "PhantasmalPower",
+   "class": "PhantasmalPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "PlatedArmorPower",
+   "class": "PlatedArmorPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "PoisonPower",
+   "class": "PoisonPower",
+   "type": null,
+   "isTurnBased": true
+  },
+  {
+   "id": "RagePower",
+   "class": "RagePower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "ReactivePower",
+   "class": "ReactivePower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "ReboundPower",
+   "class": "ReboundPower",
+   "type": null,
+   "isTurnBased": true
+  },
+  {
+   "id": "RechargingCorePower",
+   "class": "RechargingCorePower",
+   "type": null,
+   "isTurnBased": true
+  },
+  {
+   "id": "RegenPower",
+   "class": "RegenPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "RegenerateMonsterPower",
+   "class": "RegenerateMonsterPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "RegrowPower",
+   "class": "RegrowPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "RepairPower",
+   "class": "RepairPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "ResurrectPower",
+   "class": "ResurrectPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "RetainCardPower",
+   "class": "RetainCardPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "RitualPower",
+   "class": "RitualPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "RupturePower",
+   "class": "RupturePower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "SadisticPower",
+   "class": "SadisticPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "SharpHidePower",
+   "class": "SharpHidePower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "ShiftingPower",
+   "class": "ShiftingPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "SkillBurnPower",
+   "class": "SkillBurnPower",
+   "type": null,
+   "isTurnBased": true
+  },
+  {
+   "id": "SlowPower",
+   "class": "SlowPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "SplitPower",
+   "class": "SplitPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "SporeCloudPower",
+   "class": "SporeCloudPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "StasisPower",
+   "class": "StasisPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "StaticDischargePower",
+   "class": "StaticDischargePower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "StormPower",
+   "class": "StormPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "StrengthPower",
+   "class": "StrengthPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "StrikeUpPower",
+   "class": "StrikeUpPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "SurroundedPower",
+   "class": "SurroundedPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "TheBombPower",
+   "class": "TheBombPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "ThieveryPower",
+   "class": "ThieveryPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "ThornsPower",
+   "class": "ThornsPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "ThousandCutsPower",
+   "class": "ThousandCutsPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "TimeMazePower",
+   "class": "TimeMazePower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "TimeWarpPower",
+   "class": "TimeWarpPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "ToolsOfTheTradePower",
+   "class": "ToolsOfTheTradePower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "UnawakenedPower",
+   "class": "UnawakenedPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "VulnerablePower",
+   "class": "VulnerablePower",
+   "type": null,
+   "isTurnBased": true
+  },
+  {
+   "id": "WeakPower",
+   "class": "WeakPower",
+   "type": null,
+   "isTurnBased": true
+  },
+  {
+   "id": "WinterPower",
+   "class": "WinterPower",
+   "type": null,
+   "isTurnBased": null
+  },
+  {
+   "id": "WraithFormPower",
+   "class": "WraithFormPower",
+   "type": null,
+   "isTurnBased": null
+  }
+ ]
+}
