@@ -197,6 +197,23 @@ def classify_action(cls: str, args: str, consts: dict, overrides: dict, lvars: d
             else:
                 n = {"Raw": "-x"}
         return {"OrbSlots": n}
+    if cls == "FissionAction":
+        return [{"Draw": "OrbCount"}, {"GainEnergy": "OrbCount"}, {"EvokeAllOrbs": 1}]
+    if cls == "ImpulseAction":
+        return {"TriggerAllOrbPassives": 1}
+    if cls == "DarkImpulseAction":
+        return {"TriggerDarkOrbPassives": 1}
+    if cls == "CompileDriverAction":
+        return {"Draw": "UniqueOrbTypes"}
+    if cls == "GreedAction":
+        return [{"Damage": ["Enemy", "DamageBase"]}, {"IfKillGainGold": 25}]
+    if cls == "RecycleAction":
+        return {"SelectExhaustGainEnergyCost": 1}
+    if cls == "AllCostToHandAction":
+        return {"ReturnZeroCostFromDiscard": 1}
+    if cls == "MalaiseAction":
+        return [{"ApplyPower": ["Enemy", "Weakened", "XCost"]},
+                {"ApplyPower": ["Enemy", "Strength", "NegXCost"]}]
     if cls == "ArmamentsAction":
         return [{"Damage": ["Enemy", "DamageBase"]}] if False else [{"SelectUpgradeCard": 1}]
     if cls == "ApotheosisAction":

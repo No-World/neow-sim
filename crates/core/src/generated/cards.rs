@@ -2595,8 +2595,11 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &["exhaust"],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("MalaiseAction")],
+        status: "parsed",
+        effects: &[
+            Effect::ApplyPower(Target::Enemy, "Weakened", Expr::XCost),
+            Effect::ApplyPower(Target::Enemy, "Strength", Expr::NegXCost),
+        ],
     },
     CardDef {
         id: "Masterful Stab",
@@ -4833,10 +4836,10 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
+        status: "parsed",
         effects: &[
             Effect::Damage(Target::Enemy, Expr::DamageBase),
-            Effect::Unsupported("AllCostToHandAction"),
+            Effect::ReturnZeroCostFromDiscard,
         ],
     },
     CardDef {
@@ -5158,10 +5161,10 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
+        status: "parsed",
         effects: &[
             Effect::Damage(Target::Enemy, Expr::DamageBase),
-            Effect::Unsupported("CompileDriverAction"),
+            Effect::Draw(Expr::UniqueOrbTypes),
         ],
     },
     CardDef {
@@ -5291,10 +5294,10 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
+        status: "parsed_branch",
         effects: &[
             Effect::Channel("Dark", Expr::N(1), true),
-            Effect::Unsupported("DarkImpulseAction"),
+            Effect::TriggerDarkOrbPassives,
         ],
     },
     CardDef {
@@ -5496,8 +5499,12 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &["exhaust"],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("FissionAction")],
+        status: "parsed",
+        effects: &[
+            Effect::Draw(Expr::OrbCount),
+            Effect::GainEnergy(Expr::OrbCount),
+            Effect::EvokeAllOrbs,
+        ],
     },
     CardDef {
         id: "Force Field",
@@ -5705,8 +5712,8 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &["exhaust"],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("ImpulseAction")],
+        status: "parsed",
+        effects: &[Effect::TriggerAllOrbPassives],
     },
     CardDef {
         id: "Leap",
@@ -5978,8 +5985,8 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: Some(0),
         flags: &[],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("RecycleAction")],
+        status: "parsed",
+        effects: &[Effect::SelectExhaustGainEnergyCost],
     },
     CardDef {
         id: "Reinforced Body",
@@ -6731,8 +6738,11 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: Some(5),
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("GreedAction")],
+        status: "parsed",
+        effects: &[
+            Effect::Damage(Target::Enemy, Expr::DamageBase),
+            Effect::IfKillGainGold(Expr::N(25)),
+        ],
     },
     CardDef {
         id: "Impatience",

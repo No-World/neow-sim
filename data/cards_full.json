@@ -4,10 +4,10 @@
   "note": "use() 效果 DSL；Unsupported 需手移植"
  },
  "stats": {
-  "parsed": 294,
-  "parsed_branch": 59,
+  "parsed": 301,
+  "parsed_branch": 60,
   "no_use": 0,
-  "unsupported": 22
+  "unsupported": 14
  },
  "data": [
   {
@@ -3591,13 +3591,21 @@
    "upgrade": {},
    "effects": [
     {
-     "Unsupported": "MalaiseAction"
+     "ApplyPower": [
+      "Enemy",
+      "Weakened",
+      "XCost"
+     ]
+    },
+    {
+     "ApplyPower": [
+      "Enemy",
+      "Strength",
+      "NegXCost"
+     ]
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "MalaiseAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Masterful Stab",
@@ -6653,13 +6661,10 @@
      ]
     },
     {
-     "Unsupported": "AllCostToHandAction"
+     "ReturnZeroCostFromDiscard": 1
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "AllCostToHandAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Amplify",
@@ -7131,13 +7136,10 @@
      ]
     },
     {
-     "Unsupported": "CompileDriverAction"
+     "Draw": "UniqueOrbTypes"
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "CompileDriverAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Conserve Battery",
@@ -7314,13 +7316,10 @@
      ]
     },
     {
-     "Unsupported": "DarkImpulseAction"
+     "TriggerDarkOrbPassives": 1
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "DarkImpulseAction"
-   ]
+   "status": "parsed_branch"
   },
   {
    "id": "Defend_B",
@@ -7599,13 +7598,16 @@
    "upgrade": {},
    "effects": [
     {
-     "Unsupported": "FissionAction"
+     "Draw": "OrbCount"
+    },
+    {
+     "GainEnergy": "OrbCount"
+    },
+    {
+     "EvokeAllOrbs": 1
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "FissionAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Force Field",
@@ -7902,13 +7904,10 @@
    "upgrade": {},
    "effects": [
     {
-     "Unsupported": "ImpulseAction"
+     "TriggerAllOrbPassives": 1
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "ImpulseAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Leap",
@@ -8302,13 +8301,10 @@
    },
    "effects": [
     {
-     "Unsupported": "RecycleAction"
+     "SelectExhaustGainEnergyCost": 1
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "RecycleAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Reinforced Body",
@@ -9347,13 +9343,16 @@
    },
    "effects": [
     {
-     "Unsupported": "GreedAction"
+     "Damage": [
+      "Enemy",
+      "DamageBase"
+     ]
+    },
+    {
+     "IfKillGainGold": 25
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "GreedAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Impatience",

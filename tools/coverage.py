@@ -33,7 +33,7 @@ CLASS_NAMES = {c["class"] for c in cards["data"]}
 
 
 def expr_ok(a):
-    if a in ("HandSize", "DrawPileSize", "CurrentEnergy", "OrbCount", "DiscardPileSize"):
+    if a in ("HandSize", "DrawPileSize", "CurrentEnergy", "OrbCount", "DiscardPileSize", "UniqueOrbTypes", "NegXCost"):
         return True
     return not isinstance(a, dict)
 
@@ -75,6 +75,11 @@ def effect_supported(e):
         return True
     if k in ("ShuffleDraw", "ForceEndTurn", "DiscardNonAttacks", "DiscardAllHand", "SetHandCostZero", "ExhaustHand"):
         return True
+    if k in ("EvokeAllOrbs", "TriggerAllOrbPassives", "TriggerDarkOrbPassives",
+             "SelectExhaustGainEnergyCost", "ReturnZeroCostFromDiscard"):
+        return True
+    if k == "IfKillGainGold":
+        return expr_ok(e[k])
     if k in ("SelectUpgradeCard", "UpgradeAllHand", "UpgradeStrikesDefends", "PlayTopCard", "SelectFreeCost"):
         return True
     if k == "BlockPerDiscard":

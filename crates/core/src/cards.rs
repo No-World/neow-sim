@@ -136,6 +136,12 @@ fn effect_supported(e: &Effect) -> bool {
         Effect::IfStanceBlock(_, x) => expr_ok(*x),
         Effect::IfDiscardedGainEnergy(x) => expr_ok(*x),
         Effect::DrawToHand(x) | Effect::IfIntentApplyWeak(x) => expr_ok(*x),
+        Effect::EvokeAllOrbs
+        | Effect::TriggerAllOrbPassives
+        | Effect::TriggerDarkOrbPassives
+        | Effect::SelectExhaustGainEnergyCost
+        | Effect::ReturnZeroCostFromDiscard => true,
+        Effect::IfKillGainGold(x) => expr_ok(*x),
         Effect::SelectUpgradeCard
         | Effect::UpgradeAllHand
         | Effect::UpgradeStrikesDefends

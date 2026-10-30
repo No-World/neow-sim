@@ -38,6 +38,10 @@ pub enum Expr {
     OrbCount,
     /// 弃牌堆数（运行时求值）
     DiscardPileSize,
+    /// 不同种类充能球数（运行时求值）
+    UniqueOrbTypes,
+    /// X 费的负值（Malaise 减力量用）
+    NegXCost,
     Const(&'static str),
     /// 未解析表达式（待手移植）
     Raw(&'static str),
@@ -171,6 +175,18 @@ pub enum Effect {
     PlayTopCard,
     /// 选择手牌免费化（MadnessAction：cost_delta 设为使费用为0）
     SelectFreeCost,
+    /// 引出全部充能球（FissionAction）
+    EvokeAllOrbs,
+    /// 触发全部球被动（ImpulseAction）
+    TriggerAllOrbPassives,
+    /// 仅触发暗球被动（DarkImpulseAction/Darkness）
+    TriggerDarkOrbPassives,
+    /// 击杀时获得金币（GreedAction/HandOfGreed）
+    IfKillGainGold(Expr),
+    /// 选择手牌消耗+获得费用等量能量（RecycleAction）
+    SelectExhaustGainEnergyCost,
+    /// 弃牌堆中全部0费卡回手（AllCostToHandAction/All For One）
+    ReturnZeroCostFromDiscard,
     /// 未支持动作（值为 Java 动作类名）——手移植清单
     Unsupported(&'static str),
 }

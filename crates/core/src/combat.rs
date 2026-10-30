@@ -48,6 +48,7 @@ pub enum HandPickPurpose {
     PutOnDeckBottom,
     UpgradeCard,
     FreeCost,
+    ExhaustGainEnergy,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -139,6 +140,15 @@ enum Q {
     DoSetHandCostOne,
     DoModifySelfDamage(i32),
     DoSelectUpgradeCard,
+    DoEvokeAllOrbs,
+    DoTriggerAllOrbPassives,
+    DoTriggerDarkOrbPassives,
+    DoIfKillGainGold {
+        target: usize,
+        gold_gain: i32,
+    },
+    DoSelectExhaustGainEnergyCost,
+    DoReturnZeroCostFromDiscard,
     DoUpgradeAllHand,
     DoUpgradeStrikesDefends,
     DoBlockPerDiscard(i32),
@@ -276,6 +286,7 @@ pub struct Combat {
     hand_cost_max_one: bool,
     pub next_turn_draw: i32,
     pub next_turn_energy: i32,
+    pub gold: i32,
     skip_monster_turn: bool,
     force_end_turn_after_queue: bool,
     pub discarded_this_turn: i32,
@@ -337,6 +348,7 @@ impl Combat {
             hand_cost_max_one: false,
             next_turn_draw: 0,
             next_turn_energy: 0,
+            gold: 99,
             skip_monster_turn: false,
             force_end_turn_after_queue: false,
             discarded_this_turn: 0,
@@ -533,6 +545,11 @@ impl Combat {
                         c.cost_delta = -(c.def.cost.unwrap_or(0)).max(0);
                         self.player.hand.push(c);
                     }
+                    HandPickPurpose::ExhaustGainEnergy => {
+                        let energy = c.cost_pay().max(0);
+                        self.player.energy += energy;
+                        self.player.exhaust.push(c);
+                    }
                 }
             }
         }
@@ -582,6 +599,14 @@ impl Combat {
             Expr::CurrentEnergy => self.player.energy,
             Expr::OrbCount => self.player.orbs.len() as i32,
             Expr::DiscardPileSize => self.player.discard.len() as i32,
+            Expr::UniqueOrbTypes => {
+                let mut types = std::collections::HashSet::new();
+                for orb in &self.player.orbs {
+                    types.insert(orb.kind);
+                }
+                types.len() as i32
+            }
+            Expr::NegXCost => -x_cost,
             Expr::Const(_) | Expr::Raw(_) => unreachable!("can_play 已过滤不可求值表达式"),
         }
     }
@@ -851,6 +876,15 @@ impl Combat {
                 target: ti,
                 base: self.eval(e, card, x_cost),
             }),
+            Effect::EvokeAllOrbs => q.push(Q::DoEvokeAllOrbs),
+            Effect::TriggerAllOrbPassives => q.push(Q::DoTriggerAllOrbPassives),
+            Effect::TriggerDarkOrbPassives => q.push(Q::DoTriggerDarkOrbPassives),
+            Effect::IfKillGainGold(e) => q.push(Q::DoIfKillGainGold {
+                target: ti,
+                gold_gain: self.eval(e, card, x_cost),
+            }),
+            Effect::SelectExhaustGainEnergyCost => q.push(Q::DoSelectExhaustGainEnergyCost),
+            Effect::ReturnZeroCostFromDiscard => q.push(Q::DoReturnZeroCostFromDiscard),
             Effect::SelectUpgradeCard => q.push(Q::DoSelectUpgradeCard),
             Effect::UpgradeAllHand => q.push(Q::DoUpgradeAllHand),
             Effect::UpgradeStrikesDefends => q.push(Q::DoUpgradeStrikesDefends),
@@ -1688,6 +1722,89 @@ impl Combat {
                 for &i in indices.iter().rev() {
                     let c = self.player.hand.remove(i);
                     self.player.discard.push(c);
+                }
+            }
+            Q::DoEvokeAllOrbs => {
+                while !self.player.orbs.is_empty() {
+                    let orb = self.player.orbs.remove(0);
+                    self.orb_evoke_effect(&orb);
+                }
+            }
+            Q::DoTriggerAllOrbPassives => {
+                let focus = self
+                    .player
+                    .creature
+                    .powers
+                    .iter()
+                    .find(|p| p.kind == PowerKind::Focus)
+                    .map(|p| p.amount)
+                    .unwrap_or(0);
+                for mi in 0..self.player.orbs.len() {
+                    let orb = self.player.orbs[mi].clone();
+                    let passive = orb.passive(focus);
+                    match orb.kind {
+                        crate::state::OrbKind::Frost => self.player.creature.block += passive,
+                        crate::state::OrbKind::Lightning => {
+                            let alive: Vec<usize> = (0..self.monsters.len())
+                                .filter(|&i| self.alive(i))
+                                .collect();
+                            if let Some(m) = alive.len().checked_sub(1) {
+                                let roll = self.rng.card_random.random_start_end(0, m as i32);
+                                let t = alive[(roll.max(0) as usize).min(alive.len() - 1)];
+                                self.monsters[t].creature.apply_damage(passive);
+                                if self.monsters[t].creature.is_dead() {
+                                    self.on_monster_death(t);
+                                }
+                            }
+                        }
+                        crate::state::OrbKind::Dark => self.player.orbs[mi].dark_growth += passive,
+                        crate::state::OrbKind::Plasma => {}
+                    }
+                }
+            }
+            Q::DoTriggerDarkOrbPassives => {
+                let focus = self
+                    .player
+                    .creature
+                    .powers
+                    .iter()
+                    .find(|p| p.kind == PowerKind::Focus)
+                    .map(|p| p.amount)
+                    .unwrap_or(0);
+                for mi in 0..self.player.orbs.len() {
+                    if self.player.orbs[mi].kind == crate::state::OrbKind::Dark {
+                        let passive = self.player.orbs[mi].passive(focus);
+                        self.player.orbs[mi].dark_growth += passive;
+                    }
+                }
+            }
+            Q::DoIfKillGainGold { target, gold_gain } => {
+                if !self.alive(target) {
+                    self.gold += gold_gain;
+                }
+            }
+            Q::DoSelectExhaustGainEnergyCost => {
+                if !self.player.hand.is_empty() {
+                    self.pending = Some(Pending::HandPick {
+                        purpose: HandPickPurpose::ExhaustGainEnergy,
+                    });
+                }
+            }
+            Q::DoReturnZeroCostFromDiscard => {
+                let indices: Vec<usize> = self
+                    .player
+                    .discard
+                    .iter()
+                    .enumerate()
+                    .filter(|(_, c)| c.cost_pay() == 0)
+                    .rev()
+                    .map(|(i, _)| i)
+                    .collect();
+                for i in indices {
+                    if self.player.hand.len() < 10 {
+                        let c = self.player.discard.remove(i);
+                        self.player.hand.push(c);
+                    }
                 }
             }
             Q::DoSelectUpgradeCard => {
