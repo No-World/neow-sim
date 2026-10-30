@@ -71,6 +71,20 @@ pub enum Effect {
     /// 增减槽位（IncreaseMaxOrbAction / DecreaseMaxOrbAction）
     OrbSlots(Expr),
     ShuffleDraw,
+    /// 直接获得格挡，不走管线（DoubleYourBlockAction/Entrench）
+    GainBlock(Expr),
+    /// 强制结束回合（PressEndTurnButtonAction/Conclude/Meditate/Vault）
+    ForceEndTurn,
+    /// 全场吸血伤害（VampireDamageAllEnemiesAction/Reaper）
+    VampireDamageAll(Expr),
+    /// 倍增已有 power 层数（DoublePoison/LimitBreak 等）
+    ModifyPower(Target, &'static str, i32),
+    /// 目标有中毒时造成伤害（BaneAction）
+    DamageIfPoisoned(Expr),
+    /// 消耗所有非攻击手牌，每张获得 block 格挡（BlockPerNonAttackAction/Second Wind）
+    ExhaustNonAttacks(Expr),
+    /// 按本回合已打攻击牌数 × N 次伤害（DamagePerAttackPlayedAction/Finisher）
+    DamagePerAttack(Expr),
     /// 未支持动作（值为 Java 动作类名）——手移植清单
     Unsupported(&'static str),
 }

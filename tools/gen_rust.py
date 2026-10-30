@@ -91,6 +91,21 @@ def effect_rs(eff) -> str:
         return "Effect::EvokeLeftmost"
     if "EvokeNoRemove" in eff:
         return "Effect::EvokeNoRemove"
+    if "GainBlock" in eff:
+        return f"Effect::GainBlock({expr_rs(eff['GainBlock'])})"
+    if "ForceEndTurn" in eff:
+        return "Effect::ForceEndTurn"
+    if "VampireDamageAll" in eff:
+        return f"Effect::VampireDamageAll({expr_rs(eff['VampireDamageAll'])})"
+    if "ModifyPower" in eff:
+        t, pid, mult = eff["ModifyPower"]
+        return f"Effect::ModifyPower({target_rs(t)}, {s(pid)}, {mult})"
+    if "DamageIfPoisoned" in eff:
+        return f"Effect::DamageIfPoisoned({expr_rs(eff['DamageIfPoisoned'])})"
+    if "ExhaustNonAttacks" in eff:
+        return f"Effect::ExhaustNonAttacks({expr_rs(eff['ExhaustNonAttacks'])})"
+    if "DamagePerAttack" in eff:
+        return f"Effect::DamagePerAttack({expr_rs(eff['DamagePerAttack'])})"
     if "ShuffleDraw" in eff:
         return "Effect::ShuffleDraw"
     if "OrbSlots" in eff:

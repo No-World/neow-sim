@@ -4,10 +4,10 @@
   "note": "use() 效果 DSL；Unsupported 需手移植"
  },
  "stats": {
-  "parsed": 237,
-  "parsed_branch": 51,
+  "parsed": 244,
+  "parsed_branch": 52,
   "no_use": 0,
-  "unsupported": 87
+  "unsupported": 79
  },
  "data": [
   {
@@ -755,13 +755,10 @@
    },
    "effects": [
     {
-     "Unsupported": "DoubleYourBlockAction"
+     "GainBlock": "CurrentBlock"
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "DoubleYourBlockAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Evolve",
@@ -1356,13 +1353,14 @@
    "upgrade": {},
    "effects": [
     {
-     "Unsupported": "LimitBreakAction"
+     "ModifyPower": [
+      "Self",
+      "Strength",
+      2
+     ]
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "LimitBreakAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Metallicize",
@@ -1629,13 +1627,10 @@
    },
    "effects": [
     {
-     "Unsupported": "VampireDamageAllEnemiesAction"
+     "VampireDamageAll": "DamageBase"
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "VampireDamageAllEnemiesAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Reckless Charge",
@@ -1742,13 +1737,10 @@
    },
    "effects": [
     {
-     "Unsupported": "BlockPerNonAttackAction"
+     "ExhaustNonAttacks": "BlockBase"
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "BlockPerNonAttackAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Seeing Red",
@@ -2501,13 +2493,10 @@
      ]
     },
     {
-     "Unsupported": "BaneAction"
+     "DamageIfPoisoned": "DamageBase"
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "BaneAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Blade Dance",
@@ -2722,17 +2711,21 @@
    "upgrade": {},
    "effects": [
     {
-     "Unsupported": "DoublePoisonAction"
+     "ModifyPower": [
+      "Enemy",
+      "Poison",
+      2
+     ]
     },
     {
-     "Unsupported": "TriplePoisonAction"
+     "ModifyPower": [
+      "Enemy",
+      "Poison",
+      3
+     ]
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "DoublePoisonAction",
-    "TriplePoisonAction"
-   ]
+   "status": "parsed_branch"
   },
   {
    "id": "Choke",
@@ -3339,13 +3332,10 @@
    },
    "effects": [
     {
-     "Unsupported": "DamagePerAttackPlayedAction"
+     "DamagePerAttack": "DamageBase"
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "DamagePerAttackPlayedAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Flechettes",
@@ -4658,13 +4648,10 @@
      "DamageAll": "DamageBase"
     },
     {
-     "Unsupported": "PressEndTurnButtonAction"
+     "ForceEndTurn": 1
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "PressEndTurnButtonAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "ConjureBlade",
@@ -5609,13 +5596,12 @@
      "ChangeStance": "Calm"
     },
     {
-     "Unsupported": "PressEndTurnButtonAction"
+     "ForceEndTurn": 1
     }
    ],
    "status": "unsupported",
    "unsupported": [
-    "MeditateAction",
-    "PressEndTurnButtonAction"
+    "MeditateAction"
    ]
   },
   {
@@ -6400,13 +6386,12 @@
      "Unsupported": "SkipEnemiesTurnAction"
     },
     {
-     "Unsupported": "PressEndTurnButtonAction"
+     "ForceEndTurn": 1
     }
    ],
    "status": "unsupported",
    "unsupported": [
-    "SkipEnemiesTurnAction",
-    "PressEndTurnButtonAction"
+    "SkipEnemiesTurnAction"
    ]
   },
   {

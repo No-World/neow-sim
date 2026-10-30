@@ -103,6 +103,31 @@ enum Q {
     EvokeNoRemove,
     OrbSlots(i32),
     ShuffleDraw,
+    GainBlock(i32),
+    ForceEndTurn,
+    VampireDamageAll {
+        base: i32,
+    },
+    ModifyPowerMonster {
+        target: usize,
+        kind: PowerKind,
+        mult: i32,
+    },
+    ModifyPowerSelf {
+        kind: PowerKind,
+        mult: i32,
+    },
+    DamageIfPoisoned {
+        target: usize,
+        base: i32,
+    },
+    ExhaustNonAttacks {
+        block_per: i32,
+    },
+    DamagePerAttack {
+        target: usize,
+        base: i32,
+    },
     RollMove(usize),
 }
 
@@ -146,6 +171,8 @@ pub struct Combat {
     pub pending: Option<Pending>,
     /// 选择屏挂起时暂存的动作队列
     pending_queue: Option<Vec<Q>>,
+    pub attacks_this_turn: i32,
+    force_end_turn_after_queue: bool,
     pub turn: i32,
     pub turn_has_ended: bool,
     pub over: bool,
@@ -198,6 +225,8 @@ impl Combat {
             rng,
             pending: None,
             pending_queue: None,
+            attacks_this_turn: 0,
+            force_end_turn_after_queue: false,
             turn: 1,
             turn_has_ended: false,
             over: false,
@@ -260,7 +289,7 @@ impl Combat {
         if cost == -1 {
             return true; // X 费：0 能量也可打（效果为 0 次）
         }
-        cost >= 0 && cost <= self.player.energy
+        (0..=self.player.energy).contains(&cost)
     }
 
     pub fn legal_actions(&self) -> Vec<Action> {
@@ -432,6 +461,10 @@ impl Combat {
         } else {
             self.player.discard.push(card);
         }
+        // 追踪本回合攻击牌数（Finisher 用）
+        if card.def.card_type == "ATTACK" {
+            self.attacks_this_turn += 1;
+        }
         // 能量结算：X 费支付全部
         self.player.energy -= if card.cost_pay() == -1 {
             x_cost
@@ -583,6 +616,36 @@ impl Combat {
             Effect::EvokeNoRemove => q.push(Q::EvokeNoRemove),
             Effect::OrbSlots(e) => q.push(Q::OrbSlots(self.eval(e, card, x_cost))),
             Effect::ShuffleDraw => q.push(Q::ShuffleDraw),
+            Effect::GainBlock(e) => q.push(Q::GainBlock(self.eval(e, card, x_cost))),
+            Effect::ForceEndTurn => q.push(Q::ForceEndTurn),
+            Effect::VampireDamageAll(e) => q.push(Q::VampireDamageAll {
+                base: self.eval(e, card, x_cost),
+            }),
+            Effect::ModifyPower(t, pid, mult) => {
+                if let Some(kind) = power_kind(pid) {
+                    match t {
+                        Target::Enemy | Target::AllEnemies => {
+                            q.push(Q::ModifyPowerMonster {
+                                target: ti,
+                                kind,
+                                mult,
+                            });
+                        }
+                        _ => q.push(Q::ModifyPowerSelf { kind, mult }),
+                    }
+                }
+            }
+            Effect::DamageIfPoisoned(e) => q.push(Q::DamageIfPoisoned {
+                target: ti,
+                base: self.eval(e, card, x_cost),
+            }),
+            Effect::ExhaustNonAttacks(e) => q.push(Q::ExhaustNonAttacks {
+                block_per: self.eval(e, card, x_cost),
+            }),
+            Effect::DamagePerAttack(e) => q.push(Q::DamagePerAttack {
+                target: ti,
+                base: self.eval(e, card, x_cost),
+            }),
             Effect::ExhaustHand | Effect::Unsupported(_) => {
                 unreachable!("can_play 已过滤不可玩效果")
             }
@@ -769,6 +832,7 @@ impl Combat {
             return;
         }
         self.turn += 1;
+        self.attacks_this_turn = 0;
         self.turn_has_ended = false;
         // ── 下回合开始序列（GameActionManager turn-start 分支）──
         // ① startOfTurnPowers（pre）：Berserk +能量；Energized（onEnergyRecharge）+能量后移除
@@ -988,6 +1052,11 @@ impl Combat {
             let act = q.remove(0);
             self.exec(act);
             if self.over {
+                return;
+            }
+            if self.force_end_turn_after_queue && q.is_empty() {
+                self.force_end_turn_after_queue = false;
+                self.end_turn();
                 return;
             }
             if self.pending.is_some() {
@@ -1222,6 +1291,113 @@ impl Combat {
                 let mut pile = std::mem::take(&mut self.player.draw);
                 card_group_shuffle(&mut pile, &mut self.rng.shuffle);
                 self.player.draw = pile;
+            }
+            Q::GainBlock(n) => {
+                self.player.creature.block += n;
+            }
+            Q::ForceEndTurn => {
+                self.force_end_turn_after_queue = true;
+            }
+            Q::VampireDamageAll { base } => {
+                let mut total = 0i32;
+                for mi in 0..self.monsters.len() {
+                    if self.alive(mi) {
+                        let d = calc_player_card_damage(
+                            base,
+                            DamageType::Normal,
+                            &self.player.creature.powers,
+                            &self.monsters[mi].creature.powers,
+                            self.player.stance,
+                        );
+                        self.monsters[mi].creature.apply_damage(d);
+                        total += d;
+                        if self.monsters[mi].creature.is_dead() {
+                            self.on_monster_death(mi);
+                        }
+                    }
+                }
+                if total > 0 {
+                    self.player.creature.hp =
+                        (self.player.creature.hp + total).min(self.player.creature.max_hp);
+                }
+            }
+            Q::ModifyPowerMonster { target, kind, mult } => {
+                if self.alive(target) {
+                    if let Some(p) = self.monsters[target]
+                        .creature
+                        .powers
+                        .iter_mut()
+                        .find(|p| p.kind == kind)
+                    {
+                        p.amount *= mult;
+                    }
+                }
+            }
+            Q::ModifyPowerSelf { kind, mult } => {
+                if let Some(p) = self
+                    .player
+                    .creature
+                    .powers
+                    .iter_mut()
+                    .find(|p| p.kind == kind)
+                {
+                    p.amount *= mult;
+                }
+            }
+            Q::DamageIfPoisoned { target, base } => {
+                if self.alive(target)
+                    && self.monsters[target]
+                        .creature
+                        .powers
+                        .iter()
+                        .any(|p| p.kind == PowerKind::Poison)
+                {
+                    let d = calc_player_card_damage(
+                        base,
+                        DamageType::Normal,
+                        &self.player.creature.powers,
+                        &self.monsters[target].creature.powers,
+                        self.player.stance,
+                    );
+                    self.monsters[target].creature.apply_damage(d);
+                    if self.monsters[target].creature.is_dead() {
+                        self.on_monster_death(target);
+                    }
+                }
+            }
+            Q::ExhaustNonAttacks { block_per } => {
+                let indices: Vec<usize> = self
+                    .player
+                    .hand
+                    .iter()
+                    .enumerate()
+                    .filter(|(_, c)| c.def.card_type != "ATTACK")
+                    .map(|(i, _)| i)
+                    .collect();
+                for &i in indices.iter().rev() {
+                    let c = self.player.hand.remove(i);
+                    self.player.exhaust.push(c);
+                    self.player.creature.block += block_per;
+                }
+            }
+            Q::DamagePerAttack { target, base } => {
+                let count = (self.attacks_this_turn - 1).max(0);
+                for _ in 0..count {
+                    if self.alive(target) {
+                        let d = calc_player_card_damage(
+                            base,
+                            DamageType::Normal,
+                            &self.player.creature.powers,
+                            &self.monsters[target].creature.powers,
+                            self.player.stance,
+                        );
+                        self.monsters[target].creature.apply_damage(d);
+                        if self.monsters[target].creature.is_dead() {
+                            self.on_monster_death(target);
+                            break;
+                        }
+                    }
+                }
             }
             Q::RollMove(i) => self.roll_move(i),
         }
@@ -2235,7 +2411,7 @@ mod tests {
             .find(|p| p.kind == PowerKind::CurlUp)
             .map(|p| p.amount)
             .expect("虱子战前应有蜷缩");
-        assert!(curl >= 3 && curl <= 7);
+        assert!((3..=7).contains(&curl));
         // 打击触发蜷缩
         let hp0 = c.monsters[0].creature.hp;
         force_hand(&mut c, &["Strike_R"]);

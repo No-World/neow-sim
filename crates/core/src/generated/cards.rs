@@ -545,8 +545,8 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: Some(1),
         flags: &[],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("DoubleYourBlockAction")],
+        status: "parsed",
+        effects: &[Effect::GainBlock(Expr::CurrentBlock)],
     },
     CardDef {
         id: "Evolve",
@@ -981,8 +981,8 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &["exhaust"],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("LimitBreakAction")],
+        status: "parsed",
+        effects: &[Effect::ModifyPower(Target::SelfC, "Strength", 2)],
     },
     CardDef {
         id: "Metallicize",
@@ -1175,8 +1175,8 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &["exhaust"],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("VampireDamageAllEnemiesAction")],
+        status: "parsed",
+        effects: &[Effect::VampireDamageAll(Expr::DamageBase)],
     },
     CardDef {
         id: "Reckless Charge",
@@ -1258,8 +1258,8 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("BlockPerNonAttackAction")],
+        status: "parsed",
+        effects: &[Effect::ExhaustNonAttacks(Expr::BlockBase)],
     },
     CardDef {
         id: "Seeing Red",
@@ -1794,10 +1794,10 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
+        status: "parsed",
         effects: &[
             Effect::Damage(Target::Enemy, Expr::DamageBase),
-            Effect::Unsupported("BaneAction"),
+            Effect::DamageIfPoisoned(Expr::DamageBase),
         ],
     },
     CardDef {
@@ -1955,10 +1955,10 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &["exhaust"],
-        status: "unsupported",
+        status: "parsed_branch",
         effects: &[
-            Effect::Unsupported("DoublePoisonAction"),
-            Effect::Unsupported("TriplePoisonAction"),
+            Effect::ModifyPower(Target::Enemy, "Poison", 2),
+            Effect::ModifyPower(Target::Enemy, "Poison", 3),
         ],
     },
     CardDef {
@@ -2396,8 +2396,8 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("DamagePerAttackPlayedAction")],
+        status: "parsed",
+        effects: &[Effect::DamagePerAttack(Expr::DamageBase)],
     },
     CardDef {
         id: "Flechettes",
@@ -3338,11 +3338,8 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
-        effects: &[
-            Effect::DamageAll(Expr::DamageBase),
-            Effect::Unsupported("PressEndTurnButtonAction"),
-        ],
+        status: "parsed",
+        effects: &[Effect::DamageAll(Expr::DamageBase), Effect::ForceEndTurn],
     },
     CardDef {
         id: "ConjureBlade",
@@ -4044,7 +4041,7 @@ pub static CARDS: &[CardDef] = &[
         effects: &[
             Effect::Unsupported("MeditateAction"),
             Effect::ChangeStance("Calm"),
-            Effect::Unsupported("PressEndTurnButtonAction"),
+            Effect::ForceEndTurn,
         ],
     },
     CardDef {
@@ -4608,7 +4605,7 @@ pub static CARDS: &[CardDef] = &[
         status: "unsupported",
         effects: &[
             Effect::Unsupported("SkipEnemiesTurnAction"),
-            Effect::Unsupported("PressEndTurnButtonAction"),
+            Effect::ForceEndTurn,
         ],
     },
     CardDef {

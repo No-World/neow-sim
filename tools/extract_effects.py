@@ -197,6 +197,25 @@ def classify_action(cls: str, args: str, consts: dict, overrides: dict, lvars: d
             else:
                 n = {"Raw": "-x"}
         return {"OrbSlots": n}
+    if cls == "DoubleYourBlockAction":
+        return {"GainBlock": "CurrentBlock"}
+    if cls == "PressEndTurnButtonAction":
+        return {"ForceEndTurn": 1}
+    if cls == "VampireDamageAllEnemiesAction":
+        return {"VampireDamageAll": "DamageBase"}
+    if cls == "VampireDamageAction":
+        return {"VampireDamage": ["Enemy", "DamageBase"]}
+    if cls in ("DoublePoisonAction", "TriplePoisonAction"):
+        mult = 2 if cls == "DoublePoisonAction" else 3
+        return {"ModifyPower": ["Enemy", "Poison", mult]}
+    if cls == "LimitBreakAction":
+        return {"ModifyPower": ["Self", "Strength", 2]}
+    if cls == "BaneAction":
+        return {"DamageIfPoisoned": "DamageBase"}
+    if cls == "BlockPerNonAttackAction":
+        return {"ExhaustNonAttacks": "BlockBase"}
+    if cls == "DamagePerAttackPlayedAction":
+        return {"DamagePerAttack": "DamageBase"}
     if cls == "ShuffleAction":
         return {"ShuffleDraw": 1}
     if cls == "AttackDamageRandomEnemyAction":

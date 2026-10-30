@@ -71,6 +71,13 @@ def effect_supported(e):
         return orb in ("Frost", "Lightning", "Dark", "Plasma") and expr_ok(cnt)
     if k in ("EvokeLeftmost", "EvokeNoRemove"):
         return True
+    if k in ("ShuffleDraw", "ForceEndTurn"):
+        return True
+    if k in ("GainBlock", "VampireDamageAll", "DamageIfPoisoned", "ExhaustNonAttacks", "DamagePerAttack"):
+        return expr_ok(e[k])
+    if k == "ModifyPower":
+        _, pid, _ = e[k]
+        return pid in ENGINE_POWERS
     if k == "ShuffleDraw":
         return True
     if k == "OrbSlots":
