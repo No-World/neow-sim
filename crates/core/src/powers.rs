@@ -24,6 +24,16 @@ pub enum PowerKind {
     Frail,
     /// 仪式（RitualPower）：每轮末投予力量；怪物侧首轮 skipFirst
     Ritual,
+    /// 屈伸的回合末力量失效（LoseStrengthPower：EOT 力量 -amount 后移除自身）
+    LoseStrength,
+    /// 敏捷（DexterityPower：格挡 +flat，±999，可负）
+    Dexterity,
+    /// 中毒（PoisonPower：怪 EOT 失 HP=层数然后 -1，封顶 9999，绕过格挡）
+    Poison,
+    /// 金属化（MetallicizePower：玩家 EOT 前 GainBlock(amount)）
+    Metallicize,
+    /// 再生（Regeneration：EOT 治疗 amount 后 -1 层）
+    Regen,
 }
 
 /// atEndOfRound 衰减结果
@@ -58,9 +68,14 @@ impl Power {
             PowerKind::Vulnerable => source_is_monster && turn_has_ended,
             // WeakPower / FrailPower: if (isSourceMonster)
             PowerKind::Weak | PowerKind::Frail => source_is_monster,
-            // RitualPower: skipFirst = true（怪物侧首轮不投予）
+            // RitualPower: skipFirst = true（怪物侧首轮不投予）；其余无 skip
             PowerKind::Ritual => true,
-            PowerKind::Strength => false,
+            PowerKind::LoseStrength
+            | PowerKind::Strength
+            | PowerKind::Dexterity
+            | PowerKind::Poison
+            | PowerKind::Metallicize
+            | PowerKind::Regen => false,
         };
         Self {
             kind,
@@ -76,11 +91,20 @@ impl Power {
             PowerKind::Weak => "Weakened",
             PowerKind::Frail => "Frail",
             PowerKind::Ritual => "Ritual",
+            PowerKind::LoseStrength => "LoseStrengthPower",
+            PowerKind::Dexterity => "Dexterity",
+            PowerKind::Poison => "Poison",
+            PowerKind::Metallicize => "Metallicize",
+            PowerKind::Regen => "Regeneration",
         }
     }
 
+    /// 是否走通用轮末衰减（易伤/虚弱/脆弱）；毒/再生有自己的 tick，仪式/金属化不衰减
     pub fn is_turn_based(&self) -> bool {
-        !matches!(self.kind, PowerKind::Strength | PowerKind::Ritual)
+        matches!(
+            self.kind,
+            PowerKind::Vulnerable | PowerKind::Weak | PowerKind::Frail
+        )
     }
 
     /// atDamageGive：造成伤害方的 power（StrengthPower: +flat；WeakPower: ×0.75）
@@ -113,6 +137,7 @@ impl Power {
     pub fn modify_block(&self, block: f32) -> f32 {
         match self.kind {
             PowerKind::Frail => block * 0.75,
+            PowerKind::Dexterity => block + self.amount as f32,
             _ => block,
         }
     }

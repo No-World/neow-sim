@@ -4,10 +4,10 @@
   "note": "use() 效果 DSL；Unsupported 需手移植"
  },
  "stats": {
-  "parsed": 182,
-  "parsed_branch": 40,
+  "parsed": 179,
+  "parsed_branch": 30,
   "no_use": 0,
-  "unsupported": 153
+  "unsupported": 166
  },
  "data": [
   {
@@ -84,14 +84,13 @@
    },
    "effects": [
     {
-     "ApplyPower": [
-      "Self",
-      "Barricade",
-      1
-     ]
+     "Unsupported": "loop"
     }
    ],
-   "status": "parsed_branch"
+   "status": "unsupported",
+   "unsupported": [
+    "loop"
+   ]
   },
   {
    "id": "Bash",
@@ -292,7 +291,7 @@
     {
      "Damage": [
       "Enemy",
-      "DamageBase"
+      "CurrentBlock"
      ]
     }
    ],
@@ -375,13 +374,13 @@
    },
    "effects": [
     {
-     "Damage": [
-      "Enemy",
-      "DamageBase"
-     ]
+     "Unsupported": "loop"
     }
    ],
-   "status": "parsed_branch"
+   "status": "unsupported",
+   "unsupported": [
+    "loop"
+   ]
   },
   {
    "id": "Clash",
@@ -487,7 +486,7 @@
      "ApplyPower": [
       "Self",
       "Combust",
-      1
+      "Magic"
      ]
     }
    ],
@@ -511,14 +510,13 @@
    },
    "effects": [
     {
-     "ApplyPower": [
-      "Self",
-      "CorruptionPower",
-      1
-     ]
+     "Unsupported": "loop"
     }
    ],
-   "status": "parsed_branch"
+   "status": "unsupported",
+   "unsupported": [
+    "loop"
+   ]
   },
   {
    "id": "Dark Embrace",
@@ -1233,14 +1231,13 @@
    },
    "effects": [
     {
-     "ApplyPower": [
-      "Enemy",
-      "Weakened",
-      "Magic"
-     ]
+     "Unsupported": "loop"
     }
    ],
-   "status": "parsed"
+   "status": "unsupported",
+   "unsupported": [
+    "loop"
+   ]
   },
   {
    "id": "Iron Wave",
@@ -1490,18 +1487,12 @@
    },
    "effects": [
     {
-     "Unsupported": "PummelDamageAction"
-    },
-    {
-     "Damage": [
-      "Enemy",
-      "DamageBase"
-     ]
+     "Unsupported": "loop"
     }
    ],
    "status": "unsupported",
    "unsupported": [
-    "PummelDamageAction"
+    "loop"
    ]
   },
   {
@@ -1804,21 +1795,13 @@
    },
    "effects": [
     {
-     "ApplyPower": [
-      "Enemy",
-      "Weakened",
-      "Magic"
-     ]
-    },
-    {
-     "ApplyPower": [
-      "Enemy",
-      "Vulnerable",
-      "Magic"
-     ]
+     "Unsupported": "loop"
     }
    ],
-   "status": "parsed"
+   "status": "unsupported",
+   "unsupported": [
+    "loop"
+   ]
   },
   {
    "id": "Shrug It Off",
@@ -1916,12 +1899,12 @@
    },
    "effects": [
     {
-     "Unsupported": "AttackDamageRandomEnemyAction"
+     "Unsupported": "loop"
     }
    ],
    "status": "unsupported",
    "unsupported": [
-    "AttackDamageRandomEnemyAction"
+    "loop"
    ]
   },
   {
@@ -1942,17 +1925,13 @@
    },
    "effects": [
     {
-     "DamageAll": "DamageBase"
-    },
-    {
-     "ApplyPower": [
-      "Enemy",
-      "Vulnerable",
-      1
-     ]
+     "Unsupported": "loop"
     }
    ],
-   "status": "parsed_branch"
+   "status": "unsupported",
+   "unsupported": [
+    "loop"
+   ]
   },
   {
    "id": "True Grit",
@@ -2768,9 +2747,7 @@
      "ApplyPower": [
       "Enemy",
       "Poison",
-      {
-       "Const": "p"
-      }
+      "Magic"
      ]
     },
     {
@@ -2803,23 +2780,13 @@
    },
    "effects": [
     {
-     "ApplyPower": [
-      "Unknown",
-      "Poison",
-      {
-       "Const": "p"
-      }
-     ]
-    },
-    {
-     "ApplyPower": [
-      "Unknown",
-      "Weakened",
-      2
-     ]
+     "Unsupported": "loop"
     }
    ],
-   "status": "parsed_branch"
+   "status": "unsupported",
+   "unsupported": [
+    "loop"
+   ]
   },
   {
    "id": "Dagger Spray",
@@ -2933,9 +2900,7 @@
      "ApplyPower": [
       "Enemy",
       "Poison",
-      {
-       "Const": "p"
-      }
+      "Magic"
      ]
     }
    ],
@@ -3721,23 +3686,13 @@
    },
    "effects": [
     {
-     "ApplyPower": [
-      "Enemy",
-      "Strength",
-      {
-       "Raw": "-this.magicNumber"
-      }
-     ]
-    },
-    {
-     "ApplyPower": [
-      "Enemy",
-      "GainStrengthPower",
-      "Magic"
-     ]
+     "Unsupported": "loop"
     }
    ],
-   "status": "parsed_branch"
+   "status": "unsupported",
+   "unsupported": [
+    "loop"
+   ]
   },
   {
    "id": "Poisoned Stab",
@@ -3767,9 +3722,7 @@
      "ApplyPower": [
       "Enemy",
       "Poison",
-      {
-       "Const": "p"
-      }
+      "Magic"
      ]
     }
    ],
@@ -3907,13 +3860,13 @@
    },
    "effects": [
     {
-     "Damage": [
-      "Enemy",
-      "DamageBase"
-     ]
+     "Unsupported": "loop"
     }
    ],
-   "status": "parsed"
+   "status": "unsupported",
+   "unsupported": [
+    "loop"
+   ]
   },
   {
    "id": "Setup",
@@ -4300,9 +4253,7 @@
      "ApplyPower": [
       "Self",
       "WraithFormPower",
-      {
-       "Raw": "-1"
-      }
+      -1
      ]
     }
    ],
@@ -4426,13 +4377,13 @@
    },
    "effects": [
     {
-     "Damage": [
-      "Enemy",
-      "DamageBase"
-     ]
+     "Unsupported": "loop"
     }
    ],
-   "status": "parsed_branch"
+   "status": "unsupported",
+   "unsupported": [
+    "loop"
+   ]
   },
   {
    "id": "Brilliance",
@@ -5763,12 +5714,12 @@
    },
    "effects": [
     {
-     "Unsupported": "AttackDamageRandomEnemyAction"
+     "Unsupported": "loop"
     }
    ],
    "status": "unsupported",
    "unsupported": [
-    "AttackDamageRandomEnemyAction"
+    "loop"
    ]
   },
   {
@@ -6170,18 +6121,12 @@
    },
    "effects": [
     {
-     "Damage": [
-      "Enemy",
-      "DamageBase"
-     ]
-    },
-    {
-     "Unsupported": "ChangeStanceAction"
+     "Unsupported": "loop"
     }
    ],
    "status": "unsupported",
    "unsupported": [
-    "ChangeStanceAction"
+    "loop"
    ]
   },
   {
@@ -6491,12 +6436,12 @@
    },
    "effects": [
     {
-     "Unsupported": "ChooseOneAction"
+     "Unsupported": "loop"
     }
    ],
    "status": "unsupported",
    "unsupported": [
-    "ChooseOneAction"
+    "loop"
    ]
   },
   {
@@ -6683,18 +6628,12 @@
    },
    "effects": [
     {
-     "Damage": [
-      "Enemy",
-      "DamageBase"
-     ]
-    },
-    {
-     "Unsupported": "ChannelAction"
+     "Unsupported": "loop"
     }
    ],
    "status": "unsupported",
    "unsupported": [
-    "ChannelAction"
+    "loop"
    ]
   },
   {
@@ -6809,10 +6748,13 @@
    },
    "effects": [
     {
-     "DamageAll": "DamageBase"
+     "Unsupported": "loop"
     }
    ],
-   "status": "parsed_branch"
+   "status": "unsupported",
+   "unsupported": [
+    "loop"
+   ]
   },
   {
    "id": "BootSequence",
@@ -6946,12 +6888,12 @@
    },
    "effects": [
     {
-     "Unsupported": "ChannelAction"
+     "Unsupported": "loop"
     }
    ],
    "status": "unsupported",
    "unsupported": [
-    "ChannelAction"
+    "loop"
    ]
   },
   {
@@ -7004,18 +6946,12 @@
    },
    "effects": [
     {
-     "Damage": [
-      "Enemy",
-      "DamageBase"
-     ]
-    },
-    {
-     "Unsupported": "ChannelAction"
+     "Unsupported": "loop"
     }
    ],
    "status": "unsupported",
    "unsupported": [
-    "ChannelAction"
+    "loop"
    ]
   },
   {
@@ -7422,19 +7358,12 @@
    },
    "effects": [
     {
-     "ApplyPower": [
-      "Self",
-      "ElectroPower",
-      1
-     ]
-    },
-    {
-     "Unsupported": "ChannelAction"
+     "Unsupported": "loop"
     }
    ],
    "status": "unsupported",
    "unsupported": [
-    "ChannelAction"
+    "loop"
    ]
   },
   {
@@ -7561,12 +7490,12 @@
    },
    "effects": [
     {
-     "Unsupported": "ChannelAction"
+     "Unsupported": "loop"
     }
    ],
    "status": "unsupported",
    "unsupported": [
-    "ChannelAction"
+    "loop"
    ]
   },
   {
@@ -7621,15 +7550,12 @@
    },
    "effects": [
     {
-     "Block": "BlockBase"
-    },
-    {
-     "Unsupported": "ChannelAction"
+     "Unsupported": "loop"
     }
    ],
    "status": "unsupported",
    "unsupported": [
-    "ChannelAction"
+    "loop"
    ]
   },
   {
@@ -7977,18 +7903,12 @@
    },
    "effects": [
     {
-     "Damage": [
-      "Enemy",
-      "DamageBase"
-     ]
-    },
-    {
-     "Unsupported": "ChannelAction"
+     "Unsupported": "loop"
     }
    ],
    "status": "unsupported",
    "unsupported": [
-    "ChannelAction"
+    "loop"
    ]
   },
   {
@@ -8287,12 +8207,12 @@
    },
    "effects": [
     {
-     "Unsupported": "NewRipAndTearAction"
+     "Unsupported": "loop"
     }
    ],
    "status": "unsupported",
    "unsupported": [
-    "NewRipAndTearAction"
+    "loop"
    ]
   },
   {
@@ -8669,12 +8589,12 @@
    },
    "effects": [
     {
-     "Unsupported": "NewThunderStrikeAction"
+     "Unsupported": "loop"
     }
    ],
    "status": "unsupported",
    "unsupported": [
-    "NewThunderStrikeAction"
+    "loop"
    ]
   },
   {
@@ -8752,12 +8672,12 @@
    },
    "effects": [
     {
-     "Unsupported": "ChannelAction"
+     "Unsupported": "loop"
     }
    ],
    "status": "unsupported",
    "unsupported": [
-    "ChannelAction"
+    "loop"
    ]
   },
   {
@@ -8887,21 +8807,13 @@
    "upgrade": {},
    "effects": [
     {
-     "ApplyPower": [
-      "Enemy",
-      "Weakened",
-      "Magic"
-     ]
-    },
-    {
-     "ApplyPower": [
-      "Enemy",
-      "Weakened",
-      "Magic"
-     ]
+     "Unsupported": "loop"
     }
    ],
-   "status": "parsed_branch"
+   "status": "unsupported",
+   "unsupported": [
+    "loop"
+   ]
   },
   {
    "id": "Chrysalis",
@@ -8923,12 +8835,12 @@
    },
    "effects": [
     {
-     "Unsupported": "MakeTempCardInDrawPileAction"
+     "Unsupported": "loop"
     }
    ],
    "status": "unsupported",
    "unsupported": [
-    "MakeTempCardInDrawPileAction"
+    "loop"
    ]
   },
   {
@@ -9424,12 +9336,12 @@
    },
    "effects": [
     {
-     "Unsupported": "MakeTempCardInDrawPileAction"
+     "Unsupported": "loop"
     }
    ],
    "status": "unsupported",
    "unsupported": [
-    "MakeTempCardInDrawPileAction"
+    "loop"
    ]
   },
   {
@@ -9730,7 +9642,7 @@
      "ApplyPower": [
       "Self",
       "TheBombPower",
-      3
+      "Magic"
      ]
     }
    ],
@@ -9807,21 +9719,13 @@
    "upgrade": {},
    "effects": [
     {
-     "ApplyPower": [
-      "Enemy",
-      "Vulnerable",
-      "Magic"
-     ]
-    },
-    {
-     "ApplyPower": [
-      "Enemy",
-      "Vulnerable",
-      "Magic"
-     ]
+     "Unsupported": "loop"
     }
    ],
-   "status": "parsed_branch"
+   "status": "unsupported",
+   "unsupported": [
+    "loop"
+   ]
   },
   {
    "id": "Violence",
@@ -10205,18 +10109,12 @@
    },
    "effects": [
     {
-     "Unsupported": "ExpungeVFXAction"
-    },
-    {
-     "Damage": [
-      "Enemy",
-      "DamageBase"
-     ]
+     "Unsupported": "loop"
     }
    ],
    "status": "unsupported",
    "unsupported": [
-    "ExpungeVFXAction"
+    "loop"
    ]
   },
   {

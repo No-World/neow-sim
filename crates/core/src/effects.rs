@@ -66,6 +66,7 @@ pub struct CardDef {
     pub upg_damage: Option<i32>,
     pub upg_block: Option<i32>,
     pub upg_magic: Option<i32>,
+    pub upg_base_cost: Option<i32>,
     pub flags: &'static [&'static str],
     /// parsed / parsed_branch / unsupported / no_use
     pub status: &'static str,

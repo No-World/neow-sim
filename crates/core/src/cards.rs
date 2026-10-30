@@ -1,80 +1,110 @@
-//! M2 卡牌（数值来自 neow-sim/data/cards.json 提取表）
-//! 铁甲战士起手：5×打击、4×防御、1×痛击（+A10 起飞升者之灾）
+//! 数据驱动的卡牌实例：`CardInst` 引用 generated 表中的 `CardDef`。
+//! 全部 375 张卡的数值/效果来自反编译提取；`engine_playable` 判定引擎当前能否完整执行。
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum CardKind {
-    Strike,
-    Defend,
-    Bash,
-    AscendersBane,
-}
+use crate::effects::{CardDef, Effect, Expr, Target};
+use crate::generated::{find_card, CHARACTERS};
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+/// 引擎已实现的 power（ApplyPower 效果可执行的白名单）
+pub const ENGINE_POWERS: &[&str] = &[
+    "Strength",
+    "Vulnerable",
+    "Weakened",
+    "Frail",
+    "Ritual",
+    "LoseStrengthPower",
+    "Dexterity",
+    "Poison",
+    "Metallicize",
+    "Regeneration",
+];
+
+#[derive(Clone, Copy, Debug)]
 pub struct CardInst {
-    pub kind: CardKind,
+    pub def: &'static CardDef,
     pub upgraded: bool,
 }
 
 impl CardInst {
-    pub const fn new(kind: CardKind) -> Self {
+    pub fn new(id: &str) -> Self {
         Self {
-            kind,
+            def: find_card(id).unwrap_or_else(|| panic!("未知卡牌 id: {id}")),
             upgraded: false,
         }
     }
 
-    pub const fn upgraded(kind: CardKind) -> Self {
-        Self {
-            kind,
-            upgraded: true,
+    pub fn new_by_class(cls: &str) -> Option<Self> {
+        crate::generated::find_card_by_class(cls).map(|def| Self {
+            def,
+            upgraded: false,
+        })
+    }
+
+    pub fn id(&self) -> &'static str {
+        self.def.id
+    }
+
+    /// 支付费用：-2 不可打出（诅咒/状态），-1 为 X 费（支付全部能量）
+    pub fn cost_pay(&self) -> i32 {
+        let base = self.def.cost.unwrap_or(-2);
+        if self.upgraded {
+            if let Some(c) = self.def.upg_base_cost {
+                return c;
+            }
         }
+        base
     }
 
-    /// 费用（M2 起手卡全部固定费）
-    pub fn cost(&self) -> i32 {
-        match self.kind {
-            CardKind::Strike | CardKind::Defend => 1,
-            CardKind::Bash => 2,
-            CardKind::AscendersBane => -2, // 不可打出
-        }
-    }
-
-    pub fn playable(&self) -> bool {
-        !matches!(self.kind, CardKind::AscendersBane)
-    }
-
-    /// baseDamage（Strike 6/+3、Bash 8/+2）
     pub fn base_damage(&self) -> Option<i32> {
-        match self.kind {
-            CardKind::Strike => Some(6 + self.upgraded as i32 * 3),
-            CardKind::Bash => Some(8 + self.upgraded as i32 * 2),
-            _ => None,
-        }
+        self.def
+            .base_damage
+            .map(|v| v + self.upgraded as i32 * self.def.upg_damage.unwrap_or(0))
     }
 
-    /// baseBlock（Defend 5/+3）
     pub fn base_block(&self) -> Option<i32> {
-        match self.kind {
-            CardKind::Defend => Some(5 + self.upgraded as i32 * 3),
-            _ => None,
-        }
+        self.def
+            .base_block
+            .map(|v| v + self.upgraded as i32 * self.def.upg_block.unwrap_or(0))
     }
 
-    /// baseMagicNumber（Bash 的易伤 2/+1）
     pub fn magic(&self) -> Option<i32> {
-        match self.kind {
-            CardKind::Bash => Some(2 + self.upgraded as i32),
-            _ => None,
-        }
+        self.def
+            .base_magic
+            .map(|v| v + self.upgraded as i32 * self.def.upg_magic.unwrap_or(0))
     }
 }
 
+/// 表达式在当前引擎下是否可求值（Const/Raw 为提取失败残留）
+fn expr_ok(e: Expr) -> bool {
+    !matches!(e, Expr::Const(_) | Expr::Raw(_))
+}
+
+/// 引擎当前能否完整执行该卡（不含能量/目标检查）
+pub fn engine_playable(def: &CardDef) -> bool {
+    if def.cost == Some(-2) {
+        return false; // 不可打出（飞升者之灾/状态等）
+    }
+    def.effects.iter().all(|e| match e {
+        Effect::Damage(t, x) => matches!(t, Target::Enemy) && expr_ok(*x),
+        Effect::DamageAll(x) | Effect::Block(x) | Effect::Draw(x) => expr_ok(*x),
+        Effect::ApplyPower(_, pid, x) => expr_ok(*x) && ENGINE_POWERS.contains(pid),
+        Effect::GainEnergy(x) | Effect::Heal(x) | Effect::LoseHP(x) => expr_ok(*x),
+        Effect::CopySelfToDiscard => true,
+        Effect::MakeInDiscard(cls, x) => expr_ok(*x) && CardInst::new_by_class(cls).is_some(),
+        // ExhaustHand（ExhaustAction 弃牌语义待核）与其余未知动作暂不可玩
+        Effect::ExhaustHand | Effect::Unsupported(_) => false,
+    })
+}
+
+/// 铁甲战士起始卡组（来自 generated::CHARACTERS；A10+ 追加飞升者之灾）
 pub fn ironclad_starter(ascension: i32) -> Vec<CardInst> {
-    let mut deck = vec![CardInst::new(CardKind::Strike); 5];
-    deck.extend([CardInst::new(CardKind::Defend); 4]);
-    deck.push(CardInst::new(CardKind::Bash));
+    let ids = CHARACTERS
+        .iter()
+        .find(|c| c.id == "Ironclad")
+        .expect("Ironclad")
+        .starting_deck;
+    let mut deck: Vec<CardInst> = ids.iter().map(|id| CardInst::new(id)).collect();
     if ascension >= 10 {
-        deck.push(CardInst::new(CardKind::AscendersBane));
+        deck.push(CardInst::new("AscendersBane"));
     }
     deck
 }

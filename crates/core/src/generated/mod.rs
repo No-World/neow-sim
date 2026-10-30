@@ -12,6 +12,11 @@ pub fn find_card(id: &str) -> Option<&'static crate::effects::CardDef> {
     CARDS.iter().find(|c| c.id == id)
 }
 
+/// 按 Java 类名查卡牌定义（MakeInDiscard 等效果引用类名）
+pub fn find_card_by_class(cls: &str) -> Option<&'static crate::effects::CardDef> {
+    CARDS.iter().find(|c| c.cls == cls)
+}
+
 /// 按 id 查怪物定义
 pub fn find_monster(id: &str) -> Option<&'static crate::effects::MonsterDef> {
     MONSTERS.iter().find(|m| m.id == id)

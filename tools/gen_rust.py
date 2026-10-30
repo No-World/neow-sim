@@ -89,7 +89,7 @@ def gen_cards():
             f" base_damage: {opt(c.get('baseDamage'))}, base_block: {opt(c.get('baseBlock'))},"
             f" base_magic: {opt(c.get('baseMagicNumber'))},"
             f" upg_damage: {opt(upg.get('damage'))}, upg_block: {opt(upg.get('block'))},"
-            f" upg_magic: {opt(upg.get('magicNumber'))},"
+            f" upg_magic: {opt(upg.get('magicNumber'))}, upg_base_cost: {opt(upg.get('baseCost'))},"
             f" flags: {flags}, status: {s(c.get('status'))},"
             f" effects: {effs},\n    }},")
     lines.append("];")
@@ -155,6 +155,11 @@ pub use monsters::MONSTERS;
 /// 按 id 查卡牌定义
 pub fn find_card(id: &str) -> Option<&'static crate::effects::CardDef> {
     CARDS.iter().find(|c| c.id == id)
+}
+
+/// 按 Java 类名查卡牌定义（MakeInDiscard 等效果引用类名）
+pub fn find_card_by_class(cls: &str) -> Option<&'static crate::effects::CardDef> {
+    CARDS.iter().find(|c| c.cls == cls)
 }
 
 /// 按 id 查怪物定义

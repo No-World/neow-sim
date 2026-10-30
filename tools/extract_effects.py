@@ -2,36 +2,38 @@
 # -*- coding: utf-8 -*-
 """
 全量效果提取：解析全部卡牌 use() 效果体 → 结构化 DSL（cards_full.json）。
-产出含覆盖率统计：全解析 / 带分支 / 未支持（需手移植清单）。
+- 解析类常量（DMG 等 static final int）
+- 解析 use() 内的动态赋值（Body Slam: baseDamage = p.currentBlock）
+- 剥离 Settings.isDebug 调试分支；循环放招显式标记 unsupported(loop)
 
 用法: python3 extract_effects.py <decompiled_dir> <data_dir>
-依赖: 同目录 extract_data.py 产出的 cards.json（数值表）
+依赖: extract_data.py 产出的 cards.json（数值表）
 """
 import json
 import re
 import sys
 from pathlib import Path
 
-# 演出类动作（忽略，见 parity-spec 豁免表）
 PERFORMATIVE = {
     "WaitAction", "VFXAction", "SFXAction", "SetAnimationAction", "AnimateHopAction",
     "AnimateSlowAttackAction", "AnimateFastAttackAction", "AnimateAttackAction",
     "ShakeScreenAction", "TextAboveCreatureAction", "RelicAboveCreatureAction",
-    "TalkAction", "BlingAction", " SuicideAction",
+    "TalkAction", "BlingAction",
 }
 
-POWER_IDS = {  # PowerXxx 类 → 协议 power id
+POWER_IDS = {
     "StrengthPower": "Strength", "WeakPower": "Weakened", "VulnerablePower": "Vulnerable",
     "FrailPower": "Frail", "RitualPower": "Ritual", "ThornsPower": "Thorns",
-    "MetallicizePower": "Metallicize", "RegenPower": "Regen", "PoisonPower": "Poison",
+    "MetallicizePower": "Metallicize", "RegenPower": "Regeneration", "PoisonPower": "Poison",
     "BarricadePower": "Barricade", "DexterityPower": "Dexterity", "ArtifactPower": "Artifact",
     "IntangiblePower": "Intangible", "BufferPower": "Buffer", "RagePower": "Rage",
     "CombustPower": "Combust", "DarkEmbracePower": "DarkEmbrace",
+    "LoseStrengthPower": "LoseStrengthPower", "GainStrengthPower": "GainStrengthPower",
+    "CurlUpPower": "CurlUp", "SporeCloudPower": "SporeCloud",
 }
 
 
 def balanced(s: str, start: int) -> tuple[str, int]:
-    """s[start] 是 '('，返回 (括号内文本, 结束下标)"""
     depth = 0
     for j in range(start, len(s)):
         if s[j] == "(":
@@ -46,9 +48,9 @@ def balanced(s: str, start: int) -> tuple[str, int]:
 def split_top(args: str) -> list[str]:
     out, depth, cur = [], 0, []
     for ch in args:
-        if ch == "(" or ch == "<":
+        if ch in "(<":
             depth += 1
-        elif ch == ")" or ch == ">":
+        elif ch in ")>":
             depth -= 1
         if ch == "," and depth == 0:
             out.append("".join(cur).strip())
@@ -60,18 +62,33 @@ def split_top(args: str) -> list[str]:
     return out
 
 
-def expr(e: str):
-    """参数表达式 → DSL"""
+def static_ints(text: str) -> dict:
+    out = {}
+    for m in re.finditer(r"static\s+final\s+int\s+(\w+)\s*=\s*(-?\d+)\s*;", text):
+        out[m.group(1)] = int(m.group(2))
+    return out
+
+
+FIELD_OF = {"this.damage": "baseDamage", "this.block": "baseBlock",
+            "this.magicNumber": "baseMagicNumber"}
+
+
+def expr(e: str, consts: dict, overrides: dict):
+    """参数表达式 → DSL（consts=类常量，overrides=use() 内动态赋值）"""
     e = e.strip().rstrip(";")
+    if e in FIELD_OF and FIELD_OF[e] in overrides:
+        return overrides[FIELD_OF[e]]
     m = {"this.magicNumber": "Magic", "this.baseMagicNumber": "Magic",
          "this.damage": "DamageBase", "this.block": "BlockBase",
          "p.currentBlock": "CurrentBlock", "this.energyOnUse": "XCost",
          "EnergyPanel.totalCount": "XCost"}
     if e in m:
         return m[e]
-    if re.fullmatch(r"\d+", e):
+    if re.fullmatch(r"-?\d+", e):
         return int(e)
-    if re.fullmatch(r"DMG|BLOCK|MAGIC|\w+", e):  # 常量名（提取表里已解析数值的地方不需要）
+    if consts and re.fullmatch(r"\w+", e) and e in consts:
+        return consts[e]
+    if re.fullmatch(r"\w+", e):
         return {"Const": e}
     return {"Raw": e[:60]}
 
@@ -85,54 +102,61 @@ def target_of(first_arg: str):
     return "Unknown"
 
 
-def classify_action(cls: str, args: str):
-    """一个动作构造 → Effect dict 或 None(忽略) 或 {'Unsupported': cls}"""
+NUMERICISH = re.compile(r"^-?\d+$|magicNumber|this\.damage|this\.block|currentBlock|energyOnUse")
+
+
+def classify_action(cls: str, args: str, consts: dict, overrides: dict):
     parts = split_top(args)
     if cls == "DamageAction":
         di = re.search(r"new\s+DamageInfo\s*\(", args)
         if di:
             inner, _ = balanced(args, args.find("(", di.start()))
             dparts = split_top(inner)
-            amount = expr(dparts[1]) if len(dparts) > 1 else "DamageBase"
+            amount = expr(dparts[1], consts, overrides) if len(dparts) > 1 else "DamageBase"
         else:
             amount = "DamageBase"
         return {"Damage": [target_of(parts[0]) if parts else "Enemy", amount]}
     if cls == "DamageAllEnemiesAction":
         return {"DamageAll": "DamageBase"}
     if cls == "GainBlockAction":
-        amount = expr(parts[-1]) if parts else "BlockBase"
-        return {"Block": amount}
+        return {"Block": expr(parts[-1], consts, overrides) if parts else "BlockBase"}
     if cls == "DrawCardAction":
-        return {"Draw": expr(parts[-1]) if parts else 1}
+        return {"Draw": expr(parts[-1], consts, overrides) if parts else 1}
     if cls == "ApplyPowerAction":
         pm = re.search(r"new\s+(\w+Power)\s*\(", args)
         power = POWER_IDS.get(pm.group(1), pm.group(1)) if pm else "?"
         pinner, _ = balanced(args, args.find("(", pm.start())) if pm else ("", 0)
         pparts = split_top(pinner)
-        amount = expr(pparts[1]) if len(pparts) > 1 else 1
+        # 取最后一个数值型参数（兼容 (owner, amount) 与 (owner, source, amount) 构造）
+        amount = None
+        for cand in reversed(pparts[1:] if len(pparts) > 1 else []):
+            if NUMERICISH.search(cand):
+                amount = expr(cand, consts, overrides)
+                break
+        if amount is None:
+            amount = expr(pparts[1], consts, overrides) if len(pparts) > 1 else 1
         tgt = target_of(parts[0]) if parts else "Self"
         return {"ApplyPower": [tgt, power, amount]}
     if cls == "GainEnergyAction":
-        return {"GainEnergy": expr(parts[0]) if parts else 1}
+        return {"GainEnergy": expr(parts[0], consts, overrides) if parts else 1}
     if cls == "HealAction":
-        return {"Heal": expr(parts[-1]) if parts else 0}
+        return {"Heal": expr(parts[-1], consts, overrides) if parts else 0}
     if cls == "MakeTempCardInDiscardAction":
         if "makeStatEquivalentCopy" in args:
             return {"CopySelfToDiscard": 1}
         cm = re.search(r"new\s+(\w+)\s*\(", args)
-        n = expr(parts[1]) if len(parts) > 1 else 1
+        n = expr(parts[1], consts, overrides) if len(parts) > 1 else 1
         return {"MakeInDiscard": [cm.group(1) if cm else "?", n]}
-    if cls == "ExhaustAction" or cls == "ExhaustSpecificCardAction":
+    if cls in ("ExhaustAction", "ExhaustSpecificCardAction"):
         return {"ExhaustHand": True}
-    if cls in ("LoseHPAction",):
-        return {"LoseHP": expr(parts[1]) if len(parts) > 1 else 0}
+    if cls == "LoseHPAction":
+        return {"LoseHP": expr(parts[1], consts, overrides) if len(parts) > 1 else 0}
     if cls in PERFORMATIVE:
         return None
     return {"Unsupported": cls}
 
 
 def strip_debug_branches(body: str) -> str:
-    """剥离 if (Settings.isDebug) {...} 调试分支，保留 else 分支动作"""
     out = body
     while True:
         m = re.search(r"if\s*\(\s*Settings\.isDebug\s*\)\s*\{", out)
@@ -152,10 +176,31 @@ def strip_debug_branches(body: str) -> str:
             return out
 
 
-def parse_use(raw_body: str):
+def collect_overrides(body: str, consts: dict) -> dict:
+    """use() 内对 this.baseDamage/this.baseBlock/this.baseMagicNumber 的动态赋值（Body Slam 型）
+    ——赋值后卡内再读 this.damage 即用该值（calculateCardDamage 的输入）"""
+    overrides = {}
+    for field, key in {
+        "baseDamage": "baseDamage",
+        "baseBlock": "baseBlock",
+        "baseMagicNumber": "baseMagicNumber",
+    }.items():
+        m = re.search(r"this\." + field + r"\s*=\s*([^;,)]+)[;,]", body)
+        if m:
+            v = expr(m.group(1), consts, {})
+            if isinstance(v, (int, str)):  # 数值或 CurrentBlock 等 DSL 名
+                overrides[key] = v
+    return overrides
+
+
+def parse_use(raw_body: str, consts: dict):
     body = strip_debug_branches(raw_body)
+    overrides = collect_overrides(body, consts)
     effects, unsupported = [], []
-    i, has_branch = 0, bool(re.search(r"\bif\s*\(", body))
+    if re.search(r"\b(for|while)\s*\(", body):
+        return [{"Unsupported": "loop"}], ["loop"], False
+    has_branch = bool(re.search(r"\bif\s*\(", body))
+    i = 0
     while i < len(body):
         m = re.compile(r"new\s+([A-Z]\w+)\s*\(").search(body, i)
         if not m:
@@ -163,14 +208,11 @@ def parse_use(raw_body: str):
         cls = m.group(1)
         inner, end = balanced(body, m.end() - 1)
         if cls.endswith("Action"):
-            eff = classify_action(cls, inner)
-            if eff is None:
-                pass
-            elif "Unsupported" in eff:
-                unsupported.append(eff["Unsupported"])
+            eff = classify_action(cls, inner, consts, overrides)
+            if eff is not None:
                 effects.append(eff)
-            else:
-                effects.append(eff)
+                if "Unsupported" in eff:
+                    unsupported.append(eff["Unsupported"])
         i = end + 1
     return effects, unsupported, has_branch
 
@@ -199,13 +241,12 @@ def main():
     dirs = ["red", "green", "purple", "blue", "colorless", "curses", "tempCards", "status", "optionCards"]
     full, stats = [], {"parsed": 0, "parsed_branch": 0, "no_use": 0, "unsupported": 0}
     for card in cards:
-        cls_file = card["class"]
+        f = None
         for d in dirs:
-            f = root / "com/megacrit/cardcrawl/cards" / d / f"{cls_file}.java"
-            if f.exists():
+            cand = root / "com/megacrit/cardcrawl/cards" / d / f"{card['class']}.java"
+            if cand.exists():
+                f = cand
                 break
-        else:
-            f = None
         entry = dict(card)
         entry["effects"] = []
         entry["status"] = "no_source"
@@ -213,10 +254,11 @@ def main():
             text = f.read_text(errors="replace")
             body = method_body(text, r"public\s+void\s+use\s*\(")
             if body is None:
-                entry["status"] = "no_use"  # 诅咒/状态等
+                entry["status"] = "no_use"
                 stats["no_use"] += 1
             else:
-                effects, unsupported, branch = parse_use(body)
+                consts = static_ints(text)
+                effects, unsupported, branch = parse_use(body, consts)
                 entry["effects"] = effects
                 if unsupported:
                     entry["status"] = "unsupported"
