@@ -50,6 +50,7 @@ pub enum HandPickPurpose {
     FreeCost,
     ExhaustGainEnergy,
     DuplicateAttack,
+    CopyNextTurn,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -145,6 +146,10 @@ enum Q {
     DoSelectUpgradeCard,
     DoEvokeAllOrbs,
     DoSelectAttackDuplicate,
+    DoSelectCopyNextTurn(i32),
+    DoIfKillSelectUpgrade {
+        target: usize,
+    },
     DoSelectDrawPlayTwiceExhaust,
     DoSelectDiscardExhaust,
     DoTriggerAllOrbPassives,
@@ -293,6 +298,8 @@ pub struct Combat {
     pub next_turn_draw: i32,
     pub next_turn_energy: i32,
     pub gold: i32,
+    pub next_turn_copies: Vec<(CardInst, i32)>,
+    pub next_turn_copy_count: i32,
     skip_monster_turn: bool,
     force_end_turn_after_queue: bool,
     pub discarded_this_turn: i32,
@@ -355,6 +362,8 @@ impl Combat {
             next_turn_draw: 0,
             next_turn_energy: 0,
             gold: 99,
+            next_turn_copies: Vec::new(),
+            next_turn_copy_count: 0,
             skip_monster_turn: false,
             force_end_turn_after_queue: false,
             discarded_this_turn: 0,
@@ -555,6 +564,12 @@ impl Combat {
                         let energy = c.cost_pay().max(0);
                         self.player.energy += energy;
                         self.player.exhaust.push(c);
+                    }
+                    HandPickPurpose::CopyNextTurn => {
+                        // Night Terror：记录卡+数量，下回合加副本
+                        let n = self.next_turn_copy_count.max(0);
+                        self.next_turn_copies.push((c, n));
+                        self.player.hand.push(c); // 原卡回手
                     }
                     HandPickPurpose::DuplicateAttack => {
                         // 原卡回手 + 一份副本（Dual Wield 基础版）
@@ -914,6 +929,10 @@ impl Combat {
                 target: ti,
                 base: self.eval(e, card, x_cost),
             }),
+            Effect::SelectCopyNextTurn(e) => {
+                q.push(Q::DoSelectCopyNextTurn(self.eval(e, card, x_cost)));
+            }
+            Effect::IfKillSelectUpgrade => q.push(Q::DoIfKillSelectUpgrade { target: ti }),
             Effect::SelectAttackDuplicate => q.push(Q::DoSelectAttackDuplicate),
             Effect::SelectDrawPlayTwiceExhaust => q.push(Q::DoSelectDrawPlayTwiceExhaust),
             Effect::SelectDiscardExhaust => q.push(Q::DoSelectDiscardExhaust),
@@ -1234,6 +1253,15 @@ impl Combat {
         }
         self.player.energy = 3 + bonus_energy; // ③ 能量重置（Plasma 加成合并）
         self.draw_cards(5);
+        // Night Terror 延迟副本
+        let copies = std::mem::take(&mut self.next_turn_copies);
+        for (card, count) in copies {
+            for _ in 0..count {
+                if self.player.hand.len() < 10 {
+                    self.player.hand.push(card);
+                }
+            }
+        }
         // ⑤ atStartOfTurnPostDraw：Demon Form +力量；Brutality 抽 n 失 n 血
         let mut str_gain = 0;
         let mut draw_extra = 0;
@@ -1763,6 +1791,22 @@ impl Combat {
                 for &i in indices.iter().rev() {
                     let c = self.player.hand.remove(i);
                     self.player.discard.push(c);
+                }
+            }
+            Q::DoSelectCopyNextTurn(n) => {
+                if !self.player.hand.is_empty() {
+                    self.pending = Some(Pending::HandPick {
+                        purpose: HandPickPurpose::CopyNextTurn,
+                    });
+                    self.next_turn_copy_count = n;
+                }
+            }
+            Q::DoIfKillSelectUpgrade { target } => {
+                // LessonLearned：击杀后手选升级（近似版）
+                if !self.alive(target) && !self.player.hand.is_empty() {
+                    self.pending = Some(Pending::HandPick {
+                        purpose: HandPickPurpose::UpgradeCard,
+                    });
                 }
             }
             Q::DoSelectAttackDuplicate => {

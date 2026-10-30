@@ -75,6 +75,10 @@ def effect_supported(e):
         return True
     if k in ("ShuffleDraw", "ForceEndTurn", "DiscardNonAttacks", "DiscardAllHand", "SetHandCostZero", "ExhaustHand"):
         return True
+    if k == "IfKillSelectUpgrade":
+        return True
+    if k == "SelectCopyNextTurn":
+        return expr_ok(e[k])
     if k in ("SelectAttackDuplicate", "SelectDrawPlayTwiceExhaust", "SelectDiscardExhaust"):
         return True
     if k in ("EvokeAllOrbs", "TriggerAllOrbPassives", "TriggerDarkOrbPassives",

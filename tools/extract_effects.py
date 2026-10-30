@@ -197,6 +197,15 @@ def classify_action(cls: str, args: str, consts: dict, overrides: dict, lvars: d
             else:
                 n = {"Raw": "-x"}
         return {"OrbSlots": n}
+    if cls == "NightmareAction":
+        n = expr(parts[2], consts, overrides, lvars) if len(parts) > 2 else 3
+        return {"SelectCopyNextTurn": n}
+    if cls == "LessonLearnedAction":
+        return [{"Damage": ["Enemy", "DamageBase"]}, {"IfKillSelectUpgrade": 1}]
+    if cls == "MulticastAction":
+        return {"Repeat": ["XCost", [{"EvokeLeftmost": 1}]]}
+    if cls == "ForeignInfluenceAction":
+        return [{"Scry": "Magic"}, {"SelectDrawPileToHand": 1}]
     if cls == "DualWieldAction":
         return {"SelectAttackDuplicate": 1}
     if cls == "OmniscienceAction":

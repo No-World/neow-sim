@@ -2658,8 +2658,8 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: Some(2),
         flags: &["exhaust"],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("NightmareAction")],
+        status: "parsed",
+        effects: &[Effect::SelectCopyNextTurn(Expr::Magic)],
     },
     CardDef {
         id: "Noxious Fumes",
@@ -3835,8 +3835,8 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &["exhaust"],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("ForeignInfluenceAction")],
+        status: "parsed",
+        effects: &[Effect::Scry(Expr::Magic), Effect::SelectDrawPileToHand],
     },
     CardDef {
         id: "Wireheading",
@@ -3983,8 +3983,11 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &["exhaust"],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("LessonLearnedAction")],
+        status: "parsed",
+        effects: &[
+            Effect::Damage(Target::Enemy, Expr::DamageBase),
+            Effect::IfKillSelectUpgrade,
+        ],
     },
     CardDef {
         id: "LikeWater",
@@ -5854,8 +5857,8 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("MulticastAction")],
+        status: "parsed",
+        effects: &[Effect::Repeat(Expr::XCost, &[Effect::EvokeLeftmost])],
     },
     CardDef {
         id: "Steam Power",

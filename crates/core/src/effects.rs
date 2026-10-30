@@ -193,6 +193,10 @@ pub enum Effect {
     SelectDrawPlayTwiceExhaust,
     /// 从弃牌堆选卡消耗（MeditateAction/Meditate）
     SelectDiscardExhaust,
+    /// 选卡下回合加副本入手（NightmareAction/Night Terror）
+    SelectCopyNextTurn(Expr),
+    /// 击杀时手选升级（LessonLearnedAction/LessonLearned 近似）
+    IfKillSelectUpgrade,
     /// 未支持动作（值为 Java 动作类名）——手移植清单
     Unsupported(&'static str),
 }

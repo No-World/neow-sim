@@ -4,10 +4,10 @@
   "note": "use() 效果 DSL；Unsupported 需手移植"
  },
  "stats": {
-  "parsed": 304,
+  "parsed": 308,
   "parsed_branch": 60,
   "no_use": 0,
-  "unsupported": 11
+  "unsupported": 7
  },
  "data": [
   {
@@ -3684,13 +3684,10 @@
    },
    "effects": [
     {
-     "Unsupported": "NightmareAction"
+     "SelectCopyNextTurn": "Magic"
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "NightmareAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Noxious Fumes",
@@ -5281,13 +5278,13 @@
    "upgrade": {},
    "effects": [
     {
-     "Unsupported": "ForeignInfluenceAction"
+     "Scry": "Magic"
+    },
+    {
+     "SelectDrawPileToHand": 1
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "ForeignInfluenceAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Wireheading",
@@ -5483,13 +5480,16 @@
    },
    "effects": [
     {
-     "Unsupported": "LessonLearnedAction"
+     "Damage": [
+      "Enemy",
+      "DamageBase"
+     ]
+    },
+    {
+     "IfKillSelectUpgrade": 1
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "LessonLearnedAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "LikeWater",
@@ -8100,13 +8100,17 @@
    "upgrade": {},
    "effects": [
     {
-     "Unsupported": "MulticastAction"
+     "Repeat": [
+      "XCost",
+      [
+       {
+        "EvokeLeftmost": 1
+       }
+      ]
+     ]
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "MulticastAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Steam Power",

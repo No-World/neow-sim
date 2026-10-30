@@ -136,6 +136,8 @@ fn effect_supported(e: &Effect) -> bool {
         Effect::IfStanceBlock(_, x) => expr_ok(*x),
         Effect::IfDiscardedGainEnergy(x) => expr_ok(*x),
         Effect::DrawToHand(x) | Effect::IfIntentApplyWeak(x) => expr_ok(*x),
+        Effect::IfKillSelectUpgrade => true,
+        Effect::SelectCopyNextTurn(x) => expr_ok(*x),
         Effect::SelectAttackDuplicate
         | Effect::SelectDrawPlayTwiceExhaust
         | Effect::SelectDiscardExhaust => true,

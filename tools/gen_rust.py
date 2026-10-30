@@ -91,6 +91,10 @@ def effect_rs(eff) -> str:
         return "Effect::EvokeLeftmost"
     if "EvokeNoRemove" in eff:
         return "Effect::EvokeNoRemove"
+    if "SelectCopyNextTurn" in eff:
+        return f"Effect::SelectCopyNextTurn({expr_rs(eff['SelectCopyNextTurn'])})"
+    if "IfKillSelectUpgrade" in eff:
+        return "Effect::IfKillSelectUpgrade"
     if "SelectAttackDuplicate" in eff:
         return "Effect::SelectAttackDuplicate"
     if "SelectDrawPlayTwiceExhaust" in eff:
