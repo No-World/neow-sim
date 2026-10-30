@@ -33,7 +33,7 @@ CLASS_NAMES = {c["class"] for c in cards["data"]}
 
 
 def expr_ok(a):
-    if a in ("HandSize", "DrawPileSize", "CurrentEnergy", "OrbCount"):
+    if a in ("HandSize", "DrawPileSize", "CurrentEnergy", "OrbCount", "DiscardPileSize"):
         return True
     return not isinstance(a, dict)
 
@@ -75,6 +75,13 @@ def effect_supported(e):
         return True
     if k in ("ShuffleDraw", "ForceEndTurn", "DiscardNonAttacks", "DiscardAllHand", "SetHandCostZero", "ExhaustHand"):
         return True
+    if k in ("RemoveAllBlock", "SelectDrawPileToHand"):
+        return True
+    if k == "IfLastCardSkill":
+        return expr_ok(e[k])
+    if k in ("IfStance", "IfNotStance"):
+        _, inner = e[k]
+        return all(effect_supported(ie) for ie in inner)
     if k in ("DrawToHand", "IfIntentApplyWeak"):
         return expr_ok(e[k])
     if k == "SelectDiscardToHand":

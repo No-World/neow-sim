@@ -4,10 +4,10 @@
   "note": "use() 效果 DSL；Unsupported 需手移植"
  },
  "stats": {
-  "parsed": 270,
+  "parsed": 275,
   "parsed_branch": 56,
   "no_use": 0,
-  "unsupported": 49
+  "unsupported": 44
  },
  "data": [
   {
@@ -5370,13 +5370,21 @@
    },
    "effects": [
     {
-     "Unsupported": "IndignationAction"
+     "IfStance": [
+      "Wrath",
+      [
+       {
+        "ApplyPower": [
+         "AllEnemies",
+         "Vulnerable",
+         "Magic"
+        ]
+       }
+      ]
+     ]
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "IndignationAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "InnerPeace",
@@ -5396,13 +5404,17 @@
    },
    "effects": [
     {
-     "Unsupported": "InnerPeaceAction"
+     "IfStance": [
+      "Calm",
+      [
+       {
+        "Draw": "Magic"
+       }
+      ]
+     ]
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "InnerPeaceAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Judgement",
@@ -5915,13 +5927,10 @@
      "Block": "BlockBase"
     },
     {
-     "Unsupported": "SanctityAction"
+     "IfLastCardSkill": "Magic"
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "SanctityAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "SandsOfTime",
@@ -8053,7 +8062,7 @@
    },
    "effects": [
     {
-     "Unsupported": "RemoveAllBlockAction"
+     "RemoveAllBlock": 1
     },
     {
      "Damage": [
@@ -8062,10 +8071,7 @@
      ]
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "RemoveAllBlockAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Meteor Strike",
@@ -8477,13 +8483,10 @@
    },
    "effects": [
     {
-     "Unsupported": "BetterDrawPileToHandAction"
+     "SelectDrawPileToHand": 1
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "BetterDrawPileToHandAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Self Repair",

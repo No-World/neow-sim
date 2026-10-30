@@ -36,6 +36,8 @@ pub enum Expr {
     CurrentEnergy,
     /// 已填充充能球数（运行时求值）
     OrbCount,
+    /// 弃牌堆数（运行时求值）
+    DiscardPileSize,
     Const(&'static str),
     /// 未解析表达式（待手移植）
     Raw(&'static str),
@@ -130,6 +132,16 @@ pub enum Effect {
     IfIntentApplyWeak(Expr),
     /// 从弃牌堆选牌入手（BetterDiscardPileToHandAction/Hologram）
     SelectDiscardToHand,
+    /// 移除目标全部格挡（RemoveAllBlockAction/Melter）
+    RemoveAllBlock,
+    /// 在指定姿态时执行效果（Indignation/InnerPeace 条件分支）
+    IfStance(&'static str, &'static [Effect]),
+    /// 不在指定姿态时执行效果
+    IfNotStance(&'static str, &'static [Effect]),
+    /// 从抽牌堆选牌入手（BetterDrawPileToHandAction/Seek）
+    SelectDrawPileToHand,
+    /// 上一张牌是技能时抽牌（SanctityAction）
+    IfLastCardSkill(Expr),
     /// 未支持动作（值为 Java 动作类名）——手移植清单
     Unsupported(&'static str),
 }

@@ -122,6 +122,11 @@ fn effect_supported(e: &Effect) -> bool {
         Effect::IfStanceBlock(_, x) => expr_ok(*x),
         Effect::IfDiscardedGainEnergy(x) => expr_ok(*x),
         Effect::DrawToHand(x) | Effect::IfIntentApplyWeak(x) => expr_ok(*x),
+        Effect::RemoveAllBlock | Effect::SelectDrawPileToHand => true,
+        Effect::IfLastCardSkill(x) => expr_ok(*x),
+        Effect::IfStance(_, inner) | Effect::IfNotStance(_, inner) => {
+            inner.iter().all(effect_supported)
+        }
         Effect::SelectDiscardToHand => true,
         Effect::SelectPutOnDeckTop
         | Effect::SelectPutOnDeckBottom

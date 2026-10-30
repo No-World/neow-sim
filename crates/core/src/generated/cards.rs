@@ -3893,8 +3893,15 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: Some(2),
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("IndignationAction")],
+        status: "parsed",
+        effects: &[Effect::IfStance(
+            "Wrath",
+            &[Effect::ApplyPower(
+                Target::AllEnemies,
+                "Vulnerable",
+                Expr::Magic,
+            )],
+        )],
     },
     CardDef {
         id: "InnerPeace",
@@ -3912,8 +3919,8 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: Some(1),
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("InnerPeaceAction")],
+        status: "parsed",
+        effects: &[Effect::IfStance("Calm", &[Effect::Draw(Expr::Magic)])],
     },
     CardDef {
         id: "Judgement",
@@ -4297,10 +4304,10 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
+        status: "parsed",
         effects: &[
             Effect::Block(Expr::BlockBase),
-            Effect::Unsupported("SanctityAction"),
+            Effect::IfLastCardSkill(Expr::Magic),
         ],
     },
     CardDef {
@@ -5796,9 +5803,9 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
+        status: "parsed",
         effects: &[
-            Effect::Unsupported("RemoveAllBlockAction"),
+            Effect::RemoveAllBlock,
             Effect::Damage(Target::Enemy, Expr::DamageBase),
         ],
     },
@@ -6076,8 +6083,8 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: Some(1),
         upg_base_cost: None,
         flags: &["exhaust"],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("BetterDrawPileToHandAction")],
+        status: "parsed",
+        effects: &[Effect::SelectDrawPileToHand],
     },
     CardDef {
         id: "Self Repair",

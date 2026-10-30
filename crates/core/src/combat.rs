@@ -53,6 +53,7 @@ pub enum PilePickPurpose {
     ExhaustToHand,
     DiscardToDeckTop,
     DiscardToHand,
+    DrawPileToHand,
 }
 
 #[derive(Clone, Debug)]
@@ -133,6 +134,11 @@ enum Q {
     EvokeNoRemove,
     OrbSlots(i32),
     DoDrawToHand(i32),
+    DoRemoveAllBlock {
+        target: usize,
+    },
+    DoSelectDrawPileToHand,
+    DoIfLastCardSkill(i32),
     DoIfIntentApplyWeak {
         target: usize,
         weak_amt: i32,
@@ -246,6 +252,7 @@ pub struct Combat {
     skip_monster_turn: bool,
     force_end_turn_after_queue: bool,
     pub discarded_this_turn: i32,
+    pub last_card_type: Option<String>,
     pub turn: i32,
     pub turn_has_ended: bool,
     pub over: bool,
@@ -303,6 +310,7 @@ impl Combat {
             skip_monster_turn: false,
             force_end_turn_after_queue: false,
             discarded_this_turn: 0,
+            last_card_type: None,
             turn: 1,
             turn_has_ended: false,
             over: false,
@@ -533,6 +541,7 @@ impl Combat {
             Expr::DrawPileSize => self.player.draw.len() as i32,
             Expr::CurrentEnergy => self.player.energy,
             Expr::OrbCount => self.player.orbs.len() as i32,
+            Expr::DiscardPileSize => self.player.discard.len() as i32,
             Expr::Const(_) | Expr::Raw(_) => unreachable!("can_play 已过滤不可求值表达式"),
         }
     }
@@ -547,6 +556,7 @@ impl Combat {
         };
         let mut q: Vec<Q> = Vec::new();
         // onUseCard 钩子（先于卡牌效果）：Rage —— 打出攻击牌获得 amount 格挡
+        self.last_card_type = Some(card.def.card_type.to_string());
         if card.def.card_type == "ATTACK" {
             if let Some(rage) = self
                 .player
@@ -580,6 +590,7 @@ impl Combat {
             self.player.discard.push(card);
         }
         // 追踪本回合攻击牌数（Finisher 用）
+        self.last_card_type = Some(card.def.card_type.to_string());
         if card.def.card_type == "ATTACK" {
             self.attacks_this_turn += 1;
         }
@@ -800,6 +811,29 @@ impl Combat {
                 target: ti,
                 base: self.eval(e, card, x_cost),
             }),
+            Effect::RemoveAllBlock => q.push(Q::DoRemoveAllBlock { target: ti }),
+            Effect::IfStance(sid, inner) => {
+                if let Some(st) = crate::state::Stance::from_id(sid) {
+                    if self.player.stance == st {
+                        for &ie in inner {
+                            self.apply_effect(ie, card, ti, x_cost, q, depth + 1);
+                        }
+                    }
+                }
+            }
+            Effect::IfNotStance(sid, inner) => {
+                if let Some(st) = crate::state::Stance::from_id(sid) {
+                    if self.player.stance != st {
+                        for &ie in inner {
+                            self.apply_effect(ie, card, ti, x_cost, q, depth + 1);
+                        }
+                    }
+                }
+            }
+            Effect::SelectDrawPileToHand => q.push(Q::DoSelectDrawPileToHand),
+            Effect::IfLastCardSkill(e) => {
+                q.push(Q::DoIfLastCardSkill(self.eval(e, card, x_cost)));
+            }
             Effect::DrawToHand(e) => q.push(Q::DoDrawToHand(self.eval(e, card, x_cost))),
             Effect::IfIntentApplyWeak(e) => q.push(Q::DoIfIntentApplyWeak {
                 target: ti,
@@ -1579,6 +1613,25 @@ impl Combat {
                 for &i in indices.iter().rev() {
                     let c = self.player.hand.remove(i);
                     self.player.discard.push(c);
+                }
+            }
+            Q::DoRemoveAllBlock { target } => {
+                if self.alive(target) {
+                    self.monsters[target].creature.block = 0;
+                }
+            }
+
+            Q::DoSelectDrawPileToHand => {
+                if !self.player.draw.is_empty() && self.player.hand.len() < 10 {
+                    self.pending = Some(Pending::PilePick {
+                        pile: "draw",
+                        purpose: PilePickPurpose::DrawPileToHand,
+                    });
+                }
+            }
+            Q::DoIfLastCardSkill(n) => {
+                if self.last_card_type.as_deref() == Some("SKILL") {
+                    self.draw_cards(n as usize);
                 }
             }
             Q::DoDrawToHand(target) => {

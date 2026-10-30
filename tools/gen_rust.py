@@ -24,7 +24,7 @@ def expr_rs(e) -> str:
     if isinstance(e, str):
         return {"Magic": "Expr::Magic", "DamageBase": "Expr::DamageBase",
                 "BlockBase": "Expr::BlockBase", "CurrentBlock": "Expr::CurrentBlock",
-                "XCost": "Expr::XCost", "HandSize": "Expr::HandSize", "DrawPileSize": "Expr::DrawPileSize", "CurrentEnergy": "Expr::CurrentEnergy", "OrbCount": "Expr::OrbCount"}.get(e, f"Expr::Raw({s(e)})")
+                "XCost": "Expr::XCost", "HandSize": "Expr::HandSize", "DrawPileSize": "Expr::DrawPileSize", "CurrentEnergy": "Expr::CurrentEnergy", "OrbCount": "Expr::OrbCount", "DiscardPileSize": "Expr::DiscardPileSize"}.get(e, f"Expr::Raw({s(e)})")
     if isinstance(e, dict):
         if "Const" in e:
             return f"Expr::Const({s(e['Const'])})"
@@ -91,6 +91,20 @@ def effect_rs(eff) -> str:
         return "Effect::EvokeLeftmost"
     if "EvokeNoRemove" in eff:
         return "Effect::EvokeNoRemove"
+    if "RemoveAllBlock" in eff:
+        return "Effect::RemoveAllBlock"
+    if "IfStance" in eff:
+        stance, inner = eff["IfStance"]
+        inner_s = ",\n            ".join(effect_rs(e) for e in inner)
+        return f"Effect::IfStance({s(stance)}, &[\n            {inner_s},\n        ])"
+    if "IfNotStance" in eff:
+        stance, inner = eff["IfNotStance"]
+        inner_s = ",\n            ".join(effect_rs(e) for e in inner)
+        return f"Effect::IfNotStance({s(stance)}, &[\n            {inner_s},\n        ])"
+    if "SelectDrawPileToHand" in eff:
+        return "Effect::SelectDrawPileToHand"
+    if "IfLastCardSkill" in eff:
+        return f"Effect::IfLastCardSkill({expr_rs(eff['IfLastCardSkill'])})"
     if "DrawToHand" in eff:
         return f"Effect::DrawToHand({expr_rs(eff['DrawToHand'])})"
     if "IfIntentApplyWeak" in eff:

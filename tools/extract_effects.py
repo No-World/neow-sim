@@ -197,6 +197,19 @@ def classify_action(cls: str, args: str, consts: dict, overrides: dict, lvars: d
             else:
                 n = {"Raw": "-x"}
         return {"OrbSlots": n}
+    if cls == "RemoveAllBlockAction":
+        return {"RemoveAllBlock": 1}
+    if cls == "IndignationAction":
+        n = expr(parts[0], consts, overrides, lvars) if parts else 3
+        return {"IfStance": ["Wrath", [{"ApplyPower": ["AllEnemies", "Vulnerable", n]}]]}
+    if cls == "InnerPeaceAction":
+        n = expr(parts[0], consts, overrides, lvars) if parts else 4
+        return {"IfStance": ["Calm", [{"Draw": n}]]}
+    if cls == "BetterDrawPileToHandAction":
+        return {"SelectDrawPileToHand": 1}
+    if cls == "SanctityAction":
+        n = expr(parts[0], consts, overrides, lvars) if parts else 2
+        return {"IfLastCardSkill": n}
     if cls == "ExpertiseAction":
         return {"DrawToHand": expr(parts[0], consts, overrides, lvars) if parts else 3}
     if cls == "DoubleEnergyAction":
