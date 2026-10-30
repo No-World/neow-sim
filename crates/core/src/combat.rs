@@ -89,9 +89,17 @@ pub struct Combat {
     pub ascension: i32,
 }
 
+/// 项目默认状态：全解锁 + 进阶 20（评测基准，见 README/roadmap）
+pub const DEFAULT_ASCENSION: i32 = 20;
+
 impl Combat {
-    /// 默认遭遇：单颚虫（M2 基准）
-    pub fn new(seed: u64, ascension: i32) -> Self {
+    /// 默认遭遇：单颚虫，默认进阶（A20，全解锁）
+    pub fn new(seed: u64) -> Self {
+        Self::new_asc(seed, DEFAULT_ASCENSION)
+    }
+
+    /// 指定进阶等级的默认遭遇
+    pub fn new_asc(seed: u64, ascension: i32) -> Self {
         Self::new_with(seed, ascension, &[MonsterKind::JawWorm])
     }
 
@@ -103,7 +111,16 @@ impl Combat {
             .collect();
         let mut c = Combat {
             player: PlayerState {
-                creature: Creature::new(80, 80), // TODO(M3): 进阶玩家侧修正
+                // A6+：起始 90% HP（AbstractDungeon:2574）；TODO(M3)：药水栏/金币/休息治疗等局外修正
+                creature: {
+                    let max_hp = 80;
+                    let cur = if ascension >= 6 {
+                        (max_hp as f32 * 0.9).round() as i32
+                    } else {
+                        max_hp
+                    };
+                    Creature::new(cur, max_hp)
+                },
                 energy: 3,
                 hand: Vec::new(),
                 draw: ironclad_starter(ascension),
@@ -738,9 +755,28 @@ mod tests {
         assert!(n >= 88, "数据驱动出牌应达到当前硬上限附近，当前 {n}");
     }
 
+    /// 默认状态 = 全解锁 + A20：起始卡组含飞升者之灾、玩家 72/80 HP、颚虫 A17 档数值
+    #[test]
+    fn a20_default_state() {
+        let c = Combat::new(1);
+        assert_eq!(c.ascension, DEFAULT_ASCENSION);
+        assert!(c
+            .player
+            .draw
+            .iter()
+            .chain(c.player.hand.iter())
+            .any(|x| x.def.id == "AscendersBane"));
+        assert_eq!(c.player.creature.hp, 72); // round(80×0.9)，A6 起始 90%
+        assert_eq!(c.player.creature.max_hp, 80);
+        assert!(c.monsters[0].creature.max_hp >= 42 && c.monsters[0].creature.max_hp <= 46);
+        assert_eq!(c.monsters[0].chomp_dmg, 12); // A17 档
+        assert_eq!(c.monsters[0].bellow_str, 5);
+        assert_eq!(c.monsters[0].bellow_block, 9);
+    }
+
     #[test]
     fn bash_vulnerable_then_strike() {
-        let mut c = Combat::new(42, 0);
+        let mut c = Combat::new_asc(42, 0);
         let hp0 = c.monsters[0].creature.hp;
         force_hand(&mut c, &["Bash"]);
         c.step(&Action::PlayCard {
@@ -765,7 +801,7 @@ mod tests {
     /// 双击：两张打击的伤害（Twin Strike 2×5? 打击G=5？铁甲 Twin Strike 基伤 5×2）
     #[test]
     fn twin_strike_hits_twice() {
-        let mut c = Combat::new(4, 0);
+        let mut c = Combat::new_asc(4, 0);
         let hp0 = c.monsters[0].creature.hp;
         force_hand(&mut c, &["Twin Strike"]);
         c.step(&Action::PlayCard {
@@ -795,7 +831,7 @@ mod tests {
     /// 锁喉：伤害 + 虚弱 2 层
     #[test]
     fn clothesline_applies_weak() {
-        let mut c = Combat::new(6, 0);
+        let mut c = Combat::new_asc(6, 0);
         force_hand(&mut c, &["Clothesline"]);
         c.step(&Action::PlayCard {
             index: 0,
@@ -813,7 +849,7 @@ mod tests {
     /// 屈伸：+2 力量，回合末失效
     #[test]
     fn flex_temporary_strength() {
-        let mut c = Combat::new(3, 0);
+        let mut c = Combat::new_asc(3, 0);
         force_hand(&mut c, &["Flex"]);
         c.step(&Action::PlayCard {
             index: 0,
@@ -842,7 +878,7 @@ mod tests {
     /// 身痛猛击：伤害 = 当前格挡（先防御 5 再猛击 5）
     #[test]
     fn body_slam_uses_block() {
-        let mut c = Combat::new(5, 0);
+        let mut c = Combat::new_asc(5, 0);
         let hp0 = c.monsters[0].creature.hp;
         force_hand(&mut c, &["Defend_R", "Body Slam"]);
         c.step(&Action::PlayCard {
@@ -859,7 +895,7 @@ mod tests {
     /// 怒气：打出后弃牌堆多一张复制
     #[test]
     fn anger_copies_to_discard() {
-        let mut c = Combat::new(8, 0);
+        let mut c = Combat::new_asc(8, 0);
         force_hand(&mut c, &["Anger"]);
         c.step(&Action::PlayCard {
             index: 0,
@@ -879,7 +915,7 @@ mod tests {
     /// 掌击：伤害 + 抽 1
     #[test]
     fn pommel_strike_draws() {
-        let mut c = Combat::new(2, 0);
+        let mut c = Combat::new_asc(2, 0);
         force_hand(&mut c, &["Pommel Strike"]);
         let before = c.player.hand.len();
         let draw_before = c.player.draw.len();
@@ -912,7 +948,7 @@ mod tests {
     #[test]
     fn battle_completes_and_replay_identical() {
         let run = |seed: u64| -> (Vec<u64>, bool, i32) {
-            let mut c = Combat::new(seed, 0);
+            let mut c = Combat::new_asc(seed, 0);
             let mut trace = vec![c.state_hash()];
             for _ in 0..100 {
                 if c.over {
@@ -949,7 +985,7 @@ mod tests {
 
     #[test]
     fn determinize_preserves_information_set() {
-        let mut a = Combat::new(21, 0);
+        let mut a = Combat::new_asc(21, 0);
         a.step(&Action::EndTurn);
         let pub0 = a.public_hash();
         let mut w1 = a.clone();
