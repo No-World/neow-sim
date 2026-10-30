@@ -249,6 +249,10 @@ enum Q {
         target: usize,
         base: i32,
     },
+    ApplyPowerToPlayerFromMonster {
+        kind: PowerKind,
+        amount: i32,
+    },
     RollMove(usize),
 }
 
@@ -1071,6 +1075,92 @@ impl Combat {
         }
     }
 
+    fn louse_defensive_get_move(&mut self, i: usize, num: i32) -> u8 {
+        let h = &self.monsters[i].move_history;
+        let last2_bite = h.len() >= 2 && h[h.len() - 1] == 3 && h[h.len() - 2] == 3;
+        let last2_grow = h.len() >= 2 && h[h.len() - 1] == 4 && h[h.len() - 2] == 4;
+        if num < 25 {
+            if last2_grow {
+                3
+            } else {
+                4
+            }
+        } else if last2_bite {
+            4
+        } else {
+            3
+        }
+    }
+
+    fn spike_slime_m_get_move(&mut self, i: usize, num: i32) -> u8 {
+        let h = &self.monsters[i].move_history;
+        let last2_tackle = h.len() >= 2 && h[h.len() - 1] == 1 && h[h.len() - 2] == 1;
+        let last_frail = h.last() == Some(&4);
+        if num < 30 {
+            if last2_tackle {
+                4
+            } else {
+                1
+            }
+        } else if last_frail {
+            1
+        } else {
+            4
+        }
+    }
+
+    fn acid_slime_m_get_move(&mut self, i: usize, num: i32) -> u8 {
+        let h = &self.monsters[i].move_history;
+        let last2_tackle = h.len() >= 2 && h[h.len() - 1] == 1 && h[h.len() - 2] == 1;
+        let last_weak = h.last() == Some(&4);
+        if num < 40 {
+            if last2_tackle {
+                if self.rng.ai.random_boolean() {
+                    2
+                } else {
+                    4
+                }
+            } else {
+                1
+            }
+        } else if last_weak {
+            1
+        } else {
+            4
+        }
+    }
+
+    fn looter_get_move(&mut self, _i: usize, _num: i32) -> u8 {
+        // Looter: 恒 MUG（简化版，跳过逃跑/烟雾弹）
+        1
+    }
+
+    fn slaver_blue_get_move(&mut self, i: usize, num: i32) -> u8 {
+        let h = &self.monsters[i].move_history;
+        let last2_stab = h.len() >= 2 && h[h.len() - 1] == 1 && h[h.len() - 2] == 1;
+        let last2_rake = h.len() >= 2 && h[h.len() - 1] == 4 && h[h.len() - 2] == 4;
+        if num >= 40 && !last2_stab {
+            1
+        } else if !last2_rake {
+            4
+        } else {
+            1
+        }
+    }
+
+    fn slaver_red_get_move(&mut self, i: usize, num: i32) -> u8 {
+        let h = &self.monsters[i].move_history;
+        let last2_stab = h.len() >= 2 && h[h.len() - 1] == 1 && h[h.len() - 2] == 1;
+        let last2_scrape = h.len() >= 2 && h[h.len() - 1] == 4 && h[h.len() - 2] == 4;
+        if num >= 40 && !last2_stab {
+            1
+        } else if !last2_scrape {
+            4
+        } else {
+            1
+        }
+    }
+
     fn end_turn(&mut self) {
         self.turn_has_ended = true;
         // callEndOfTurnActions：玩家 powers 的 EOT，按插入序逐个结算：
@@ -1351,6 +1441,124 @@ impl Combat {
                     kind: PowerKind::Strength,
                     amount: m.ritual_amt, // STR_AMOUNT
                 }),
+                _ => {}
+            },
+            MonsterKind::LouseDefensive => match m.next_move {
+                3 => q.push(Q::MonsterDamage {
+                    src: i,
+                    base: m.dark_strike_dmg,
+                }),
+                4 => q.push(Q::ApplyPowerToPlayerFromMonster {
+                    kind: PowerKind::Weak,
+                    amount: m.ritual_amt,
+                }),
+                _ => {}
+            },
+            MonsterKind::SpikeSlimeS => {
+                q.push(Q::MonsterDamage {
+                    src: i,
+                    base: m.dark_strike_dmg,
+                });
+            }
+            MonsterKind::AcidSlimeS => match m.next_move {
+                1 => q.push(Q::MonsterDamage {
+                    src: i,
+                    base: m.dark_strike_dmg,
+                }),
+                2 => q.push(Q::ApplyPowerToPlayerFromMonster {
+                    kind: PowerKind::Weak,
+                    amount: m.ritual_amt,
+                }),
+                _ => {}
+            },
+            MonsterKind::SpikeSlimeM => match m.next_move {
+                1 => {
+                    q.push(Q::MonsterDamage {
+                        src: i,
+                        base: m.dark_strike_dmg,
+                    });
+                    q.push(Q::ApplyPowerToPlayerFromMonster {
+                        kind: PowerKind::Frail,
+                        amount: m.ritual_amt,
+                    });
+                }
+                2 => q.push(Q::ApplyPowerToPlayerFromMonster {
+                    kind: PowerKind::Frail,
+                    amount: m.ritual_amt,
+                }),
+                4 => q.push(Q::ApplyPowerToPlayerFromMonster {
+                    kind: PowerKind::Frail,
+                    amount: m.ritual_amt,
+                }),
+                _ => {}
+            },
+            MonsterKind::AcidSlimeM => match m.next_move {
+                1 => q.push(Q::MonsterDamage {
+                    src: i,
+                    base: m.dark_strike_dmg,
+                }),
+                2 => q.push(Q::MonsterDamage {
+                    src: i,
+                    base: m.thrash_dmg,
+                }),
+                4 => q.push(Q::ApplyPowerToPlayerFromMonster {
+                    kind: PowerKind::Weak,
+                    amount: m.ritual_amt,
+                }),
+                _ => {}
+            },
+            MonsterKind::Looter => match m.next_move {
+                1 => {
+                    q.push(Q::MonsterDamage {
+                        src: i,
+                        base: m.dark_strike_dmg,
+                    });
+                    // 偷金币
+                    let steal = self.gold.min(15);
+                    self.gold -= steal;
+                }
+                4 => {
+                    q.push(Q::MonsterDamage {
+                        src: i,
+                        base: m.thrash_dmg,
+                    });
+                    let steal = self.gold.min(20);
+                    self.gold -= steal;
+                }
+                _ => {} // 逃跑/烟雾弹暂不实现
+            },
+            MonsterKind::SlaverBlue => match m.next_move {
+                1 => q.push(Q::MonsterDamage {
+                    src: i,
+                    base: m.dark_strike_dmg,
+                }),
+                4 => {
+                    q.push(Q::MonsterDamage {
+                        src: i,
+                        base: m.thrash_dmg,
+                    });
+                    q.push(Q::ApplyPowerToPlayerFromMonster {
+                        kind: PowerKind::Weak,
+                        amount: m.ritual_amt,
+                    });
+                }
+                _ => {}
+            },
+            MonsterKind::SlaverRed => match m.next_move {
+                1 => q.push(Q::MonsterDamage {
+                    src: i,
+                    base: m.dark_strike_dmg,
+                }),
+                4 => {
+                    q.push(Q::MonsterDamage {
+                        src: i,
+                        base: m.thrash_dmg,
+                    });
+                    q.push(Q::ApplyPowerToPlayerFromMonster {
+                        kind: PowerKind::Vulnerable,
+                        amount: m.ritual_amt,
+                    });
+                }
                 _ => {}
             },
             MonsterKind::FungiBeast => match m.next_move {
@@ -1808,6 +2016,9 @@ impl Combat {
                         purpose: HandPickPurpose::UpgradeCard,
                     });
                 }
+            }
+            Q::ApplyPowerToPlayerFromMonster { kind, amount } => {
+                self.apply_power_to_player_checked(kind, amount, true);
             }
             Q::DoSelectAttackDuplicate => {
                 let has_attack = self.player.hand.iter().any(|c| c.def.card_type == "ATTACK");
@@ -2389,7 +2600,21 @@ impl Combat {
                 }
             }
             MonsterKind::LouseNormal => self.louse_get_move(i, num),
+            MonsterKind::LouseDefensive => self.louse_defensive_get_move(i, num),
             MonsterKind::FungiBeast => self.fungi_get_move(i, num),
+            MonsterKind::SpikeSlimeS => 1, // 恒攻击
+            MonsterKind::AcidSlimeS => {
+                if self.monsters[i].next_move == 1 {
+                    2
+                } else {
+                    1
+                }
+            }
+            MonsterKind::SpikeSlimeM => self.spike_slime_m_get_move(i, num),
+            MonsterKind::AcidSlimeM => self.acid_slime_m_get_move(i, num),
+            MonsterKind::Looter => self.looter_get_move(i, num),
+            MonsterKind::SlaverBlue => self.slaver_blue_get_move(i, num),
+            MonsterKind::SlaverRed => self.slaver_red_get_move(i, num),
         };
         self.monsters[i].first_move = false;
         self.monsters[i].move_history.push(mv);

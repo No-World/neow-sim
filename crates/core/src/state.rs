@@ -182,6 +182,10 @@ pub enum Intent {
     DefendBuff,
     AttackDefend,
     Buff,
+    Debuff,
+    AttackDebuff,
+    Defend,
+    Escape,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -189,7 +193,15 @@ pub enum MonsterKind {
     JawWorm,
     Cultist,
     LouseNormal,
+    LouseDefensive,
     FungiBeast,
+    SpikeSlimeS,
+    AcidSlimeS,
+    SpikeSlimeM,
+    AcidSlimeM,
+    Looter,
+    SlaverBlue,
+    SlaverRed,
 }
 
 /// 通用怪物状态（M2 覆盖：大颚虫、邪教徒；M3 走数据驱动定义表）
@@ -247,6 +259,55 @@ impl MonsterState {
                 let str_amt = if ascension >= 2 { 4 } else { 3 };
                 (hp_rng.random_start_end(lo, hi), (6, str_amt, 0, 0, 0, 0, 0))
             }
+            MonsterKind::LouseDefensive => {
+                let (lo, hi) = if ascension >= 7 { (12, 18) } else { (11, 17) };
+                let bite = if ascension >= 2 {
+                    hp_rng.random_start_end(6, 8)
+                } else {
+                    hp_rng.random_start_end(5, 7)
+                };
+                (hp_rng.random_start_end(lo, hi), (bite, 2, 0, 0, 0, 0, 0))
+            }
+            MonsterKind::SpikeSlimeS => {
+                let (lo, hi) = if ascension >= 7 { (11, 15) } else { (10, 14) };
+                let dmg = if ascension >= 2 { 6 } else { 5 };
+                (hp_rng.random_start_end(lo, hi), (dmg, 0, 0, 0, 0, 0, 0))
+            }
+            MonsterKind::AcidSlimeS => {
+                let (lo, hi) = if ascension >= 7 { (9, 13) } else { (8, 12) };
+                let dmg = if ascension >= 2 { 4 } else { 3 };
+                (hp_rng.random_start_end(lo, hi), (dmg, 1, 0, 0, 0, 0, 0))
+            }
+            MonsterKind::SpikeSlimeM => {
+                let (lo, hi) = if ascension >= 7 { (29, 34) } else { (28, 32) };
+                let dmg = if ascension >= 2 { 10 } else { 8 };
+                (hp_rng.random_start_end(lo, hi), (dmg, 1, 0, 0, 0, 0, 0))
+            }
+            MonsterKind::AcidSlimeM => {
+                let (lo, hi) = if ascension >= 7 { (29, 34) } else { (28, 32) };
+                let dmg = if ascension >= 2 { 8 } else { 7 };
+                let dmg2 = if ascension >= 2 { 11 } else { 10 };
+                (hp_rng.random_start_end(lo, hi), (dmg, 1, dmg2, 0, 0, 0, 0))
+            }
+            MonsterKind::Looter => {
+                let (lo, hi) = if ascension >= 7 { (46, 50) } else { (44, 48) };
+                (hp_rng.random_start_end(lo, hi), (10, 15, 12, 0, 0, 0, 0))
+            }
+            MonsterKind::SlaverBlue => {
+                let (lo, hi) = if ascension >= 7 { (48, 52) } else { (46, 50) };
+                let stab = if ascension >= 2 { 13 } else { 12 };
+                let rake = if ascension >= 2 { 8 } else { 7 };
+                (hp_rng.random_start_end(lo, hi), (stab, 1, rake, 0, 0, 0, 0))
+            }
+            MonsterKind::SlaverRed => {
+                let (lo, hi) = if ascension >= 7 { (48, 52) } else { (46, 50) };
+                let stab = if ascension >= 2 { 14 } else { 13 };
+                let scrape = if ascension >= 2 { 9 } else { 8 };
+                (
+                    hp_rng.random_start_end(lo, hi),
+                    (stab, 1, scrape, 0, 0, 0, 0),
+                )
+            }
         };
         Self {
             kind,
@@ -298,6 +359,38 @@ impl MonsterState {
                 2 => Intent::Buff,   // 生长
                 _ => Intent::Attack,
             },
+            MonsterKind::LouseDefensive => match self.next_move {
+                3 => Intent::Attack,
+                4 => Intent::Debuff,
+                _ => Intent::Attack,
+            },
+            MonsterKind::SpikeSlimeS => Intent::Attack,
+            MonsterKind::AcidSlimeS => match self.next_move {
+                1 => Intent::Attack,
+                _ => Intent::Debuff,
+            },
+            MonsterKind::SpikeSlimeM => match self.next_move {
+                1 => Intent::AttackDefend,
+                _ => Intent::Debuff,
+            },
+            MonsterKind::AcidSlimeM => match self.next_move {
+                1 | 2 => Intent::Attack,
+                _ => Intent::Debuff,
+            },
+            MonsterKind::Looter => match self.next_move {
+                1 | 4 => Intent::Attack,
+                2 => Intent::Defend,
+                3 => Intent::Escape,
+                _ => Intent::Attack,
+            },
+            MonsterKind::SlaverBlue => match self.next_move {
+                1 => Intent::Attack,
+                _ => Intent::AttackDebuff,
+            },
+            MonsterKind::SlaverRed => match self.next_move {
+                1 => Intent::Attack,
+                _ => Intent::AttackDebuff,
+            },
         }
     }
 
@@ -321,6 +414,27 @@ impl MonsterState {
                 1 => Some(self.dark_strike_dmg),
                 _ => None,
             },
+            MonsterKind::LouseDefensive => match self.next_move {
+                3 => Some(self.dark_strike_dmg),
+                _ => None,
+            },
+            MonsterKind::SpikeSlimeS => Some(self.dark_strike_dmg),
+            MonsterKind::AcidSlimeS | MonsterKind::SpikeSlimeM => match self.next_move {
+                1 => Some(self.dark_strike_dmg),
+                _ => None,
+            },
+            MonsterKind::AcidSlimeM => match self.next_move {
+                1 => Some(self.dark_strike_dmg),
+                2 => Some(self.thrash_dmg),
+                _ => None,
+            },
+            MonsterKind::Looter | MonsterKind::SlaverBlue | MonsterKind::SlaverRed => {
+                match self.next_move {
+                    1 => Some(self.dark_strike_dmg),
+                    4 => Some(self.thrash_dmg),
+                    _ => None,
+                }
+            }
         }
     }
 }
