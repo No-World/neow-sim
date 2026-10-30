@@ -197,6 +197,16 @@ def classify_action(cls: str, args: str, consts: dict, overrides: dict, lvars: d
             else:
                 n = {"Raw": "-x"}
         return {"OrbSlots": n}
+    if cls == "ArmamentsAction":
+        return [{"Damage": ["Enemy", "DamageBase"]}] if False else [{"SelectUpgradeCard": 1}]
+    if cls == "ApotheosisAction":
+        return {"UpgradeStrikesDefends": 1}
+    if cls == "ReinforcedBodyAction":
+        return {"BlockPerDiscard": "BlockBase"}
+    if cls == "PlayTopCardAction":
+        return {"PlayTopCard": 1}
+    if cls == "MadnessAction":
+        return {"SelectFreeCost": 1}
     if cls == "ModifyDamageAction":
         n = expr(parts[1], consts, overrides, lvars) if len(parts) > 1 else 1
         return {"ModifySelfDamage": n}

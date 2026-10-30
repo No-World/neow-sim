@@ -46,6 +46,8 @@ pub enum Action {
 pub enum HandPickPurpose {
     PutOnDeckTop,
     PutOnDeckBottom,
+    UpgradeCard,
+    FreeCost,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -136,6 +138,12 @@ enum Q {
     DoDrawToHand(i32),
     DoSetHandCostOne,
     DoModifySelfDamage(i32),
+    DoSelectUpgradeCard,
+    DoUpgradeAllHand,
+    DoUpgradeStrikesDefends,
+    DoBlockPerDiscard(i32),
+    DoPlayTopCard,
+    DoSelectFreeCost,
     DoModifySelfBlock(i32),
     DoModifySelfCost(i32),
     DoIfKillModifySelfDamage {
@@ -515,6 +523,16 @@ impl Combat {
                 match purpose {
                     HandPickPurpose::PutOnDeckTop => self.player.draw.push(c),
                     HandPickPurpose::PutOnDeckBottom => self.player.draw.insert(0, c),
+                    HandPickPurpose::UpgradeCard => {
+                        let mut c = c;
+                        c.upgraded = true;
+                        self.player.hand.push(c);
+                    }
+                    HandPickPurpose::FreeCost => {
+                        let mut c = c;
+                        c.cost_delta = -(c.def.cost.unwrap_or(0)).max(0);
+                        self.player.hand.push(c);
+                    }
                 }
             }
         }
@@ -833,6 +851,12 @@ impl Combat {
                 target: ti,
                 base: self.eval(e, card, x_cost),
             }),
+            Effect::SelectUpgradeCard => q.push(Q::DoSelectUpgradeCard),
+            Effect::UpgradeAllHand => q.push(Q::DoUpgradeAllHand),
+            Effect::UpgradeStrikesDefends => q.push(Q::DoUpgradeStrikesDefends),
+            Effect::BlockPerDiscard(e) => q.push(Q::DoBlockPerDiscard(self.eval(e, card, x_cost))),
+            Effect::PlayTopCard => q.push(Q::DoPlayTopCard),
+            Effect::SelectFreeCost => q.push(Q::DoSelectFreeCost),
             Effect::ModifySelfDamage(e) => {
                 q.push(Q::DoModifySelfDamage(self.eval(e, card, x_cost)));
             }
@@ -1664,6 +1688,71 @@ impl Combat {
                 for &i in indices.iter().rev() {
                     let c = self.player.hand.remove(i);
                     self.player.discard.push(c);
+                }
+            }
+            Q::DoSelectUpgradeCard => {
+                if !self.player.hand.is_empty() {
+                    self.pending = Some(Pending::HandPick {
+                        purpose: HandPickPurpose::UpgradeCard,
+                    });
+                }
+            }
+            Q::DoUpgradeAllHand => {
+                for c in &mut self.player.hand {
+                    c.upgraded = true;
+                }
+            }
+            Q::DoUpgradeStrikesDefends => {
+                // Apotheosis：升级所有牌堆中的打击/防御
+                for c in &mut self.player.draw {
+                    if c.def.id.starts_with("Strike") || c.def.id.starts_with("Defend") {
+                        c.upgraded = true;
+                    }
+                }
+                for c in &mut self.player.hand {
+                    if c.def.id.starts_with("Strike") || c.def.id.starts_with("Defend") {
+                        c.upgraded = true;
+                    }
+                }
+                for c in &mut self.player.discard {
+                    if c.def.id.starts_with("Strike") || c.def.id.starts_with("Defend") {
+                        c.upgraded = true;
+                    }
+                }
+                for c in &mut self.player.exhaust {
+                    if c.def.id.starts_with("Strike") || c.def.id.starts_with("Defend") {
+                        c.upgraded = true;
+                    }
+                }
+            }
+            Q::DoBlockPerDiscard(block_per) => {
+                let n = self.player.discard.len() as i32;
+                self.player.creature.block += block_per * n;
+            }
+            Q::DoPlayTopCard => {
+                // Havoc：从抽牌堆顶打出一张卡（无能量消耗）
+                if !self.player.draw.is_empty() {
+                    let card = self.player.draw.pop().unwrap();
+                    // 执行卡牌效果（不扣能量）
+                    let mut q2 = Vec::new();
+                    let ti = 0;
+                    for &eff in card.def.effects {
+                        self.apply_effect(eff, card, ti, 0, &mut q2, 0);
+                    }
+                    // 去向
+                    if card.def.flags.contains(&"exhaust") {
+                        self.player.exhaust.push(card);
+                    } else {
+                        self.player.discard.push(card);
+                    }
+                    self.drain(q2);
+                }
+            }
+            Q::DoSelectFreeCost => {
+                if !self.player.hand.is_empty() {
+                    self.pending = Some(Pending::HandPick {
+                        purpose: HandPickPurpose::FreeCost,
+                    });
                 }
             }
             Q::DoModifySelfDamage(n) => {

@@ -91,6 +91,18 @@ def effect_rs(eff) -> str:
         return "Effect::EvokeLeftmost"
     if "EvokeNoRemove" in eff:
         return "Effect::EvokeNoRemove"
+    if "SelectUpgradeCard" in eff:
+        return "Effect::SelectUpgradeCard"
+    if "UpgradeAllHand" in eff:
+        return "Effect::UpgradeAllHand"
+    if "UpgradeStrikesDefends" in eff:
+        return "Effect::UpgradeStrikesDefends"
+    if "BlockPerDiscard" in eff:
+        return f"Effect::BlockPerDiscard({expr_rs(eff['BlockPerDiscard'])})"
+    if "PlayTopCard" in eff:
+        return "Effect::PlayTopCard"
+    if "SelectFreeCost" in eff:
+        return "Effect::SelectFreeCost"
     if "ModifySelfDamage" in eff:
         return f"Effect::ModifySelfDamage({expr_rs(eff['ModifySelfDamage'])})"
     if "ModifySelfBlock" in eff:

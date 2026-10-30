@@ -4,10 +4,10 @@
   "note": "use() 效果 DSL；Unsupported 需手移植"
  },
  "stats": {
-  "parsed": 289,
+  "parsed": 294,
   "parsed_branch": 59,
   "no_use": 0,
-  "unsupported": 27
+  "unsupported": 22
  },
  "data": [
   {
@@ -58,13 +58,10 @@
      "Block": "BlockBase"
     },
     {
-     "Unsupported": "ArmamentsAction"
+     "SelectUpgradeCard": 1
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "ArmamentsAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Barricade",
@@ -1039,13 +1036,10 @@
    },
    "effects": [
     {
-     "Unsupported": "PlayTopCardAction"
+     "PlayTopCard": 1
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "PlayTopCardAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Headbutt",
@@ -8334,13 +8328,10 @@
    },
    "effects": [
     {
-     "Unsupported": "ReinforcedBodyAction"
+     "BlockPerDiscard": "BlockBase"
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "ReinforcedBodyAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Reprogram",
@@ -8936,13 +8927,10 @@
    },
    "effects": [
     {
-     "Unsupported": "ApotheosisAction"
+     "UpgradeStrikesDefends": 1
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "ApotheosisAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Ghostly",
@@ -9476,13 +9464,10 @@
    },
    "effects": [
     {
-     "Unsupported": "MadnessAction"
+     "SelectFreeCost": 1
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "MadnessAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Magnetism",

@@ -41,11 +41,8 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
-        effects: &[
-            Effect::Block(Expr::BlockBase),
-            Effect::Unsupported("ArmamentsAction"),
-        ],
+        status: "parsed",
+        effects: &[Effect::Block(Expr::BlockBase), Effect::SelectUpgradeCard],
     },
     CardDef {
         id: "Barricade",
@@ -756,8 +753,8 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: Some(0),
         flags: &[],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("PlayTopCardAction")],
+        status: "parsed",
+        effects: &[Effect::PlayTopCard],
     },
     CardDef {
         id: "Headbutt",
@@ -6000,8 +5997,8 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("ReinforcedBodyAction")],
+        status: "parsed",
+        effects: &[Effect::BlockPerDiscard(Expr::BlockBase)],
     },
     CardDef {
         id: "Reprogram",
@@ -6423,8 +6420,8 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: Some(1),
         flags: &["exhaust"],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("ApotheosisAction")],
+        status: "parsed",
+        effects: &[Effect::UpgradeStrikesDefends],
     },
     CardDef {
         id: "Ghostly",
@@ -6816,8 +6813,8 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: Some(0),
         flags: &["exhaust"],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("MadnessAction")],
+        status: "parsed",
+        effects: &[Effect::SelectFreeCost],
     },
     CardDef {
         id: "Magnetism",

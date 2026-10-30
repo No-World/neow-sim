@@ -159,6 +159,18 @@ pub enum Effect {
     /// 下回合抽牌（Doppelganger/Collect 延迟效果）
     NextTurnDraw(Expr),
     NextTurnGainEnergy(Expr),
+    /// 选择手牌升级（ArmamentsAction 基础版）
+    SelectUpgradeCard,
+    /// 升级全部手牌（ArmamentsAction 升级版）
+    UpgradeAllHand,
+    /// 升级全部打击/防御（ApotheosisAction：所有牌堆）
+    UpgradeStrikesDefends,
+    /// 弃牌堆数 × N 的格挡（ReinforcedBodyAction）
+    BlockPerDiscard(Expr),
+    /// 从抽牌堆顶打出一张卡（PlayTopCardAction/Havoc）
+    PlayTopCard,
+    /// 选择手牌免费化（MadnessAction：cost_delta 设为使费用为0）
+    SelectFreeCost,
     /// 未支持动作（值为 Java 动作类名）——手移植清单
     Unsupported(&'static str),
 }
