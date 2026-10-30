@@ -197,6 +197,17 @@ def classify_action(cls: str, args: str, consts: dict, overrides: dict, lvars: d
             else:
                 n = {"Raw": "-x"}
         return {"OrbSlots": n}
+    if cls == "GainEnergyIfDiscardAction":
+        return {"IfDiscardedGainEnergy": expr(parts[0], consts, overrides, lvars) if parts else 2}
+    if cls == "PutOnDeckAction":
+        # (target, source, amount, isRandom)：非随机=手选
+        return {"SelectPutOnDeckTop": 1}
+    if cls == "SetupAction":
+        return {"SelectPutOnDeckBottom": 1}
+    if cls == "ExhumeAction":
+        return {"SelectExhaustToHand": 1}
+    if cls == "DiscardPileToTopOfDeckAction":
+        return {"SelectDiscardToTop": 1}
     if cls == "HaltAction":
         # (target, amount, additionalAmt)：Wrath 时额外格挡
         extra = expr(parts[2], consts, overrides, lvars) if len(parts) > 2 else 9

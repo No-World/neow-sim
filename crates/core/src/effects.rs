@@ -110,6 +110,16 @@ pub enum Effect {
     ExecuteEnemy(Expr),
     /// 抽牌堆数÷N 的能量（AggregateEnergyAction）
     GainEnergyDrawPile(Expr),
+    /// 本回合弃过牌时获得能量（GainEnergyIfDiscardAction/Underhanded Strike）
+    IfDiscardedGainEnergy(Expr),
+    /// 选择手牌放抽牌堆顶（PutOnDeckAction/Warcry）
+    SelectPutOnDeckTop,
+    /// 选择手牌放抽牌堆底（SetupAction/Thinking Ahead）
+    SelectPutOnDeckBottom,
+    /// 从消耗堆选牌入手（ExhumeAction/Exhume）
+    SelectExhaustToHand,
+    /// 从弃牌堆选牌放抽牌堆顶（DiscardPileToTopOfDeckAction/Headbutt）
+    SelectDiscardToTop,
     /// 未支持动作（值为 Java 动作类名）——手移植清单
     Unsupported(&'static str),
 }

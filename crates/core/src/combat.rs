@@ -30,20 +30,49 @@ pub enum Action {
         indices: Vec<usize>,
     },
     /// 响应占卜：shown 中要弃掉的下标子集，其余保持原序置顶
+    HandPickResponse {
+        index: usize,
+    },
+    PilePickResponse {
+        index: usize,
+    },
     ScryChoice {
         discard_indices: Vec<usize>,
     },
 }
 
 /// 战斗内挂起的选择屏（协议 v0.2 选择屏三件套之二）
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub enum HandPickPurpose {
+    PutOnDeckTop,
+    PutOnDeckBottom,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub enum PilePickPurpose {
+    ExhaustToHand,
+    DiscardToDeckTop,
+}
+
 #[derive(Clone, Debug)]
 pub enum Pending {
     /// 选恰好 amount 张弃掉（DiscardAction，手牌 > amount 时才有屏）
-    HandDiscard { amount: usize },
+    HandDiscard {
+        amount: usize,
+    },
     /// 弃任意张（amount<0 → open(99, anyNumber, canPickZero)）
     HandDiscardAny,
     /// 占卜：展示的牌（顺序：抽牌堆顶 → 底）
-    Scry { shown: Vec<CardInst> },
+    Scry {
+        shown: Vec<CardInst>,
+    },
+    HandPick {
+        purpose: HandPickPurpose,
+    },
+    PilePick {
+        pile: &'static str,
+        purpose: PilePickPurpose,
+    },
 }
 
 /// 引擎级原子动作（引擎 action 队列的 M2 子集）
@@ -102,13 +131,18 @@ enum Q {
     EvokeLeftmost,
     EvokeNoRemove,
     OrbSlots(i32),
-    ShuffleDraw,
-    GainBlock(i32),
-    DoDiscardAllHand,
+    DoSelectPutOnDeckTop,
+    DoSelectPutOnDeckBottom,
+    DoSelectExhaustToHand,
+    DoSelectDiscardToTop,
+    DoIfDiscardedGainEnergy(i32),
     DoIfStanceBlock {
         stance: crate::state::Stance,
         block: i32,
     },
+    ShuffleDraw,
+    GainBlock(i32),
+    DoDiscardAllHand,
     DoSkipEnemyTurn,
     DoVampireBlock {
         target: usize,
@@ -204,6 +238,7 @@ pub struct Combat {
     hand_cost_zero_this_turn: bool,
     skip_monster_turn: bool,
     force_end_turn_after_queue: bool,
+    pub discarded_this_turn: i32,
     pub turn: i32,
     pub turn_has_ended: bool,
     pub over: bool,
@@ -260,6 +295,7 @@ impl Combat {
             hand_cost_zero_this_turn: false,
             skip_monster_turn: false,
             force_end_turn_after_queue: false,
+            discarded_this_turn: 0,
             turn: 1,
             turn_has_ended: false,
             over: false,
@@ -382,6 +418,8 @@ impl Combat {
             }
             Action::HandSelect { indices } => self.resolve_hand_select(indices),
             Action::ScryChoice { discard_indices } => self.resolve_scry(discard_indices),
+            Action::HandPickResponse { index } => self.resolve_hand_pick(*index),
+            Action::PilePickResponse { index } => self.resolve_pile_pick(*index),
         }
     }
 
@@ -429,6 +467,42 @@ impl Combat {
         for &i in chosen.iter().rev() {
             let c = self.player.draw.remove(len - n + i);
             self.player.discard.push(c);
+        }
+        self.resume_queue();
+    }
+
+    fn resolve_hand_pick(&mut self, index: usize) {
+        if let Some(Pending::HandPick { purpose }) = self.pending.clone() {
+            if index < self.player.hand.len() {
+                let c = self.player.hand.remove(index);
+                match purpose {
+                    HandPickPurpose::PutOnDeckTop => self.player.draw.push(c),
+                    HandPickPurpose::PutOnDeckBottom => self.player.draw.insert(0, c),
+                }
+            }
+        }
+        self.resume_queue();
+    }
+
+    fn resolve_pile_pick(&mut self, index: usize) {
+        if let Some(Pending::PilePick { pile, .. }) = self.pending.clone() {
+            match pile {
+                "exhaust" => {
+                    if index < self.player.exhaust.len() {
+                        let c = self.player.exhaust.remove(index);
+                        if self.player.hand.len() < 10 {
+                            self.player.hand.push(c);
+                        }
+                    }
+                }
+                "discard" => {
+                    if index < self.player.discard.len() {
+                        let c = self.player.discard.remove(index);
+                        self.player.draw.push(c);
+                    }
+                }
+                _ => {}
+            }
         }
         self.resume_queue();
     }
@@ -717,6 +791,13 @@ impl Combat {
                 target: ti,
                 base: self.eval(e, card, x_cost),
             }),
+            Effect::IfDiscardedGainEnergy(e) => {
+                q.push(Q::DoIfDiscardedGainEnergy(self.eval(e, card, x_cost)));
+            }
+            Effect::SelectPutOnDeckTop => q.push(Q::DoSelectPutOnDeckTop),
+            Effect::SelectPutOnDeckBottom => q.push(Q::DoSelectPutOnDeckBottom),
+            Effect::SelectExhaustToHand => q.push(Q::DoSelectExhaustToHand),
+            Effect::SelectDiscardToTop => q.push(Q::DoSelectDiscardToTop),
             Effect::Unsupported(_) => {
                 unreachable!("can_play 已过滤不可玩效果")
             }
@@ -1485,6 +1566,41 @@ impl Combat {
                     self.player.discard.push(c);
                 }
             }
+            Q::DoSelectPutOnDeckTop => {
+                if !self.player.hand.is_empty() {
+                    self.pending = Some(Pending::HandPick {
+                        purpose: HandPickPurpose::PutOnDeckTop,
+                    });
+                }
+            }
+            Q::DoSelectPutOnDeckBottom => {
+                if !self.player.hand.is_empty() {
+                    self.pending = Some(Pending::HandPick {
+                        purpose: HandPickPurpose::PutOnDeckBottom,
+                    });
+                }
+            }
+            Q::DoSelectExhaustToHand => {
+                if !self.player.exhaust.is_empty() && self.player.hand.len() < 10 {
+                    self.pending = Some(Pending::PilePick {
+                        pile: "exhaust",
+                        purpose: PilePickPurpose::ExhaustToHand,
+                    });
+                }
+            }
+            Q::DoSelectDiscardToTop => {
+                if !self.player.discard.is_empty() {
+                    self.pending = Some(Pending::PilePick {
+                        pile: "discard",
+                        purpose: PilePickPurpose::DiscardToDeckTop,
+                    });
+                }
+            }
+            Q::DoIfDiscardedGainEnergy(n) => {
+                if self.discarded_this_turn > 0 {
+                    self.player.energy += n;
+                }
+            }
             Q::GainBlock(n) => {
                 self.player.creature.block += n;
             }
@@ -1851,6 +1967,14 @@ impl Combat {
                 for c in shown {
                     (c.def.id, c.upgraded).hash(h);
                 }
+            }
+            Some(Pending::HandPick { purpose }) => {
+                4u8.hash(h);
+                purpose.hash(h);
+            }
+            Some(Pending::PilePick { pile, .. }) => {
+                5u8.hash(h);
+                pile.hash(h);
             }
         }
     }

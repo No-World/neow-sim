@@ -75,6 +75,10 @@ def effect_supported(e):
         return True
     if k in ("ShuffleDraw", "ForceEndTurn", "DiscardNonAttacks", "DiscardAllHand", "SetHandCostZero", "ExhaustHand"):
         return True
+    if k == "IfDiscardedGainEnergy":
+        return expr_ok(e[k])
+    if k in ("SelectPutOnDeckTop", "SelectPutOnDeckBottom", "SelectExhaustToHand", "SelectDiscardToTop"):
+        return True
     if k in ("SkipEnemyTurn",):
         return True
     if k in ("IfStanceBlock", "VampireBlock", "ExecuteEnemy", "GainEnergyDrawPile"):

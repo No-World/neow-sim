@@ -120,6 +120,11 @@ fn effect_supported(e: &Effect) -> bool {
         | Effect::ExhaustHand => true,
         Effect::VampireMaxHp(x) => expr_ok(*x),
         Effect::IfStanceBlock(_, x) => expr_ok(*x),
+        Effect::IfDiscardedGainEnergy(x) => expr_ok(*x),
+        Effect::SelectPutOnDeckTop
+        | Effect::SelectPutOnDeckBottom
+        | Effect::SelectExhaustToHand
+        | Effect::SelectDiscardToTop => true,
         Effect::SkipEnemyTurn => true,
         Effect::VampireBlock(x) => expr_ok(*x),
         Effect::ExecuteEnemy(x) => expr_ok(*x),

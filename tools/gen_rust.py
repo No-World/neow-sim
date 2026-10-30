@@ -91,6 +91,16 @@ def effect_rs(eff) -> str:
         return "Effect::EvokeLeftmost"
     if "EvokeNoRemove" in eff:
         return "Effect::EvokeNoRemove"
+    if "IfDiscardedGainEnergy" in eff:
+        return f"Effect::IfDiscardedGainEnergy({expr_rs(eff['IfDiscardedGainEnergy'])})"
+    if "SelectPutOnDeckTop" in eff:
+        return "Effect::SelectPutOnDeckTop"
+    if "SelectPutOnDeckBottom" in eff:
+        return "Effect::SelectPutOnDeckBottom"
+    if "SelectExhaustToHand" in eff:
+        return "Effect::SelectExhaustToHand"
+    if "SelectDiscardToTop" in eff:
+        return "Effect::SelectDiscardToTop"
     if "IfStanceBlock" in eff:
         stance, n = eff["IfStanceBlock"]
         return f"Effect::IfStanceBlock({s(stance)}, {expr_rs(n)})"

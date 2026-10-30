@@ -4,10 +4,10 @@
   "note": "use() 效果 DSL；Unsupported 需手移植"
  },
  "stats": {
-  "parsed": 257,
-  "parsed_branch": 55,
+  "parsed": 263,
+  "parsed_branch": 56,
   "no_use": 0,
-  "unsupported": 63
+  "unsupported": 56
  },
  "data": [
   {
@@ -807,13 +807,10 @@
    },
    "effects": [
     {
-     "Unsupported": "ExhumeAction"
+     "SelectExhaustToHand": 1
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "ExhumeAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Feed",
@@ -1074,13 +1071,10 @@
      ]
     },
     {
-     "Unsupported": "DiscardPileToTopOfDeckAction"
+     "SelectDiscardToTop": 1
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "DiscardPileToTopOfDeckAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Heavy Blade",
@@ -2151,13 +2145,10 @@
      "Draw": "Magic"
     },
     {
-     "Unsupported": "PutOnDeckAction"
+     "SelectPutOnDeckTop": 1
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "PutOnDeckAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Whirlwind",
@@ -4046,13 +4037,10 @@
    },
    "effects": [
     {
-     "Unsupported": "SetupAction"
+     "SelectPutOnDeckBottom": 1
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "SetupAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Skewer",
@@ -4137,13 +4125,10 @@
      ]
     },
     {
-     "Unsupported": "GainEnergyIfDiscardAction"
+     "IfDiscardedGainEnergy": 2
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "GainEnergyIfDiscardAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Storm of Steel",
@@ -8243,7 +8228,7 @@
    },
    "effects": [
     {
-     "Unsupported": "ShuffleAllAction"
+     "SelectPutOnDeckTop": 1
     },
     {
      "ShuffleDraw": 1
@@ -8252,10 +8237,7 @@
      "Draw": "Magic"
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "ShuffleAllAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Rebound",
@@ -9963,13 +9945,10 @@
      "Draw": 2
     },
     {
-     "Unsupported": "PutOnDeckAction"
+     "SelectPutOnDeckTop": 1
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "PutOnDeckAction"
-   ]
+   "status": "parsed_branch"
   },
   {
    "id": "Transmutation",

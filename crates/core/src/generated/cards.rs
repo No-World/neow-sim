@@ -587,8 +587,8 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: Some(0),
         flags: &["exhaust"],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("ExhumeAction")],
+        status: "parsed",
+        effects: &[Effect::SelectExhaustToHand],
     },
     CardDef {
         id: "Feed",
@@ -775,10 +775,10 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
+        status: "parsed",
         effects: &[
             Effect::Damage(Target::Enemy, Expr::DamageBase),
-            Effect::Unsupported("DiscardPileToTopOfDeckAction"),
+            Effect::SelectDiscardToTop,
         ],
     },
     CardDef {
@@ -1538,11 +1538,8 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: Some(1),
         upg_base_cost: None,
         flags: &["exhaust"],
-        status: "unsupported",
-        effects: &[
-            Effect::Draw(Expr::Magic),
-            Effect::Unsupported("PutOnDeckAction"),
-        ],
+        status: "parsed",
+        effects: &[Effect::Draw(Expr::Magic), Effect::SelectPutOnDeckTop],
     },
     CardDef {
         id: "Whirlwind",
@@ -2910,8 +2907,8 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: Some(0),
         flags: &[],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("SetupAction")],
+        status: "parsed",
+        effects: &[Effect::SelectPutOnDeckBottom],
     },
     CardDef {
         id: "Skewer",
@@ -2970,10 +2967,10 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
+        status: "parsed",
         effects: &[
             Effect::Damage(Target::Enemy, Expr::DamageBase),
-            Effect::Unsupported("GainEnergyIfDiscardAction"),
+            Effect::IfDiscardedGainEnergy(Expr::N(2)),
         ],
     },
     CardDef {
@@ -5907,9 +5904,9 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: Some(2),
         upg_base_cost: None,
         flags: &["exhaust"],
-        status: "unsupported",
+        status: "parsed",
         effects: &[
-            Effect::Unsupported("ShuffleAllAction"),
+            Effect::SelectPutOnDeckTop,
             Effect::ShuffleDraw,
             Effect::Draw(Expr::Magic),
         ],
@@ -7135,11 +7132,8 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &["exhaust"],
-        status: "unsupported",
-        effects: &[
-            Effect::Draw(Expr::N(2)),
-            Effect::Unsupported("PutOnDeckAction"),
-        ],
+        status: "parsed_branch",
+        effects: &[Effect::Draw(Expr::N(2)), Effect::SelectPutOnDeckTop],
     },
     CardDef {
         id: "Transmutation",
