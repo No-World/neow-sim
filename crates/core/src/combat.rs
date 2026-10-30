@@ -93,7 +93,7 @@ pub struct Combat {
 pub const DEFAULT_ASCENSION: i32 = 20;
 
 impl Combat {
-    /// 默认遭遇：单颚虫，默认进阶（A20，全解锁）
+    /// 默认遭遇：单大颚虫，默认进阶（A20，全解锁）
     pub fn new(seed: u64) -> Self {
         Self::new_asc(seed, DEFAULT_ASCENSION)
     }
@@ -755,7 +755,7 @@ mod tests {
         assert!(n >= 88, "数据驱动出牌应达到当前硬上限附近，当前 {n}");
     }
 
-    /// 默认状态 = 全解锁 + A20：起始卡组含飞升者之灾、玩家 72/80 HP、颚虫 A17 档数值
+    /// 默认状态 = 全解锁 + A20：起始卡组含进阶之灾、玩家 72/80 HP、大颚虫 A17 档数值
     #[test]
     fn a20_default_state() {
         let c = Combat::new(1);
@@ -798,7 +798,7 @@ mod tests {
         assert!(c.monsters[0].creature.powers.is_empty());
     }
 
-    /// 双击：两张打击的伤害（Twin Strike 2×5? 打击G=5？铁甲 Twin Strike 基伤 5×2）
+    /// 双重打击：两张打击的伤害（Twin Strike 2×5? 打击G=5？铁甲 Twin Strike 基伤 5×2）
     #[test]
     fn twin_strike_hits_twice() {
         let mut c = Combat::new_asc(4, 0);
@@ -814,7 +814,7 @@ mod tests {
         assert_eq!(dealt, 10, "Twin Strike 5×2=10（源码 baseDamage=5）");
     }
 
-    /// 顺劈：双颚虫各吃 8
+    /// 顺劈斩：双大颚虫各吃 8
     #[test]
     fn cleave_hits_all() {
         let mut c = Combat::new_with(9, 0, &[MonsterKind::JawWorm, MonsterKind::JawWorm]);
@@ -828,7 +828,7 @@ mod tests {
         assert_eq!(hp1 - c.monsters[1].creature.hp, 8);
     }
 
-    /// 锁喉：伤害 + 虚弱 2 层
+    /// 金刚臂：伤害 + 虚弱 2 层
     #[test]
     fn clothesline_applies_weak() {
         let mut c = Combat::new_asc(6, 0);
@@ -846,7 +846,7 @@ mod tests {
         assert_eq!(weak.amount, 2);
     }
 
-    /// 屈伸：+2 力量，回合末失效
+    /// 活动肌肉：+2 力量，回合末失效
     #[test]
     fn flex_temporary_strength() {
         let mut c = Combat::new_asc(3, 0);
@@ -871,11 +871,11 @@ mod tests {
                 .powers
                 .iter()
                 .any(|p| p.kind == PowerKind::Strength),
-            "回合末屈伸力量应失效"
+            "回合末活动肌肉力量应失效"
         );
     }
 
-    /// 身痛猛击：伤害 = 当前格挡（先防御 5 再猛击 5）
+    /// 全身撞击：伤害 = 当前格挡（先防御 5 再猛击 5）
     #[test]
     fn body_slam_uses_block() {
         let mut c = Combat::new_asc(5, 0);
@@ -892,7 +892,7 @@ mod tests {
         assert_eq!(hp0 - c.monsters[0].creature.hp, 5);
     }
 
-    /// 怒气：打出后弃牌堆多一张复制
+    /// 愤怒：打出后弃牌堆多一张复制
     #[test]
     fn anger_copies_to_discard() {
         let mut c = Combat::new_asc(8, 0);
@@ -912,7 +912,7 @@ mod tests {
         );
     }
 
-    /// 掌击：伤害 + 抽 1
+    /// 剑柄打击：伤害 + 抽 1
     #[test]
     fn pommel_strike_draws() {
         let mut c = Combat::new_asc(2, 0);

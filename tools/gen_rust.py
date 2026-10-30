@@ -190,7 +190,7 @@ mod tests {
             clothes.effects[1],
             Effect::ApplyPower(_, "Weakened", _)
         ));
-        // 怒气：伤害 + 复制入弃牌堆
+        // 愤怒：伤害 + 复制入弃牌堆
         let anger = find_card("Anger").unwrap();
         assert!(matches!(anger.effects[1], Effect::CopySelfToDiscard));
     }

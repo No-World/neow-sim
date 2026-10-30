@@ -66,7 +66,7 @@ pub enum MonsterKind {
     Cultist,
 }
 
-/// 通用怪物状态（M2 覆盖：颚虫、邪教徒；M3 走数据驱动定义表）
+/// 通用怪物状态（M2 覆盖：大颚虫、邪教徒；M3 走数据驱动定义表）
 #[derive(Clone, Debug)]
 pub struct MonsterState {
     pub kind: MonsterKind,
@@ -74,7 +74,7 @@ pub struct MonsterState {
     pub next_move: u8,
     pub move_history: Vec<u8>,
     pub first_move: bool,
-    // 颚虫
+    // 大颚虫
     pub chomp_dmg: i32,
     pub thrash_dmg: i32,
     pub thrash_block: i32,

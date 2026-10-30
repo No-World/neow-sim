@@ -24,7 +24,7 @@ pub enum PowerKind {
     Frail,
     /// 仪式（RitualPower）：每轮末投予力量；怪物侧首轮 skipFirst
     Ritual,
-    /// 屈伸的回合末力量失效（LoseStrengthPower：EOT 力量 -amount 后移除自身）
+    /// 活动肌肉的回合末力量失效（LoseStrengthPower：EOT 力量 -amount 后移除自身）
     LoseStrength,
     /// 敏捷（DexterityPower：格挡 +flat，±999，可负）
     Dexterity,

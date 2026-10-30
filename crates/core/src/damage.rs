@@ -95,7 +95,7 @@ mod tests {
 
     #[test]
     fn player_strike_on_vulnerable_worm() {
-        // 打击 6 打易伤颚虫：floor(6×1.5)=9
+        // 打击 6 打易伤大颚虫：floor(6×1.5)=9
         let worm = vec![Power::new(PowerKind::Vulnerable, 2, false, false)];
         assert_eq!(
             calc_player_card_damage(6, DamageType::Normal, &[], &worm),
@@ -116,7 +116,7 @@ mod tests {
 
     #[test]
     fn worm_chomp_with_strength_and_weak_on_attacker() {
-        // 虚弱挂在攻击方（颚虫）才生效：floor((11+3)×0.75)=10；
+        // 虚弱挂在攻击方（大颚虫）才生效：floor((11+3)×0.75)=10；
         // 玩家虚弱不影响受到的伤害（Weak 是 atDamageGive 钩子）
         let worm = vec![
             Power::new(PowerKind::Strength, 3, false, false),

@@ -81,7 +81,7 @@ fn expr_ok(e: Expr) -> bool {
 /// 引擎当前能否完整执行该卡（不含能量/目标检查）
 pub fn engine_playable(def: &CardDef) -> bool {
     if def.cost == Some(-2) {
-        return false; // 不可打出（飞升者之灾/状态等）
+        return false; // 不可打出（进阶之灾/状态等）
     }
     def.effects.iter().all(|e| match e {
         Effect::Damage(t, x) => matches!(t, Target::Enemy) && expr_ok(*x),
@@ -95,7 +95,7 @@ pub fn engine_playable(def: &CardDef) -> bool {
     })
 }
 
-/// 铁甲战士起始卡组（来自 generated::CHARACTERS；A10+ 追加飞升者之灾）
+/// 铁甲战士起始卡组（来自 generated::CHARACTERS；A10+ 追加进阶之灾）
 pub fn ironclad_starter(ascension: i32) -> Vec<CardInst> {
     let ids = CHARACTERS
         .iter()
