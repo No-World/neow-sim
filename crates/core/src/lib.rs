@@ -12,3 +12,5 @@
 //! - `combat`：战斗状态机（回合/抽牌/能量/意图）
 //! - `cards` / `relics` / `monsters`：效果实现表
 //! - `map` / `events`：局外流程
+
+pub mod rng;
