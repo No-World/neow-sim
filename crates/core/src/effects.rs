@@ -62,6 +62,14 @@ pub enum Effect {
     Scry(Expr),
     /// 切换姿态（ChangeStanceAction：退出平静+2能量；同姿态无操作）
     ChangeStance(&'static str),
+    /// 充能球（ChannelAction：槽满 autoEvoke=true 引出最左腾位；false 则不填）
+    Channel(&'static str, Expr, bool),
+    /// 引出最左球（EvokeOrbAction：触发 onEvoke + 移除 + 左移）
+    EvokeLeftmost,
+    /// 引出但不移除（EvokeWithoutRemovingOrbAction：仅触发 onEvoke）
+    EvokeNoRemove,
+    /// 增减槽位（IncreaseMaxOrbAction / DecreaseMaxOrbAction）
+    OrbSlots(Expr),
     /// 未支持动作（值为 Java 动作类名）——手移植清单
     Unsupported(&'static str),
 }

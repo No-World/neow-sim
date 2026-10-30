@@ -4895,10 +4895,13 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
+        status: "parsed",
         effects: &[
             Effect::Damage(Target::Enemy, Expr::DamageBase),
-            Effect::Repeat(Expr::Magic, &[Effect::Unsupported("ChannelAction")]),
+            Effect::Repeat(
+                Expr::Magic,
+                &[Effect::Channel("Lightning", Expr::N(1), true)],
+            ),
         ],
     },
     CardDef {
@@ -5040,8 +5043,8 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: Some(1),
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("IncreaseMaxOrbAction")],
+        status: "parsed",
+        effects: &[Effect::OrbSlots(Expr::Magic)],
     },
     CardDef {
         id: "Chaos",
@@ -5059,10 +5062,10 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: Some(1),
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
+        status: "parsed_branch",
         effects: &[
-            Effect::Unsupported("ChannelAction"),
-            Effect::Unsupported("ChannelAction"),
+            Effect::Channel("?", Expr::N(1), true),
+            Effect::Channel("?", Expr::N(1), true),
         ],
     },
     CardDef {
@@ -5081,12 +5084,12 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &["exhaust", "innate"],
-        status: "unsupported",
+        status: "parsed_branch",
         effects: &[
             Effect::Repeat(Expr::N(1), &[]),
             Effect::Repeat(
                 Expr::Raw("count * this.magicNumber"),
-                &[Effect::Unsupported("ChannelAction")],
+                &[Effect::Channel("Frost", Expr::N(1), true)],
             ),
         ],
     },
@@ -5128,10 +5131,10 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
+        status: "parsed",
         effects: &[
             Effect::Damage(Target::Enemy, Expr::DamageBase),
-            Effect::Repeat(Expr::Magic, &[Effect::Unsupported("ChannelAction")]),
+            Effect::Repeat(Expr::Magic, &[Effect::Channel("Frost", Expr::N(1), true)]),
         ],
     },
     CardDef {
@@ -5194,10 +5197,10 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: Some(1),
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
+        status: "parsed",
         effects: &[
             Effect::ApplyPower(Target::SelfC, "FocusPower", Expr::Magic),
-            Effect::Unsupported("DecreaseMaxOrbAction"),
+            Effect::OrbSlots(Expr::N(-1)),
         ],
     },
     CardDef {
@@ -5216,9 +5219,9 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: Some(1),
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
+        status: "parsed",
         effects: &[
-            Effect::Unsupported("ChannelAction"),
+            Effect::Channel("Frost", Expr::N(1), true),
             Effect::Draw(Expr::Magic),
         ],
     },
@@ -5285,7 +5288,7 @@ pub static CARDS: &[CardDef] = &[
         flags: &[],
         status: "unsupported",
         effects: &[
-            Effect::Unsupported("ChannelAction"),
+            Effect::Channel("Dark", Expr::N(1), true),
             Effect::Unsupported("DarkImpulseAction"),
         ],
     },
@@ -5343,10 +5346,10 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
+        status: "parsed",
         effects: &[
             Effect::DamageAll(Expr::DamageBase),
-            Effect::Unsupported("ChannelAction"),
+            Effect::Channel("Dark", Expr::N(1), true),
         ],
     },
     CardDef {
@@ -5387,9 +5390,9 @@ pub static CARDS: &[CardDef] = &[
         status: "unsupported",
         effects: &[
             Effect::Unsupported("AnimateOrbAction"),
-            Effect::Unsupported("EvokeWithoutRemovingOrbAction"),
+            Effect::EvokeNoRemove,
             Effect::Unsupported("AnimateOrbAction"),
-            Effect::Unsupported("EvokeOrbAction"),
+            Effect::EvokeLeftmost,
         ],
     },
     CardDef {
@@ -5427,10 +5430,10 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: Some(1),
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
+        status: "parsed_branch",
         effects: &[
             Effect::ApplyPower(Target::SelfC, "ElectroPower", Expr::N(1)),
-            Effect::Repeat(Expr::Magic, &[Effect::Unsupported("ChannelAction")]),
+            Effect::Repeat(Expr::Magic, &[Effect::Channel("?", Expr::N(1), true)]),
         ],
     },
     CardDef {
@@ -5531,10 +5534,10 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: Some(1),
         flags: &[],
-        status: "unsupported",
+        status: "parsed",
         effects: &[Effect::Repeat(
             Expr::Magic,
-            &[Effect::Unsupported("ChannelAction")],
+            &[Effect::Channel("?", Expr::N(1), true)],
         )],
     },
     CardDef {
@@ -5575,10 +5578,10 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
+        status: "parsed",
         effects: &[
             Effect::Block(Expr::BlockBase),
-            Effect::Repeat(Expr::Magic, &[Effect::Unsupported("ChannelAction")]),
+            Effect::Repeat(Expr::Magic, &[Effect::Channel("Frost", Expr::N(1), true)]),
         ],
     },
     CardDef {
@@ -5825,10 +5828,10 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
+        status: "parsed_branch",
         effects: &[
             Effect::Damage(Target::Enemy, Expr::DamageBase),
-            Effect::Repeat(Expr::Magic, &[Effect::Unsupported("ChannelAction")]),
+            Effect::Repeat(Expr::Magic, &[Effect::Channel("Plasma", Expr::N(1), true)]),
         ],
     },
     CardDef {
@@ -5888,11 +5891,11 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &["exhaust"],
-        status: "unsupported",
+        status: "parsed",
         effects: &[
-            Effect::Unsupported("ChannelAction"),
-            Effect::Unsupported("ChannelAction"),
-            Effect::Unsupported("ChannelAction"),
+            Effect::Channel("Lightning", Expr::N(1), true),
+            Effect::Channel("Frost", Expr::N(1), true),
+            Effect::Channel("Dark", Expr::N(1), true),
         ],
     },
     CardDef {
@@ -5956,8 +5959,11 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: Some(0),
         flags: &[],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("RedoAction")],
+        status: "parsed",
+        effects: &[
+            Effect::Channel("?", Expr::N(1), false),
+            Effect::EvokeLeftmost,
+        ],
     },
     CardDef {
         id: "Recycle",
@@ -6306,8 +6312,11 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &["exhaust"],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("TempestAction")],
+        status: "parsed",
+        effects: &[Effect::Repeat(
+            Expr::XCost,
+            &[Effect::Channel("?", Expr::N(1), true)],
+        )],
     },
     CardDef {
         id: "Thunder Strike",
@@ -6388,10 +6397,10 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: Some(0),
         flags: &[],
-        status: "unsupported",
+        status: "parsed",
         effects: &[Effect::Repeat(
             Expr::Magic,
-            &[Effect::Unsupported("ChannelAction")],
+            &[Effect::Channel("Lightning", Expr::N(1), true)],
         )],
     },
     CardDef {

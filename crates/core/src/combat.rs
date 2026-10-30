@@ -95,6 +95,13 @@ enum Q {
         n: i32,
     },
     ChangeStance(crate::state::Stance),
+    Channel {
+        kind: crate::state::OrbKind,
+        auto_evoke: bool,
+    },
+    EvokeLeftmost,
+    EvokeNoRemove,
+    OrbSlots(i32),
     RollMove(usize),
 }
 
@@ -111,6 +118,7 @@ fn power_kind(pid: &str) -> Option<PowerKind> {
         "Poison" => Some(PowerKind::Poison),
         "Metallicize" => Some(PowerKind::Metallicize),
         "Regeneration" => Some(PowerKind::Regen),
+        "Focus" => Some(PowerKind::Focus),
         "Demon Form" => Some(PowerKind::DemonForm),
         "Berserk" => Some(PowerKind::Berserk),
         "Brutality" => Some(PowerKind::Brutality),
@@ -167,6 +175,8 @@ impl Combat {
         let mut c = Combat {
             player: PlayerState {
                 stance: crate::state::Stance::Neutral,
+                orbs: Vec::new(),
+                max_orbs: 3, // Defect 默认3槽（M2 简化：仅 Defect 有充能球）
                 // A6+：起始 90% HP（AbstractDungeon:2574）；TODO(M3)：药水栏/金币/休息治疗等局外修正
                 creature: {
                     let max_hp = 80;
@@ -529,6 +539,20 @@ impl Combat {
                     q.push(Q::ChangeStance(st));
                 }
             }
+            Effect::Channel(orb_id, e, auto) => {
+                if let Some(kind) = crate::state::OrbKind::from_id(orb_id) {
+                    let n = self.eval(e, card, x_cost);
+                    for _ in 0..n {
+                        q.push(Q::Channel {
+                            kind,
+                            auto_evoke: auto,
+                        });
+                    }
+                }
+            }
+            Effect::EvokeLeftmost => q.push(Q::EvokeLeftmost),
+            Effect::EvokeNoRemove => q.push(Q::EvokeNoRemove),
+            Effect::OrbSlots(e) => q.push(Q::OrbSlots(self.eval(e, card, x_cost))),
             Effect::ExhaustHand | Effect::Unsupported(_) => {
                 unreachable!("can_play 已过滤不可玩效果")
             }
@@ -600,6 +624,45 @@ impl Combat {
                 return;
             }
         }
+        // TriggerEndOfTurnOrbsAction：逐球 onEndOfTurn（被动效果）
+        {
+            let focus = self
+                .player
+                .creature
+                .powers
+                .iter()
+                .find(|p| p.kind == PowerKind::Focus)
+                .map(|p| p.amount)
+                .unwrap_or(0);
+            for mi in 0..self.player.orbs.len() {
+                let orb = self.player.orbs[mi].clone();
+                let passive = orb.passive(focus);
+                match orb.kind {
+                    crate::state::OrbKind::Frost => {
+                        self.player.creature.block += passive;
+                    }
+                    crate::state::OrbKind::Lightning => {
+                        // 随机敌伤害（cardRandomRng）
+                        let alive: Vec<usize> = (0..self.monsters.len())
+                            .filter(|&i| self.alive(i))
+                            .collect();
+                        if let Some(m) = alive.len().checked_sub(1) {
+                            let roll = self.rng.card_random.random_start_end(0, m as i32);
+                            let t = alive[(roll.max(0) as usize).min(alive.len() - 1)];
+                            self.monsters[t].creature.apply_damage(passive);
+                            if self.monsters[t].creature.is_dead() {
+                                self.on_monster_death(t);
+                            }
+                        }
+                    }
+                    crate::state::OrbKind::Dark => {
+                        // Dark.onEndOfTurn：evokeAmount += passiveAmount
+                        self.player.orbs[mi].dark_growth += passive;
+                    }
+                    crate::state::OrbKind::Plasma => {} // Plasma 无 EOT 被动
+                }
+            }
+        }
         // DiscardAtEndOfTurn：无保留卡（retain）与 Runic Pyramid/Equilibrium 例外
         let hand = std::mem::take(&mut self.player.hand);
         self.player.discard.extend(hand);
@@ -653,9 +716,23 @@ impl Combat {
         {
             self.player.creature.block = 0;
         }
-        // ③ 能量重置（3 + 加成）
-        self.player.energy = 3 + bonus_energy;
-        // ④ 抽 5
+        // ③④ 能量重置（3+加成+Plasma）→ 抽 5
+        {
+            let focus = self
+                .player
+                .creature
+                .powers
+                .iter()
+                .find(|p| p.kind == PowerKind::Focus)
+                .map(|p| p.amount)
+                .unwrap_or(0);
+            for orb in &self.player.orbs {
+                if orb.kind == crate::state::OrbKind::Plasma {
+                    bonus_energy += orb.passive(focus);
+                }
+            }
+        }
+        self.player.energy = 3 + bonus_energy; // ③ 能量重置（Plasma 加成合并）
         self.draw_cards(5);
         // ⑤ atStartOfTurnPostDraw：Demon Form +力量；Brutality 抽 n 失 n 血
         let mut str_gain = 0;
@@ -1007,7 +1084,88 @@ impl Combat {
                     self.player.stance = new_stance;
                 }
             }
+            Q::Channel { kind, auto_evoke } => {
+                // ChannelAction + AbstractPlayer.channelOrb
+                if self.player.max_orbs <= 0 {
+                    return; // 无槽位则不充能
+                }
+                if self.player.orbs.len() as i32 >= self.player.max_orbs {
+                    if auto_evoke {
+                        // 槽满+autoEvoke：引出最左腾位
+                        self.exec(Q::EvokeLeftmost);
+                    } else {
+                        return; // autoEvoke=false 且满：不充能
+                    }
+                }
+                self.player.orbs.push(crate::state::OrbState::new(kind));
+            }
+            Q::EvokeLeftmost => {
+                // AbstractPlayer.evokeOrb: 左球 onEvoke → 移除 → 左移
+                if !self.player.orbs.is_empty() {
+                    let orb = self.player.orbs.remove(0);
+                    self.orb_evoke_effect(&orb);
+                }
+            }
+            Q::EvokeNoRemove => {
+                if !self.player.orbs.is_empty() {
+                    let orb = self.player.orbs[0].clone();
+                    self.orb_evoke_effect(&orb);
+                }
+            }
+            Q::OrbSlots(n) => {
+                self.player.max_orbs = (self.player.max_orbs + n).clamp(0, 10);
+            }
             Q::RollMove(i) => self.roll_move(i),
+        }
+    }
+
+    /// 球 onEvoke 效果（orbs/*.java）
+    fn orb_evoke_effect(&mut self, orb: &crate::state::OrbState) {
+        let focus = self
+            .player
+            .creature
+            .powers
+            .iter()
+            .find(|p| p.kind == PowerKind::Focus)
+            .map(|p| p.amount)
+            .unwrap_or(0);
+        let evoke = orb.evoke(focus);
+        match orb.kind {
+            crate::state::OrbKind::Frost => {
+                self.player.creature.block += evoke; // GainBlockAction
+            }
+            crate::state::OrbKind::Lightning => {
+                // LightningOrbEvokeAction：随机敌（getRandomMonster → cardRandomRng 可对拍）
+                let alive: Vec<usize> = (0..self.monsters.len())
+                    .filter(|&i| self.alive(i))
+                    .collect();
+                if let Some(roll) = alive
+                    .len()
+                    .checked_sub(1)
+                    .map(|m| self.rng.card_random.random_start_end(0, m as i32))
+                {
+                    let t = alive[(roll.max(0) as usize).min(alive.len() - 1)];
+                    self.monsters[t].creature.apply_damage(evoke);
+                    if self.monsters[t].creature.is_dead() {
+                        self.on_monster_death(t);
+                    }
+                }
+            }
+            crate::state::OrbKind::Dark => {
+                // DarkOrbEvokeAction：对所有敌人造成伤害（THORNS 类型）
+                for mi in 0..self.monsters.len() {
+                    if self.alive(mi) {
+                        self.monsters[mi].creature.apply_damage(evoke);
+                    }
+                }
+                if self.all_monsters_dead() {
+                    self.over = true;
+                    self.won = true;
+                }
+            }
+            crate::state::OrbKind::Plasma => {
+                self.player.energy += evoke; // GainEnergyAction
+            }
         }
     }
 
@@ -1179,6 +1337,10 @@ impl Combat {
     fn hash_public(&self, h: &mut impl Hasher) {
         self.player.creature.hp.hash(h);
         self.player.stance.hash(h);
+        self.player.max_orbs.hash(h);
+        for orb in &self.player.orbs {
+            (orb.kind, orb.dark_growth).hash(h);
+        }
         self.player.creature.block.hash(h);
         self.player.energy.hash(h);
         for c in &self.player.hand {
@@ -1810,5 +1972,143 @@ mod tests {
         });
         assert!(c.player.exhaust.iter().any(|x| x.def.id == def.id));
         assert_eq!(c.player.hand.len(), 1, "消耗1张+暗之拥抽1张");
+    }
+
+    /// 充能球完整流程：充能→EOT被动→引出→槽满自动引出
+    #[test]
+    fn orb_system_flow() {
+        let mut c = Combat::new_asc(1, 0);
+        // 闪电充能 → EOT 被动伤 → 引出伤
+        c.exec(Q::Channel {
+            kind: crate::state::OrbKind::Lightning,
+            auto_evoke: true,
+        });
+        assert_eq!(c.player.orbs.len(), 1);
+        assert_eq!(c.player.orbs[0].kind, crate::state::OrbKind::Lightning);
+        let hp0 = c.monsters[0].creature.hp;
+        // EOT：闪电被动 3 伤（randomMonster → 单怪=必中）
+        c.end_turn();
+        assert_eq!(c.monsters[0].creature.hp, hp0 - 3, "闪电EOT被动3伤");
+        // 下回合引出（8伤）
+        let hp1 = c.monsters[0].creature.hp;
+        c.exec(Q::EvokeLeftmost);
+        assert_eq!(c.monsters[0].creature.hp, hp1 - 8, "闪电引出8伤");
+        assert!(c.player.orbs.is_empty(), "引出后槽空");
+    }
+
+    /// 霜球：EOT被动格挡 + 引出格挡
+    #[test]
+    fn frost_orb_block() {
+        let mut c = Combat::new_asc(2, 0);
+        c.exec(Q::Channel {
+            kind: crate::state::OrbKind::Frost,
+            auto_evoke: true,
+        });
+        // 有霜球：EOT +2 格挡 → 咬噬11被吸收2 → 失9
+        // 无霜球对照：咬噬11 → 失11
+        c.monsters[0].next_move = 1; // 咬噬
+        let hp_with_orb;
+        {
+            let mut c2 = c.clone();
+            c2.step(&Action::EndTurn);
+            hp_with_orb = c2.player.creature.hp;
+        }
+        // 无球对照
+        c.player.orbs.clear();
+        c.step(&Action::EndTurn);
+        let hp_without = c.player.creature.hp;
+        assert_eq!(hp_with_orb - hp_without, 2, "有霜球少扣2血（格挡吸收）");
+    }
+
+    /// 暗球：EOT 自增长 + 引出全场伤
+    #[test]
+    fn dark_orb_growth() {
+        let mut c = Combat::new_with(3, 0, &[MonsterKind::JawWorm, MonsterKind::JawWorm]);
+        c.exec(Q::Channel {
+            kind: crate::state::OrbKind::Dark,
+            auto_evoke: true,
+        });
+        assert_eq!(c.player.orbs[0].dark_growth, 0);
+        // EOT：dark_growth += passive(6)
+        let block_before = c.player.creature.block;
+        c.monsters[0].next_move = 2; // 咆哮不攻击
+        c.step(&Action::EndTurn);
+        assert_eq!(c.player.orbs[0].dark_growth, 6, "EOT 自增 +6");
+        assert_eq!(block_before, c.player.creature.block, "暗球EOT不加格挡");
+        // 直接验证 evoke 数值
+        let orb = &c.player.orbs[0];
+        assert_eq!(orb.evoke(0), 12, "6 base + 6 growth = 12");
+        // 槽满 evict 验证：充能第 2 球（霜球）
+        c.exec(Q::Channel {
+            kind: crate::state::OrbKind::Frost,
+            auto_evoke: true,
+        });
+    }
+
+    /// 等离子球：回合开始 +2 能量
+    #[test]
+    fn plasma_orb_energy() {
+        let mut c = Combat::new_asc(4, 0);
+        c.exec(Q::Channel {
+            kind: crate::state::OrbKind::Plasma,
+            auto_evoke: true,
+        });
+        c.step(&Action::EndTurn);
+        // 下回合：3 + Plasma(2) = 5 能量
+        assert_eq!(c.player.energy, 4, "3 + Plasma passive 1");
+    }
+
+    /// 槽满 autoEvoke=true：引出最左腾位
+    #[test]
+    fn orb_full_autoevoke() {
+        let mut c = Combat::new_asc(5, 0);
+        c.player.max_orbs = 2;
+        for _ in 0..3 {
+            c.exec(Q::Channel {
+                kind: crate::state::OrbKind::Frost,
+                auto_evoke: true,
+            });
+        }
+        assert_eq!(c.player.orbs.len(), 2, "槽满");
+        // 第 4 次 autoEvoke=true → 引出最左（Frost 引出=5格挡），再填入
+        let block0 = c.player.creature.block;
+        c.exec(Q::Channel {
+            kind: crate::state::OrbKind::Lightning,
+            auto_evoke: true,
+        });
+        assert_eq!(c.player.orbs.len(), 2, "仍满（引出1+充能1）");
+        assert_eq!(c.player.creature.block, block0 + 5, "引出最左霜球 +5 格挡");
+        assert_eq!(c.player.orbs[0].kind, crate::state::OrbKind::Frost);
+        assert_eq!(c.player.orbs[1].kind, crate::state::OrbKind::Lightning);
+    }
+
+    /// 专注：被动/引出 +N（Plasma 例外）
+    #[test]
+    fn focus_applies_to_orbs() {
+        let mut c = Combat::new_asc(6, 0);
+        apply_power(
+            &mut c.player.creature.powers,
+            PowerKind::Focus,
+            2,
+            false,
+            false,
+        );
+        c.exec(Q::Channel {
+            kind: crate::state::OrbKind::Frost,
+            auto_evoke: true,
+        });
+        // 有效 passive = 2+2=4；有效 evoke = 5+2=7
+        let _block0 = c.player.creature.block;
+        // EOT 被动
+        c.monsters[0].next_move = 2;
+        c.step(&Action::EndTurn);
+        // 引出
+        let block_before_ev = c.player.creature.block;
+        c.exec(Q::EvokeLeftmost);
+        assert_eq!(
+            c.player.creature.block,
+            block_before_ev + 7,
+            "引出 = 5+2专注 = 7"
+        );
     }
 }

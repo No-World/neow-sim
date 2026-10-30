@@ -84,6 +84,15 @@ def effect_rs(eff) -> str:
         return f"Effect::Scry({expr_rs(eff['Scry'])})"
     if "ChangeStance" in eff:
         return f"Effect::ChangeStance({s(eff['ChangeStance'])})"
+    if "Channel" in eff:
+        orb, n, ev = eff["Channel"]
+        return f"Effect::Channel({s(orb)}, {expr_rs(n)}, {str(ev).lower()})"
+    if "EvokeLeftmost" in eff:
+        return "Effect::EvokeLeftmost"
+    if "EvokeNoRemove" in eff:
+        return "Effect::EvokeNoRemove"
+    if "OrbSlots" in eff:
+        return f"Effect::OrbSlots({expr_rs(eff['OrbSlots'])})"
     if "Repeat" in eff:
         cnt, inner = eff["Repeat"]
         if not inner:

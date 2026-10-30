@@ -26,7 +26,7 @@ chars = json.loads((DATA / "characters.json").read_text(encoding="utf-8"))["data
 ENGINE_POWERS = {"Strength", "Vulnerable", "Weakened", "Frail", "Ritual",
                  "LoseStrengthPower", "Dexterity", "Poison", "Metallicize", "Regeneration",
                  "Demon Form", "Berserk", "Brutality", "Barricade", "Thorns", "Artifact",
-                 "IntangiblePlayer", "Energized", "Combust", "Dark Embrace", "Rage"}
+                 "IntangiblePlayer", "Energized", "Combust", "Dark Embrace", "Rage", "Focus"}
 
 
 CLASS_NAMES = {c["class"] for c in cards["data"]}
@@ -66,6 +66,13 @@ def effect_supported(e):
         return expr_ok(e[k][0])
     if k == "ChangeStance":
         return e[k] in ("Neutral", "Wrath", "Calm", "Divinity")
+    if k == "Channel":
+        orb, cnt, ev = e[k]
+        return orb in ("Frost", "Lightning", "Dark", "Plasma") and expr_ok(cnt)
+    if k in ("EvokeLeftmost", "EvokeNoRemove"):
+        return True
+    if k == "OrbSlots":
+        return expr_ok(e[k])
     return False  # ExhaustHand / Unsupported
 
 

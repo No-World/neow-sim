@@ -4,10 +4,10 @@
   "note": "use() 效果 DSL；Unsupported 需手移植"
  },
  "stats": {
-  "parsed": 224,
-  "parsed_branch": 47,
+  "parsed": 236,
+  "parsed_branch": 51,
   "no_use": 0,
-  "unsupported": 104
+  "unsupported": 88
  },
  "data": [
   {
@@ -6802,16 +6802,17 @@
       "Magic",
       [
        {
-        "Unsupported": "ChannelAction"
+        "Channel": [
+         "Lightning",
+         1,
+         true
+        ]
        }
       ]
      ]
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "ChannelAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Barrage",
@@ -7007,13 +7008,10 @@
    },
    "effects": [
     {
-     "Unsupported": "IncreaseMaxOrbAction"
+     "OrbSlots": "Magic"
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "IncreaseMaxOrbAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Chaos",
@@ -7033,17 +7031,21 @@
    },
    "effects": [
     {
-     "Unsupported": "ChannelAction"
+     "Channel": [
+      "?",
+      1,
+      true
+     ]
     },
     {
-     "Unsupported": "ChannelAction"
+     "Channel": [
+      "?",
+      1,
+      true
+     ]
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "ChannelAction",
-    "ChannelAction"
-   ]
+   "status": "parsed_branch"
   },
   {
    "id": "Chill",
@@ -7080,16 +7082,17 @@
       },
       [
        {
-        "Unsupported": "ChannelAction"
+        "Channel": [
+         "Frost",
+         1,
+         true
+        ]
        }
       ]
      ]
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "ChannelAction"
-   ]
+   "status": "parsed_branch"
   },
   {
    "id": "Gash",
@@ -7151,16 +7154,17 @@
       "Magic",
       [
        {
-        "Unsupported": "ChannelAction"
+        "Channel": [
+         "Frost",
+         1,
+         true
+        ]
        }
       ]
      ]
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "ChannelAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Compile Driver",
@@ -7249,13 +7253,10 @@
      ]
     },
     {
-     "Unsupported": "DecreaseMaxOrbAction"
+     "OrbSlots": -1
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "DecreaseMaxOrbAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Coolheaded",
@@ -7275,16 +7276,17 @@
    },
    "effects": [
     {
-     "Unsupported": "ChannelAction"
+     "Channel": [
+      "Frost",
+      1,
+      true
+     ]
     },
     {
      "Draw": "Magic"
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "ChannelAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Core Surge",
@@ -7364,7 +7366,11 @@
    "upgrade": {},
    "effects": [
     {
-     "Unsupported": "ChannelAction"
+     "Channel": [
+      "Dark",
+      1,
+      true
+     ]
     },
     {
      "Unsupported": "DarkImpulseAction"
@@ -7372,7 +7378,6 @@
    ],
    "status": "unsupported",
    "unsupported": [
-    "ChannelAction",
     "DarkImpulseAction"
    ]
   },
@@ -7447,13 +7452,14 @@
      "DamageAll": "DamageBase"
     },
     {
-     "Unsupported": "ChannelAction"
+     "Channel": [
+      "Dark",
+      1,
+      true
+     ]
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "ChannelAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Double Energy",
@@ -7504,21 +7510,19 @@
      "Unsupported": "AnimateOrbAction"
     },
     {
-     "Unsupported": "EvokeWithoutRemovingOrbAction"
+     "EvokeNoRemove": 1
     },
     {
      "Unsupported": "AnimateOrbAction"
     },
     {
-     "Unsupported": "EvokeOrbAction"
+     "EvokeLeftmost": 1
     }
    ],
    "status": "unsupported",
    "unsupported": [
     "AnimateOrbAction",
-    "EvokeWithoutRemovingOrbAction",
-    "AnimateOrbAction",
-    "EvokeOrbAction"
+    "AnimateOrbAction"
    ]
   },
   {
@@ -7577,16 +7581,17 @@
       "Magic",
       [
        {
-        "Unsupported": "ChannelAction"
+        "Channel": [
+         "?",
+         1,
+         true
+        ]
        }
       ]
      ]
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "ChannelAction"
-   ]
+   "status": "parsed_branch"
   },
   {
    "id": "Undo",
@@ -7719,16 +7724,17 @@
       "Magic",
       [
        {
-        "Unsupported": "ChannelAction"
+        "Channel": [
+         "?",
+         1,
+         true
+        ]
        }
       ]
      ]
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "ChannelAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Genetic Algorithm",
@@ -7789,16 +7795,17 @@
       "Magic",
       [
        {
-        "Unsupported": "ChannelAction"
+        "Channel": [
+         "Frost",
+         1,
+         true
+        ]
        }
       ]
      ]
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "ChannelAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Go for the Eyes",
@@ -8155,16 +8162,17 @@
       "Magic",
       [
        {
-        "Unsupported": "ChannelAction"
+        "Channel": [
+         "Plasma",
+         1,
+         true
+        ]
        }
       ]
      ]
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "ChannelAction"
-   ]
+   "status": "parsed_branch"
   },
   {
    "id": "Multi-Cast",
@@ -8239,21 +8247,28 @@
    "upgrade": {},
    "effects": [
     {
-     "Unsupported": "ChannelAction"
+     "Channel": [
+      "Lightning",
+      1,
+      true
+     ]
     },
     {
-     "Unsupported": "ChannelAction"
+     "Channel": [
+      "Frost",
+      1,
+      true
+     ]
     },
     {
-     "Unsupported": "ChannelAction"
+     "Channel": [
+      "Dark",
+      1,
+      true
+     ]
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "ChannelAction",
-    "ChannelAction",
-    "ChannelAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Reboot",
@@ -8341,13 +8356,17 @@
    },
    "effects": [
     {
-     "Unsupported": "RedoAction"
+     "Channel": [
+      "?",
+      1,
+      false
+     ]
+    },
+    {
+     "EvokeLeftmost": 1
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "RedoAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Recycle",
@@ -8825,13 +8844,21 @@
    "upgrade": {},
    "effects": [
     {
-     "Unsupported": "TempestAction"
+     "Repeat": [
+      "XCost",
+      [
+       {
+        "Channel": [
+         "?",
+         1,
+         true
+        ]
+       }
+      ]
+     ]
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "TempestAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Thunder Strike",
@@ -8953,16 +8980,17 @@
       "Magic",
       [
        {
-        "Unsupported": "ChannelAction"
+        "Channel": [
+         "Lightning",
+         1,
+         true
+        ]
        }
       ]
      ]
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "ChannelAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Apotheosis",

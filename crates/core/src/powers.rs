@@ -61,6 +61,8 @@ pub enum PowerKind {
     CurlUp,
     /// 孢子云（Spore Cloud：死亡时对玩家施加 amount 层易伤）
     SporeCloud,
+    /// 专注（Focus：充能球被动/引出 +amount，Plasma 不受影响）
+    Focus,
 }
 
 impl PowerKind {
@@ -141,6 +143,7 @@ impl Power {
             PowerKind::Rage => "Rage",
             PowerKind::CurlUp => "Curl Up",
             PowerKind::SporeCloud => "Spore Cloud",
+            PowerKind::Focus => "Focus",
         }
     }
 

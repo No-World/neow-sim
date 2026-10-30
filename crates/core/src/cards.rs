@@ -27,6 +27,7 @@ pub const ENGINE_POWERS: &[&str] = &[
     "Combust",
     "Dark Embrace",
     "Rage",
+    "Focus",
 ];
 
 #[derive(Clone, Copy, Debug)]
@@ -108,6 +109,9 @@ fn effect_supported(e: &Effect) -> bool {
         Effect::HandDiscard(x, _) | Effect::Scry(x) => expr_ok(*x),
         // 姿态 id 必须已知
         Effect::ChangeStance(sid) => crate::state::Stance::from_id(sid).is_some(),
+        Effect::Channel(orb, x, _) => expr_ok(*x) && crate::state::OrbKind::from_id(orb).is_some(),
+        Effect::EvokeLeftmost | Effect::EvokeNoRemove => true,
+        Effect::OrbSlots(x) => expr_ok(*x),
         // ExhaustHand（ExhaustAction 弃牌语义待核）与其余未知动作暂不可玩
         Effect::ExhaustHand | Effect::Unsupported(_) => false,
     }

@@ -79,11 +79,96 @@ impl Stance {
     }
 }
 
+/// 充能球种类（orbs/*.java）
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum OrbKind {
+    Frost,
+    Lightning,
+    Dark,
+    Plasma,
+}
+
+impl OrbKind {
+    pub fn from_id(id: &str) -> Option<OrbKind> {
+        match id {
+            "Frost" => Some(OrbKind::Frost),
+            "Lightning" => Some(OrbKind::Lightning),
+            "Dark" => Some(OrbKind::Dark),
+            "Plasma" => Some(OrbKind::Plasma),
+            _ => None,
+        }
+    }
+
+    pub fn id(&self) -> &'static str {
+        match self {
+            OrbKind::Frost => "Frost",
+            OrbKind::Lightning => "Lightning",
+            OrbKind::Dark => "Dark",
+            OrbKind::Plasma => "Plasma",
+        }
+    }
+
+    /// 基础值（orbs/*.java 构造器）
+    pub fn base_passive(&self) -> i32 {
+        match self {
+            OrbKind::Frost => 2,
+            OrbKind::Lightning => 3,
+            OrbKind::Dark => 6,
+            OrbKind::Plasma => 1,
+        }
+    }
+
+    pub fn base_evoke(&self) -> i32 {
+        match self {
+            OrbKind::Frost => 5,
+            OrbKind::Lightning => 8,
+            OrbKind::Dark => 6,
+            OrbKind::Plasma => 2,
+        }
+    }
+}
+
+/// 单个充能球（Dark 的 evoke 会通过 EOT 被动自增长）
+#[derive(Clone, Debug)]
+pub struct OrbState {
+    pub kind: OrbKind,
+    /// Dark 专属：EOT evoke_amount += passive_amount 的累积器
+    pub dark_growth: i32,
+}
+
+impl OrbState {
+    pub fn new(kind: OrbKind) -> Self {
+        Self {
+            kind,
+            dark_growth: 0,
+        }
+    }
+
+    /// 有效被动值（applyFocus：base + 专注，下限 0；Plasma 不吃专注）
+    pub fn passive(&self, focus: i32) -> i32 {
+        match self.kind {
+            OrbKind::Plasma => self.kind.base_passive(),
+            _ => (self.kind.base_passive() + focus).max(0),
+        }
+    }
+
+    /// 有效引出值（base + 专注 + Dark 自增长；Plasma 不吃专注）
+    pub fn evoke(&self, focus: i32) -> i32 {
+        match self.kind {
+            OrbKind::Plasma => self.kind.base_evoke(),
+            _ => (self.kind.base_evoke() + focus + self.dark_growth).max(0),
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct PlayerState {
     pub creature: Creature,
     pub stance: Stance,
     pub energy: i32,
+    /// 充能球槽（左→右，只记已填的；空槽数 = max_orbs - orbs.len()）
+    pub orbs: Vec<OrbState>,
+    pub max_orbs: i32,
     pub hand: Vec<CardInst>,
     /// Vec 尾 = 抽牌堆顶（CardGroup.group 末位）
     pub draw: Vec<CardInst>,

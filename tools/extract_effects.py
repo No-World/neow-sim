@@ -178,6 +178,25 @@ def classify_action(cls: str, args: str, consts: dict, overrides: dict, lvars: d
         sid = parts[0].strip().strip('"') if parts else "Neutral"
         sid = sid.replace("AbstractStance.", "").replace("_STANCE_ID", "")
         return {"ChangeStance": sid}
+    if cls == "ChannelAction":
+        # ChannelAction(new Lightning()) 或 (new Frost(), autoEvoke)
+        om = re.search(r"new\s+(Frost|Lightning|Dark|Plasma)\s*\(", args)
+        orb_id = om.group(1) if om else "?"
+        auto_evoke = len(parts) <= 1 or parts[1].strip() != "false"
+        count = 1
+        return {"Channel": [orb_id, count, auto_evoke]}
+    if cls in ("EvokeOrbAction",):
+        return {"EvokeLeftmost": 1}
+    if cls in ("EvokeWithoutRemovingOrbAction",):
+        return {"EvokeNoRemove": 1}
+    if cls in ("IncreaseMaxOrbAction", "DecreaseMaxOrbAction"):
+        n = expr(parts[0], consts, overrides, lvars) if parts else 1
+        if cls == "DecreaseMaxOrbAction":
+            if isinstance(n, int):
+                n = -n
+            else:
+                n = {"Raw": "-x"}
+        return {"OrbSlots": n}
     if cls == "AttackDamageRandomEnemyAction":
         # 目标 = getRandomMonster(null, true, cardRandomRng)——引擎用 card_random 流复刻
         return {"DamageRandom": "DamageBase"}
