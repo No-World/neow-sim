@@ -13,4 +13,9 @@
 //! - `cards` / `relics` / `monsters`：效果实现表
 //! - `map` / `events`：局外流程
 
+pub mod cards;
+pub mod combat;
+pub mod damage;
+pub mod powers;
 pub mod rng;
+pub mod state;
