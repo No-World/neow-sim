@@ -105,6 +105,7 @@ fn effect_supported(e: &Effect) -> bool {
         | Effect::MakeInDrawRandom(cls, x)
         | Effect::MakeInDrawTop(cls, x) => expr_ok(*x) && CardInst::new_by_class(cls).is_some(),
         Effect::CopySelfToHand(x) => expr_ok(*x),
+        Effect::HandDiscard(x, _) | Effect::Scry(x) => expr_ok(*x),
         // ExhaustHand（ExhaustAction 弃牌语义待核）与其余未知动作暂不可玩
         Effect::ExhaustHand | Effect::Unsupported(_) => false,
     }

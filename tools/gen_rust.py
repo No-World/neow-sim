@@ -77,6 +77,11 @@ def effect_rs(eff) -> str:
     if "MakeInDrawTop" in eff:
         cls, n = eff["MakeInDrawTop"]
         return f"Effect::MakeInDrawTop({s(cls)}, {expr_rs(n)})"
+    if "HandDiscard" in eff:
+        a, r = eff["HandDiscard"]
+        return f"Effect::HandDiscard({expr_rs(a)}, {str(r).lower()})"
+    if "Scry" in eff:
+        return f"Effect::Scry({expr_rs(eff['Scry'])})"
     if "Repeat" in eff:
         cnt, inner = eff["Repeat"]
         if not inner:

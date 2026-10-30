@@ -4,10 +4,10 @@
   "note": "use() 效果 DSL；Unsupported 需手移植"
  },
  "stats": {
-  "parsed": 210,
-  "parsed_branch": 45,
+  "parsed": 217,
+  "parsed_branch": 47,
   "no_use": 0,
-  "unsupported": 120
+  "unsupported": 111
  },
  "data": [
   {
@@ -2297,13 +2297,13 @@
      "Draw": "Magic"
     },
     {
-     "Unsupported": "DiscardAction"
+     "HandDiscard": [
+      1,
+      false
+     ]
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "DiscardAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Adrenaline",
@@ -2414,13 +2414,13 @@
      "DamageAll": "DamageBase"
     },
     {
-     "Unsupported": "DiscardAction"
+     "HandDiscard": [
+      1,
+      true
+     ]
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "DiscardAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Backflip",
@@ -2814,16 +2814,16 @@
    },
    "effects": [
     {
-     "Unsupported": "DiscardAction"
+     "HandDiscard": [
+      "Magic",
+      false
+     ]
     },
     {
      "GainEnergy": 2
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "DiscardAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Corpse Explosion",
@@ -2955,13 +2955,13 @@
      "Draw": 1
     },
     {
-     "Unsupported": "DiscardAction"
+     "HandDiscard": [
+      1,
+      false
+     ]
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "DiscardAction"
-   ]
+   "status": "parsed_branch"
   },
   {
    "id": "Dash",
@@ -3935,13 +3935,13 @@
      "Draw": "Magic"
     },
     {
-     "Unsupported": "DiscardAction"
+     "HandDiscard": [
+      "Magic",
+      false
+     ]
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "DiscardAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Quick Slash",
@@ -4250,13 +4250,13 @@
      "Block": "BlockBase"
     },
     {
-     "Unsupported": "DiscardAction"
+     "HandDiscard": [
+      1,
+      false
+     ]
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "DiscardAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Tactician",
@@ -4812,16 +4812,13 @@
      ]
     },
     {
-     "Unsupported": "ScryAction"
+     "Scry": "Magic"
     },
     {
      "Draw": 1
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "ScryAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "DeceiveReality",
@@ -5501,7 +5498,7 @@
    },
    "effects": [
     {
-     "Unsupported": "ScryAction"
+     "Scry": "Magic"
     },
     {
      "Block": "BlockBase"
@@ -5513,10 +5510,7 @@
      ]
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "ScryAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "LessonLearned",
@@ -6337,13 +6331,10 @@
      "Block": "BlockBase"
     },
     {
-     "Unsupported": "ScryAction"
+     "Scry": "Magic"
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "ScryAction"
-   ]
+   "status": "parsed_branch"
   },
   {
    "id": "ClearTheMind",

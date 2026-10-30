@@ -153,6 +153,14 @@ def classify_action(cls: str, args: str, consts: dict, overrides: dict, lvars: d
         return {"MakeInDiscard": [cm.group(1) if cm else "?", n]}
     if cls in ("ExhaustAction", "ExhaustSpecificCardAction"):
         return {"ExhaustHand": True}
+    if cls == "DiscardAction":
+        # (target, source, amount, isRandom[, endTurn])
+        amount = expr(parts[2], consts, overrides, lvars) if len(parts) > 2 else 1
+        is_random = len(parts) > 3 and parts[3].strip() == "true"
+        return {"HandDiscard": [amount, is_random]}
+    if cls == "ScryAction":
+        # ScryAction(int numCards)：占卜 N（GoldenEye 遗物加成 M3 接）
+        return {"Scry": expr(parts[0], consts, overrides, lvars) if parts else 1}
     if cls == "MakeTempCardInHandAction":
         if "makeStatEquivalentCopy" in args or "makeSameInstanceOf" in args:
             return {"CopySelfToHand": expr(parts[1], consts, overrides, lvars) if len(parts) > 1 else 1}

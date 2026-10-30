@@ -25,6 +25,25 @@ pub enum Action {
         target: Option<usize>,
     },
     EndTurn,
+    /// 响应手牌选择屏（弃牌类）：要弃的手牌下标集（选择序）
+    HandSelect {
+        indices: Vec<usize>,
+    },
+    /// 响应占卜：shown 中要弃掉的下标子集，其余保持原序置顶
+    ScryChoice {
+        discard_indices: Vec<usize>,
+    },
+}
+
+/// 战斗内挂起的选择屏（协议 v0.2 选择屏三件套之二）
+#[derive(Clone, Debug)]
+pub enum Pending {
+    /// 选恰好 amount 张弃掉（DiscardAction，手牌 > amount 时才有屏）
+    HandDiscard { amount: usize },
+    /// 弃任意张（amount<0 → open(99, anyNumber, canPickZero)）
+    HandDiscardAny,
+    /// 占卜：展示的牌（顺序：抽牌堆顶 → 底）
+    Scry { shown: Vec<CardInst> },
 }
 
 /// 引擎级原子动作（引擎 action 队列的 M2 子集）
@@ -66,6 +85,15 @@ enum Q {
         inst: CardInst,
         random: bool,
     },
+    RequireHandDiscard {
+        amount: i32,
+    },
+    RequireScry {
+        n: i32,
+    },
+    RandomDiscard {
+        n: i32,
+    },
     RollMove(usize),
 }
 
@@ -104,6 +132,10 @@ pub struct Combat {
     pub player: PlayerState,
     pub monsters: Vec<MonsterState>,
     pub rng: RngStreams,
+    /// 挂起的选择屏（None = 正常行动阶段）
+    pub pending: Option<Pending>,
+    /// 选择屏挂起时暂存的动作队列
+    pending_queue: Option<Vec<Q>>,
     pub turn: i32,
     pub turn_has_ended: bool,
     pub over: bool,
@@ -151,6 +183,8 @@ impl Combat {
             },
             monsters,
             rng,
+            pending: None,
+            pending_queue: None,
             turn: 1,
             turn_has_ended: false,
             over: false,
@@ -234,8 +268,71 @@ impl Combat {
             return;
         }
         match a {
-            Action::PlayCard { index, target } => self.play_card(*index, *target),
-            Action::EndTurn => self.end_turn(),
+            Action::PlayCard { index, target } => {
+                assert!(self.pending.is_none(), "选择屏挂起中不可出牌");
+                self.play_card(*index, *target);
+            }
+            Action::EndTurn => {
+                assert!(self.pending.is_none(), "选择屏挂起中不可结束回合");
+                self.end_turn();
+            }
+            Action::HandSelect { indices } => self.resolve_hand_select(indices),
+            Action::ScryChoice { discard_indices } => self.resolve_scry(discard_indices),
+        }
+    }
+
+    /// 弃牌选择响应：选中卡按选择序入弃牌堆，随后恢复暂存队列
+    fn resolve_hand_select(&mut self, indices: &[usize]) {
+        match self.pending.clone() {
+            Some(Pending::HandDiscard { amount }) => {
+                assert_eq!(indices.len(), amount, "必须恰好选择 {amount} 张");
+                let mut sel = indices.to_vec();
+                sel.sort_unstable();
+                sel.dedup();
+                assert_eq!(sel.len(), amount, "下标不得重复");
+                for &i in sel.iter().rev() {
+                    let c = self.player.hand.remove(i);
+                    self.player.discard.push(c);
+                }
+            }
+            Some(Pending::HandDiscardAny) => {
+                let mut sel = indices.to_vec();
+                sel.sort_unstable();
+                sel.dedup();
+                for &i in sel.iter().rev() {
+                    let c = self.player.hand.remove(i);
+                    self.player.discard.push(c);
+                }
+            }
+            _ => panic!("当前无弃牌选择屏"),
+        }
+        self.resume_queue();
+    }
+
+    /// 占卜响应：弃掉所选，其余保持原序置顶（draw 尾 = 顶）
+    fn resolve_scry(&mut self, discard_indices: &[usize]) {
+        let shown = match self.pending.clone() {
+            Some(Pending::Scry { shown }) => shown,
+            _ => panic!("当前无占卜屏"),
+        };
+        let n = shown.len();
+        let mut chosen: Vec<usize> = discard_indices.to_vec();
+        chosen.sort_unstable();
+        chosen.dedup();
+        assert!(chosen.iter().all(|&i| i < n), "下标越界");
+        // shown[i] 对应 draw[len-n+i]；倒序移除避免位移
+        let len = self.player.draw.len();
+        for &i in chosen.iter().rev() {
+            let c = self.player.draw.remove(len - n + i);
+            self.player.discard.push(c);
+        }
+        self.resume_queue();
+    }
+
+    fn resume_queue(&mut self) {
+        self.pending = None;
+        if let Some(q) = self.pending_queue.take() {
+            self.drain(q);
         }
     }
 
@@ -407,6 +504,20 @@ impl Combat {
                         q.push(Q::MakeInDraw { inst: c, random });
                     }
                 }
+            }
+            Effect::HandDiscard(e, is_random) => {
+                let n = self.eval(e, card, x_cost);
+                if is_random {
+                    // isRandom=true：无选择屏，exec 时以 getRandomCard(cardRandomRng) 自动弃
+                    q.push(Q::RandomDiscard { n });
+                } else {
+                    q.push(Q::RequireHandDiscard { amount: n });
+                }
+            }
+            Effect::Scry(e) => {
+                q.push(Q::RequireScry {
+                    n: self.eval(e, card, x_cost),
+                });
             }
             Effect::ExhaustHand | Effect::Unsupported(_) => {
                 unreachable!("can_play 已过滤不可玩效果")
@@ -683,6 +794,11 @@ impl Combat {
             if self.over {
                 return;
             }
+            if self.pending.is_some() {
+                // 选择屏挂起：暂存剩余队列，等待玩家响应后恢复
+                self.pending_queue = Some(q);
+                return;
+            }
         }
     }
 
@@ -812,19 +928,57 @@ impl Combat {
             }
             Q::MakeInDraw { inst, random } => {
                 if random {
-                    // CardGroup.addToRandomSpot：均匀随机插入（真游戏走全局随机，豁免表内；
-                    // sim 用 card_random 流保证自身确定）
-                    let n = self.player.draw.len() as i32;
-                    if n == 0 {
+                    // CardGroup.addToRandomSpot：cardRandomRng.random(size-1)——
+                    // 种子流可对拍；索引 [0, size-1]，永不落在堆顶位（末位）
+                    if self.player.draw.is_empty() {
                         self.player.draw.push(inst);
                     } else {
-                        let idx = self.rng.card_random.random_start_end(0, n) as usize;
-                        let idx = idx.min(self.player.draw.len());
-                        self.player.draw.insert(idx, inst);
+                        let last = self.player.draw.len() - 1;
+                        let idx =
+                            self.rng.card_random.random_start_end(0, last as i32).max(0) as usize;
+                        self.player.draw.insert(idx.min(last), inst);
                     }
                 } else {
                     self.player.draw.push(inst); // 尾 = 顶
                 }
+            }
+            Q::RandomDiscard { n } => {
+                // DiscardAction isRandom=true：getRandomCard(cardRandomRng)，逐张弃
+                for _ in 0..n.max(0) {
+                    let size = self.player.hand.len();
+                    if size == 0 {
+                        break;
+                    }
+                    let idx = self
+                        .rng
+                        .card_random
+                        .random_start_end(0, size as i32 - 1)
+                        .max(0) as usize;
+                    let c = self.player.hand.remove(idx);
+                    self.player.discard.push(c);
+                }
+            }
+            Q::RequireHandDiscard { amount } => {
+                let hand = self.player.hand.len() as i32;
+                if hand <= amount {
+                    // 手牌不足：自动全弃（源码第一分支）
+                    let cards = std::mem::take(&mut self.player.hand);
+                    self.player.discard.extend(cards);
+                } else if amount < 0 {
+                    self.pending = Some(Pending::HandDiscardAny);
+                } else {
+                    self.pending = Some(Pending::HandDiscard {
+                        amount: amount as usize,
+                    });
+                }
+            }
+            Q::RequireScry { n } => {
+                // 占卜非负防御 + 抽牌堆空则无事发生（源码两分支）
+                let n = n.max(0) as usize;
+                let cnt = n.min(self.player.draw.len());
+                let len = self.player.draw.len();
+                let shown = self.player.draw[len - cnt..].to_vec();
+                self.pending = Some(Pending::Scry { shown });
             }
             Q::RollMove(i) => self.roll_move(i),
         }
@@ -1013,6 +1167,20 @@ impl Combat {
             }
         }
         self.turn.hash(h);
+        match &self.pending {
+            None => 0u8.hash(h),
+            Some(Pending::HandDiscard { amount }) => {
+                1u8.hash(h);
+                amount.hash(h);
+            }
+            Some(Pending::HandDiscardAny) => 2u8.hash(h),
+            Some(Pending::Scry { shown }) => {
+                3u8.hash(h);
+                for c in shown {
+                    (c.def.id, c.upgraded).hash(h);
+                }
+            }
+        }
     }
 
     /// 诚实型信念采样：抽牌堆未知位置均匀排列 + ai/shuffle 流重播种。
@@ -1316,6 +1484,99 @@ mod tests {
         assert_eq!(c.player.energy, 0, "X 费支付全部能量");
         assert_eq!(hp0 - c.monsters[0].creature.hp, 15, "5×3");
         assert_eq!(hp1 - c.monsters[1].creature.hp, 15);
+    }
+
+    /// 杂技（Acrobatics）：抽2后挂起弃1选择屏，响应后恢复
+    #[test]
+    fn hand_select_flow() {
+        let mut c = Combat::new_asc(1, 0);
+        c.player.draw = vec![
+            CardInst::new("Defend_R"),
+            CardInst::new("Strike_R"),
+            CardInst::new("Strike_R"),
+        ];
+        c.player.hand = vec![CardInst::new("Acrobatics")];
+        c.player.discard.clear();
+        c.step(&Action::PlayCard {
+            index: 0,
+            target: None,
+        });
+        assert!(matches!(
+            c.pending,
+            Some(Pending::HandDiscard { amount: 1 })
+        ));
+        assert_eq!(c.player.hand.len(), 3, "抽3（源码2022平衡后 baseMagic=3）");
+        c.step(&Action::HandSelect { indices: vec![0] });
+        assert!(c.pending.is_none());
+        assert_eq!(c.player.hand.len(), 2);
+        assert_eq!(c.player.discard.len(), 2, "本体 + 弃掉的1张");
+    }
+
+    /// 第三只眼（Third Eye）：格挡后占卜，弃1其余保持原序置顶
+    #[test]
+    fn scry_flow() {
+        let mut c = Combat::new_asc(2, 0);
+        c.player.draw = vec![
+            CardInst::new("Defend_R"), // 底
+            CardInst::new("Strike_R"), // shown idx0
+            CardInst::new("Strike_R"), // shown idx1
+            CardInst::new("Defend_R"), // shown idx2 = 顶
+        ];
+        c.player.hand = vec![CardInst::new("ThirdEye")];
+        c.player.discard.clear();
+        c.step(&Action::PlayCard {
+            index: 0,
+            target: None,
+        });
+        let shown = match c.pending.clone() {
+            Some(Pending::Scry { shown }) => shown,
+            _ => panic!("应有占卜屏"),
+        };
+        assert_eq!(shown.len(), 3, "占卜3");
+        let len_before = c.player.draw.len();
+        c.step(&Action::ScryChoice {
+            discard_indices: vec![0],
+        });
+        assert!(c.pending.is_none());
+        assert_eq!(c.player.draw.len(), len_before - 1);
+        assert_eq!(c.player.discard.len(), 2, "本体 + 弃1");
+        // 剩余两张保持原序：顶=Defend、次顶=Strike
+        let len = c.player.draw.len();
+        assert_eq!(c.player.draw[len - 1].def.id, "Defend_R");
+        assert_eq!(c.player.draw[len - 2].def.id, "Strike_R");
+    }
+
+    /// 随机弃牌（All Out Attack 类）：无选择屏，cardRandomRng 确定
+    #[test]
+    fn random_discard_deterministic() {
+        let run = |seed: u64| -> usize {
+            let mut c = Combat::new_asc(seed, 0);
+            let def = CARDS
+                .iter()
+                .find(|d| {
+                    d.effects
+                        .iter()
+                        .any(|e| matches!(e, Effect::HandDiscard(_, true)))
+                        && engine_playable(d)
+                })
+                .expect("存在随机弃牌卡");
+            c.player.hand = vec![CardInst {
+                def,
+                upgraded: false,
+            }];
+            for _ in 0..3 {
+                c.player.hand.push(CardInst::new("Strike_R"));
+            }
+            c.player.discard.clear();
+            c.step(&Action::PlayCard {
+                index: 0,
+                target: None,
+            });
+            assert!(c.pending.is_none(), "随机弃牌无选择屏");
+            c.player.discard.len()
+        };
+        assert_eq!(run(7), run(7), "同种子确定");
+        assert_eq!(run(7), 2, "本体 + 随机弃1");
     }
 
     fn pamount(c: &Combat, k: PowerKind) -> Option<i32> {

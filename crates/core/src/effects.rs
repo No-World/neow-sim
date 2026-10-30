@@ -56,6 +56,10 @@ pub enum Effect {
     /// 生成牌入抽牌堆：随机位置（CardGroup.addToRandomSpot）/ 置顶
     MakeInDrawRandom(&'static str, Expr),
     MakeInDrawTop(&'static str, Expr),
+    /// 弃牌选择（DiscardAction：isRandom=true 时走 cardRandomRng 自动弃，无选择屏）
+    HandDiscard(Expr, bool),
+    /// 占卜 N（ScryAction：看抽牌堆顶 N 张，选择弃掉子集，其余保持原序置顶）
+    Scry(Expr),
     /// 未支持动作（值为 Java 动作类名）——手移植清单
     Unsupported(&'static str),
 }
