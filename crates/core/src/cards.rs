@@ -1,7 +1,7 @@
 //! M2 卡牌（数值来自 neow-sim/data/cards.json 提取表）
 //! 铁甲战士起手：5×打击、4×防御、1×痛击（+A10 起飞升者之灾）
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum CardKind {
     Strike,
     Defend,

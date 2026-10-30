@@ -22,6 +22,8 @@ pub enum PowerKind {
     Vulnerable,
     Weak,
     Frail,
+    /// 仪式（RitualPower）：每轮末投予力量；怪物侧首轮 skipFirst
+    Ritual,
 }
 
 /// atEndOfRound 衰减结果
@@ -56,6 +58,8 @@ impl Power {
             PowerKind::Vulnerable => source_is_monster && turn_has_ended,
             // WeakPower / FrailPower: if (isSourceMonster)
             PowerKind::Weak | PowerKind::Frail => source_is_monster,
+            // RitualPower: skipFirst = true（怪物侧首轮不投予）
+            PowerKind::Ritual => true,
             PowerKind::Strength => false,
         };
         Self {
@@ -71,11 +75,12 @@ impl Power {
             PowerKind::Vulnerable => "Vulnerable",
             PowerKind::Weak => "Weakened",
             PowerKind::Frail => "Frail",
+            PowerKind::Ritual => "Ritual",
         }
     }
 
     pub fn is_turn_based(&self) -> bool {
-        !matches!(self.kind, PowerKind::Strength)
+        !matches!(self.kind, PowerKind::Strength | PowerKind::Ritual)
     }
 
     /// atDamageGive：造成伤害方的 power（StrengthPower: +flat；WeakPower: ×0.75）
