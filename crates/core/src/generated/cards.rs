@@ -41,10 +41,13 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
+        status: "parsed",
         effects: &[
             Effect::Block(Expr::BlockBase),
-            Effect::Unsupported("ArmamentsAction"),
+            Effect::Repeat(Expr::N(1), &[]),
+            Effect::Repeat(Expr::N(1), &[]),
+            Effect::Repeat(Expr::N(1), &[]),
+            Effect::Repeat(Expr::N(1), &[]),
         ],
     },
     CardDef {
@@ -63,8 +66,11 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: Some(2),
         flags: &[],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("loop")],
+        status: "parsed_branch",
+        effects: &[
+            Effect::Repeat(Expr::N(1), &[]),
+            Effect::ApplyPower(Target::SelfC, "Barricade", Expr::N(1)),
+        ],
     },
     CardDef {
         id: "Bash",
@@ -269,8 +275,12 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &["ethereal"],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("loop")],
+        status: "parsed_branch",
+        effects: &[
+            Effect::Repeat(Expr::N(5), &[]),
+            Effect::Repeat(Expr::N(5), &[]),
+            Effect::Damage(Target::Enemy, Expr::DamageBase),
+        ],
     },
     CardDef {
         id: "Clash",
@@ -367,8 +377,11 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: Some(2),
         flags: &[],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("loop")],
+        status: "parsed_branch",
+        effects: &[
+            Effect::Repeat(Expr::N(1), &[]),
+            Effect::ApplyPower(Target::SelfC, "CorruptionPower", Expr::N(1)),
+        ],
     },
     CardDef {
         id: "Dark Embrace",
@@ -493,8 +506,12 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("DropkickAction")],
+        status: "parsed",
+        effects: &[
+            Effect::Draw(Expr::N(1)),
+            Effect::GainEnergy(Expr::N(1)),
+            Effect::Damage(Target::Unknown, Expr::DamageBase),
+        ],
     },
     CardDef {
         id: "Dual Wield",
@@ -573,8 +590,12 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: Some(0),
         flags: &["exhaust"],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("ExhumeAction")],
+        status: "parsed",
+        effects: &[
+            Effect::Repeat(Expr::N(1), &[]),
+            Effect::Repeat(Expr::N(1), &[]),
+            Effect::Repeat(Expr::N(1), &[]),
+        ],
     },
     CardDef {
         id: "Feed",
@@ -634,8 +655,17 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &["exhaust"],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("FiendFireAction")],
+        status: "parsed",
+        effects: &[
+            Effect::Repeat(
+                Expr::Raw("count"),
+                &[Effect::Damage(Target::Unknown, Expr::DamageBase)],
+            ),
+            Effect::Repeat(
+                Expr::Raw("count"),
+                &[Effect::ExhaustHand, Effect::ExhaustHand],
+            ),
+        ],
     },
     CardDef {
         id: "Fire Breathing",
@@ -758,10 +788,10 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
+        status: "parsed",
         effects: &[
             Effect::Damage(Target::Enemy, Expr::DamageBase),
-            Effect::Unsupported("DiscardPileToTopOfDeckAction"),
+            Effect::Repeat(Expr::N(1), &[]),
         ],
     },
     CardDef {
@@ -900,8 +930,11 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: Some(1),
         upg_base_cost: None,
         flags: &["exhaust"],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("loop")],
+        status: "parsed",
+        effects: &[Effect::Repeat(
+            Expr::N(1),
+            &[Effect::ApplyPower(Target::Enemy, "Weakened", Expr::Magic)],
+        )],
     },
     CardDef {
         id: "Iron Wave",
@@ -964,8 +997,12 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &["exhaust"],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("LimitBreakAction")],
+        status: "parsed",
+        effects: &[Effect::ApplyPower(
+            Target::Unknown,
+            "Strength",
+            Expr::Const("strAmt"),
+        )],
     },
     CardDef {
         id: "Metallicize",
@@ -1093,7 +1130,10 @@ pub static CARDS: &[CardDef] = &[
         upg_base_cost: None,
         flags: &["exhaust"],
         status: "unsupported",
-        effects: &[Effect::Unsupported("loop")],
+        effects: &[
+            Effect::Repeat(Expr::Magic, &[Effect::Unsupported("PummelDamageAction")]),
+            Effect::Damage(Target::Enemy, Expr::DamageBase),
+        ],
     },
     CardDef {
         id: "Rage",
@@ -1130,10 +1170,10 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: Some(3),
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
+        status: "parsed",
         effects: &[
             Effect::Damage(Target::Enemy, Expr::DamageBase),
-            Effect::Unsupported("ModifyDamageAction"),
+            Effect::Repeat(Expr::N(1), &[]),
         ],
     },
     CardDef {
@@ -1152,8 +1192,19 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &["exhaust"],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("VampireDamageAllEnemiesAction")],
+        status: "parsed",
+        effects: &[
+            Effect::Repeat(Expr::Raw("temp"), &[]),
+            Effect::Repeat(Expr::N(1), &[]),
+            Effect::Repeat(
+                Expr::Raw("AbstractDungeon.getCurrRoom().monsters.monsters.size()"),
+                &[Effect::Repeat(
+                    Expr::Raw("target.lastDamageTaken / 2 && j < 10"),
+                    &[],
+                )],
+            ),
+            Effect::Heal(Expr::Const("healAmount")),
+        ],
     },
     CardDef {
         id: "Reckless Charge",
@@ -1171,10 +1222,11 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
+        status: "parsed",
         effects: &[
             Effect::Damage(Target::Enemy, Expr::DamageBase),
-            Effect::Unsupported("MakeTempCardInDrawPileAction"),
+            Effect::Repeat(Expr::Raw("this.amount"), &[]),
+            Effect::Repeat(Expr::Raw("this.amount"), &[]),
         ],
     },
     CardDef {
@@ -1235,8 +1287,12 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("BlockPerNonAttackAction")],
+        status: "parsed",
+        effects: &[
+            Effect::Repeat(Expr::N(1), &[]),
+            Effect::Repeat(Expr::N(1), &[Effect::Block(Expr::Raw("this.blockPerCard"))]),
+            Effect::Repeat(Expr::N(1), &[Effect::ExhaustHand]),
+        ],
     },
     CardDef {
         id: "Seeing Red",
@@ -1292,9 +1348,9 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
+        status: "parsed",
         effects: &[
-            Effect::Unsupported("ExhaustAllNonAttackAction"),
+            Effect::Repeat(Expr::N(1), &[Effect::ExhaustHand]),
             Effect::Damage(Target::Enemy, Expr::DamageBase),
         ],
     },
@@ -1314,8 +1370,14 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: Some(2),
         upg_base_cost: None,
         flags: &["exhaust"],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("loop")],
+        status: "parsed",
+        effects: &[Effect::Repeat(
+            Expr::N(1),
+            &[
+                Effect::ApplyPower(Target::Enemy, "Weakened", Expr::Magic),
+                Effect::ApplyPower(Target::Enemy, "Vulnerable", Expr::Magic),
+            ],
+        )],
     },
     CardDef {
         id: "Shrug It Off",
@@ -1352,8 +1414,12 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: Some(1),
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("SpotWeaknessAction")],
+        status: "parsed",
+        effects: &[Effect::ApplyPower(
+            Target::SelfC,
+            "Strength",
+            Expr::Raw("this.damageIncrease"),
+        )],
     },
     CardDef {
         id: "Strike_R",
@@ -1391,7 +1457,10 @@ pub static CARDS: &[CardDef] = &[
         upg_base_cost: None,
         flags: &[],
         status: "unsupported",
-        effects: &[Effect::Unsupported("loop")],
+        effects: &[Effect::Repeat(
+            Expr::Magic,
+            &[Effect::Unsupported("AttackDamageRandomEnemyAction")],
+        )],
     },
     CardDef {
         id: "Thunderclap",
@@ -1409,8 +1478,15 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("loop")],
+        status: "parsed_branch",
+        effects: &[
+            Effect::Repeat(Expr::N(1), &[]),
+            Effect::DamageAll(Expr::DamageBase),
+            Effect::Repeat(
+                Expr::N(1),
+                &[Effect::ApplyPower(Target::Enemy, "Vulnerable", Expr::N(1))],
+            ),
+        ],
     },
     CardDef {
         id: "True Grit",
@@ -1496,10 +1572,12 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: Some(1),
         upg_base_cost: None,
         flags: &["exhaust"],
-        status: "unsupported",
+        status: "parsed",
         effects: &[
             Effect::Draw(Expr::Magic),
-            Effect::Unsupported("PutOnDeckAction"),
+            Effect::Repeat(Expr::Raw("this.amount"), &[]),
+            Effect::Repeat(Expr::Raw("this.p.hand.size()"), &[]),
+            Effect::Repeat(Expr::N(1), &[]),
         ],
     },
     CardDef {
@@ -1518,8 +1596,11 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("WhirlwindAction")],
+        status: "parsed",
+        effects: &[Effect::Repeat(
+            Expr::XCost,
+            &[Effect::DamageAll(Expr::DamageBase)],
+        )],
     },
     CardDef {
         id: "Wild Strike",
@@ -1537,10 +1618,11 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
+        status: "parsed",
         effects: &[
             Effect::Damage(Target::Enemy, Expr::DamageBase),
-            Effect::Unsupported("MakeTempCardInDrawPileAction"),
+            Effect::Repeat(Expr::Raw("this.amount"), &[]),
+            Effect::Repeat(Expr::Raw("this.amount"), &[]),
         ],
     },
     CardDef {
@@ -1605,10 +1687,12 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: Some(1),
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
+        status: "parsed",
         effects: &[
             Effect::Draw(Expr::Magic),
-            Effect::Unsupported("DiscardAction"),
+            Effect::Repeat(Expr::Raw("tmp"), &[]),
+            Effect::Repeat(Expr::Raw("this.amount"), &[]),
+            Effect::Repeat(Expr::N(1), &[]),
         ],
     },
     CardDef {
@@ -1692,10 +1776,12 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
+        status: "parsed",
         effects: &[
             Effect::DamageAll(Expr::DamageBase),
-            Effect::Unsupported("DiscardAction"),
+            Effect::Repeat(Expr::Raw("tmp"), &[]),
+            Effect::Repeat(Expr::Raw("this.amount"), &[]),
+            Effect::Repeat(Expr::N(1), &[]),
         ],
     },
     CardDef {
@@ -1834,10 +1920,10 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: Some(2),
         flags: &[],
-        status: "unsupported",
+        status: "parsed",
         effects: &[
             Effect::ApplyPower(Target::SelfC, "NoDrawPower", Expr::N(1)),
-            Effect::Unsupported("ApplyBulletTimeAction"),
+            Effect::Repeat(Expr::N(1), &[]),
         ],
     },
     CardDef {
@@ -1913,10 +1999,10 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &["exhaust"],
-        status: "unsupported",
+        status: "parsed_branch",
         effects: &[
-            Effect::Unsupported("DoublePoisonAction"),
-            Effect::Unsupported("TriplePoisonAction"),
+            Effect::ApplyPower(Target::Unknown, "Poison", Expr::Raw("this.source")),
+            Effect::ApplyPower(Target::Unknown, "Poison", Expr::Raw("this.source")),
         ],
     },
     CardDef {
@@ -1979,9 +2065,11 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: Some(-1),
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
+        status: "parsed",
         effects: &[
-            Effect::Unsupported("DiscardAction"),
+            Effect::Repeat(Expr::Raw("tmp"), &[]),
+            Effect::Repeat(Expr::Raw("this.amount"), &[]),
+            Effect::Repeat(Expr::N(1), &[]),
             Effect::GainEnergy(Expr::N(2)),
         ],
     },
@@ -2023,8 +2111,14 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: Some(3),
         upg_base_cost: None,
         flags: &["exhaust"],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("loop")],
+        status: "parsed_branch",
+        effects: &[Effect::Repeat(
+            Expr::N(1),
+            &[
+                Effect::ApplyPower(Target::Unknown, "Poison", Expr::Magic),
+                Effect::ApplyPower(Target::Unknown, "Weakened", Expr::N(2)),
+            ],
+        )],
     },
     CardDef {
         id: "Dagger Spray",
@@ -2064,11 +2158,13 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
+        status: "parsed_branch",
         effects: &[
             Effect::Damage(Target::Enemy, Expr::DamageBase),
             Effect::Draw(Expr::N(1)),
-            Effect::Unsupported("DiscardAction"),
+            Effect::Repeat(Expr::Raw("tmp"), &[]),
+            Effect::Repeat(Expr::Raw("this.amount"), &[]),
+            Effect::Repeat(Expr::N(1), &[]),
         ],
     },
     CardDef {
@@ -2226,8 +2322,15 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &["exhaust"],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("DoppelgangerAction")],
+        status: "parsed",
+        effects: &[
+            Effect::ApplyPower(Target::Unknown, "EnergizedPower", Expr::Const("effect")),
+            Effect::ApplyPower(
+                Target::Unknown,
+                "DrawCardNextTurnPower",
+                Expr::Const("effect"),
+            ),
+        ],
     },
     CardDef {
         id: "Endless Agony",
@@ -2329,8 +2432,8 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: Some(1),
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("ExpertiseAction")],
+        status: "parsed",
+        effects: &[Effect::Draw(Expr::Const("toDraw"))],
     },
     CardDef {
         id: "Finisher",
@@ -2348,8 +2451,14 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("DamagePerAttackPlayedAction")],
+        status: "parsed",
+        effects: &[
+            Effect::Repeat(Expr::N(1), &[]),
+            Effect::Repeat(
+                Expr::N(0),
+                &[Effect::Damage(Target::Unknown, Expr::DamageBase)],
+            ),
+        ],
     },
     CardDef {
         id: "Flechettes",
@@ -2367,8 +2476,11 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("FlechetteAction")],
+        status: "parsed",
+        effects: &[Effect::Repeat(
+            Expr::N(1),
+            &[Effect::Damage(Target::Unknown, Expr::DamageBase)],
+        )],
     },
     CardDef {
         id: "Flying Knee",
@@ -2427,11 +2539,11 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
+        status: "parsed",
         effects: &[
             Effect::Damage(Target::Enemy, Expr::DamageBase),
             Effect::Damage(Target::Enemy, Expr::DamageBase),
-            Effect::Unsupported("ModifyDamageAction"),
+            Effect::Repeat(Expr::N(1), &[]),
         ],
     },
     CardDef {
@@ -2469,8 +2581,12 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("HeelHookAction")],
+        status: "parsed",
+        effects: &[
+            Effect::Draw(Expr::N(1)),
+            Effect::GainEnergy(Expr::N(1)),
+            Effect::Damage(Target::Unknown, Expr::DamageBase),
+        ],
     },
     CardDef {
         id: "Infinite Blades",
@@ -2533,8 +2649,11 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &["exhaust"],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("MalaiseAction")],
+        status: "parsed",
+        effects: &[
+            Effect::ApplyPower(Target::Unknown, "Strength", Expr::Raw("-effect")),
+            Effect::ApplyPower(Target::Unknown, "Weakened", Expr::Const("effect")),
+        ],
     },
     CardDef {
         id: "Masterful Stab",
@@ -2593,8 +2712,11 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: Some(2),
         flags: &["exhaust"],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("NightmareAction")],
+        status: "parsed",
+        effects: &[
+            Effect::ApplyPower(Target::Unknown, "NightmarePower", Expr::Raw("this.amount")),
+            Effect::ApplyPower(Target::Unknown, "NightmarePower", Expr::Raw("this.amount")),
+        ],
     },
     CardDef {
         id: "Noxious Fumes",
@@ -2680,8 +2802,25 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: Some(2),
         upg_base_cost: None,
         flags: &["exhaust"],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("loop")],
+        status: "parsed_branch",
+        effects: &[
+            Effect::Repeat(
+                Expr::N(1),
+                &[Effect::ApplyPower(
+                    Target::Enemy,
+                    "Strength",
+                    Expr::Raw("-this.magicNumber"),
+                )],
+            ),
+            Effect::Repeat(
+                Expr::N(1),
+                &[Effect::ApplyPower(
+                    Target::Enemy,
+                    "GainStrengthPower",
+                    Expr::Magic,
+                )],
+            ),
+        ],
     },
     CardDef {
         id: "Poisoned Stab",
@@ -2743,10 +2882,12 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: Some(1),
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
+        status: "parsed",
         effects: &[
             Effect::Draw(Expr::Magic),
-            Effect::Unsupported("DiscardAction"),
+            Effect::Repeat(Expr::Raw("tmp"), &[]),
+            Effect::Repeat(Expr::Raw("this.amount"), &[]),
+            Effect::Repeat(Expr::N(1), &[]),
         ],
     },
     CardDef {
@@ -2806,8 +2947,11 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("loop")],
+        status: "parsed",
+        effects: &[Effect::Repeat(
+            Expr::N(5),
+            &[Effect::Damage(Target::Enemy, Expr::DamageBase)],
+        )],
     },
     CardDef {
         id: "Setup",
@@ -2825,8 +2969,8 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: Some(0),
         flags: &[],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("SetupAction")],
+        status: "parsed",
+        effects: &[Effect::Repeat(Expr::N(1), &[])],
     },
     CardDef {
         id: "Skewer",
@@ -2844,8 +2988,11 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("SkewerAction")],
+        status: "parsed",
+        effects: &[Effect::Repeat(
+            Expr::XCost,
+            &[Effect::Damage(Target::Unknown, Expr::DamageBase)],
+        )],
     },
     CardDef {
         id: "Slice",
@@ -2882,10 +3029,10 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
+        status: "parsed",
         effects: &[
             Effect::Damage(Target::Enemy, Expr::DamageBase),
-            Effect::Unsupported("GainEnergyIfDiscardAction"),
+            Effect::Repeat(Expr::N(1), &[]),
         ],
     },
     CardDef {
@@ -2964,10 +3111,12 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
+        status: "parsed",
         effects: &[
             Effect::Block(Expr::BlockBase),
-            Effect::Unsupported("DiscardAction"),
+            Effect::Repeat(Expr::Raw("tmp"), &[]),
+            Effect::Repeat(Expr::Raw("this.amount"), &[]),
+            Effect::Repeat(Expr::N(1), &[]),
         ],
     },
     CardDef {
@@ -3114,8 +3263,11 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &["exhaust", "innate"],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("MakeTempCardInDrawPileAction")],
+        status: "parsed",
+        effects: &[
+            Effect::Repeat(Expr::Raw("this.amount"), &[]),
+            Effect::Repeat(Expr::Raw("this.amount"), &[]),
+        ],
     },
     CardDef {
         id: "BattleHymn",
@@ -3156,9 +3308,11 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &["exhaust", "selfRetain"],
-        status: "unsupported",
+        status: "parsed",
         effects: &[
-            Effect::Unsupported("ChangeStanceAction"),
+            Effect::Repeat(Expr::N(1), &[]),
+            Effect::Repeat(Expr::N(1), &[]),
+            Effect::Repeat(Expr::N(1), &[]),
             Effect::ApplyPower(Target::SelfC, "EndTurnDeathPower", Expr::N(1)),
         ],
     },
@@ -3178,8 +3332,11 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("loop")],
+        status: "parsed_branch",
+        effects: &[Effect::Repeat(
+            Expr::N(1),
+            &[Effect::Damage(Target::Enemy, Expr::DamageBase)],
+        )],
     },
     CardDef {
         id: "Brilliance",
@@ -3238,8 +3395,12 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &["exhaust"],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("CollectAction")],
+        status: "parsed",
+        effects: &[Effect::ApplyPower(
+            Target::Unknown,
+            "CollectPower",
+            Expr::Const("effect"),
+        )],
     },
     CardDef {
         id: "Conclude",
@@ -3320,8 +3481,12 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: Some(0),
         flags: &["exhaust", "selfRetain"],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("ChangeStanceAction")],
+        status: "parsed",
+        effects: &[
+            Effect::Repeat(Expr::N(1), &[]),
+            Effect::Repeat(Expr::N(1), &[]),
+            Effect::Repeat(Expr::N(1), &[]),
+        ],
     },
     CardDef {
         id: "CrushJoints",
@@ -3339,10 +3504,10 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: Some(1),
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
+        status: "parsed",
         effects: &[
             Effect::Damage(Target::Enemy, Expr::DamageBase),
-            Effect::Unsupported("CrushJointsAction"),
+            Effect::ApplyPower(Target::Unknown, "Vulnerable", Expr::Magic),
         ],
     },
     CardDef {
@@ -3361,10 +3526,17 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: Some(1),
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
+        status: "parsed",
         effects: &[
             Effect::Damage(Target::Enemy, Expr::DamageBase),
-            Effect::Unsupported("ScryAction"),
+            Effect::Repeat(Expr::N(1), &[]),
+            Effect::Repeat(
+                Expr::Raw("Math.min(this.amount, AbstractDungeon.player.drawPile.size()"),
+                &[],
+            ),
+            Effect::Repeat(Expr::N(1), &[]),
+            Effect::Repeat(Expr::N(1), &[]),
+            Effect::Repeat(Expr::N(1), &[]),
             Effect::Draw(Expr::N(1)),
         ],
     },
@@ -3513,7 +3685,9 @@ pub static CARDS: &[CardDef] = &[
         effects: &[
             Effect::Block(Expr::BlockBase),
             Effect::Unsupported("NotStanceCheckAction"),
-            Effect::Unsupported("ChangeStanceAction"),
+            Effect::Repeat(Expr::N(1), &[]),
+            Effect::Repeat(Expr::N(1), &[]),
+            Effect::Repeat(Expr::N(1), &[]),
         ],
     },
     CardDef {
@@ -3536,7 +3710,9 @@ pub static CARDS: &[CardDef] = &[
         effects: &[
             Effect::Damage(Target::Enemy, Expr::DamageBase),
             Effect::Unsupported("NotStanceCheckAction"),
-            Effect::Unsupported("ChangeStanceAction"),
+            Effect::Repeat(Expr::N(1), &[]),
+            Effect::Repeat(Expr::N(1), &[]),
+            Effect::Repeat(Expr::N(1), &[]),
         ],
     },
     CardDef {
@@ -3559,7 +3735,9 @@ pub static CARDS: &[CardDef] = &[
         effects: &[
             Effect::Draw(Expr::Magic),
             Effect::Unsupported("NotStanceCheckAction"),
-            Effect::Unsupported("ChangeStanceAction"),
+            Effect::Repeat(Expr::N(1), &[]),
+            Effect::Repeat(Expr::N(1), &[]),
+            Effect::Repeat(Expr::N(1), &[]),
         ],
     },
     CardDef {
@@ -3578,10 +3756,12 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: Some(1),
         flags: &[],
-        status: "unsupported",
+        status: "parsed",
         effects: &[
             Effect::Damage(Target::Enemy, Expr::DamageBase),
-            Effect::Unsupported("ChangeStanceAction"),
+            Effect::Repeat(Expr::N(1), &[]),
+            Effect::Repeat(Expr::N(1), &[]),
+            Effect::Repeat(Expr::N(1), &[]),
         ],
     },
     CardDef {
@@ -3623,10 +3803,11 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
+        status: "parsed",
         effects: &[
             Effect::Block(Expr::BlockBase),
-            Effect::Unsupported("MakeTempCardInDrawPileAction"),
+            Effect::Repeat(Expr::Raw("this.amount"), &[]),
+            Effect::Repeat(Expr::Raw("this.amount"), &[]),
         ],
     },
     CardDef {
@@ -3728,10 +3909,10 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
+        status: "parsed",
         effects: &[
             Effect::Damage(Target::Enemy, Expr::DamageBase),
-            Effect::Unsupported("FollowUpAction"),
+            Effect::GainEnergy(Expr::N(1)),
         ],
     },
     CardDef {
@@ -3792,8 +3973,11 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("HaltAction")],
+        status: "parsed",
+        effects: &[
+            Effect::Block(Expr::Raw("this.amount + this.additionalAmt")),
+            Effect::Block(Expr::Raw("this.amount")),
+        ],
     },
     CardDef {
         id: "Indignation",
@@ -3868,9 +4052,16 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: Some(1),
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
+        status: "parsed",
         effects: &[
-            Effect::Unsupported("ScryAction"),
+            Effect::Repeat(Expr::N(1), &[]),
+            Effect::Repeat(
+                Expr::Raw("Math.min(this.amount, AbstractDungeon.player.drawPile.size()"),
+                &[],
+            ),
+            Effect::Repeat(Expr::N(1), &[]),
+            Effect::Repeat(Expr::N(1), &[]),
+            Effect::Repeat(Expr::N(1), &[]),
             Effect::Block(Expr::BlockBase),
             Effect::Damage(Target::Enemy, Expr::DamageBase),
         ],
@@ -3891,8 +4082,8 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &["exhaust"],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("LessonLearnedAction")],
+        status: "parsed",
+        effects: &[Effect::Repeat(Expr::N(1), &[])],
     },
     CardDef {
         id: "LikeWater",
@@ -3958,7 +4149,12 @@ pub static CARDS: &[CardDef] = &[
         flags: &[],
         status: "unsupported",
         effects: &[
-            Effect::Unsupported("MeditateAction"),
+            Effect::Repeat(Expr::N(1), &[]),
+            Effect::Repeat(Expr::N(1), &[]),
+            Effect::Repeat(Expr::N(1), &[]),
+            Effect::Repeat(Expr::N(1), &[]),
+            Effect::Repeat(Expr::N(1), &[]),
+            Effect::Repeat(Expr::N(1), &[]),
             Effect::Unsupported("ChangeStanceAction"),
             Effect::Unsupported("PressEndTurnButtonAction"),
         ],
@@ -4063,10 +4259,11 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: Some(1),
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
+        status: "parsed",
         effects: &[
             Effect::ApplyPower(Target::SelfC, "MantraPower", Expr::Magic),
-            Effect::Unsupported("MakeTempCardInDrawPileAction"),
+            Effect::Repeat(Expr::Raw("this.amount"), &[]),
+            Effect::Repeat(Expr::Raw("this.amount"), &[]),
         ],
     },
     CardDef {
@@ -4085,10 +4282,10 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: Some(3),
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
+        status: "parsed_branch",
         effects: &[
             Effect::ApplyPower(Target::Enemy, "MarkPower", Expr::Magic),
-            Effect::Unsupported("TriggerMarksAction"),
+            Effect::Repeat(Expr::N(1), &[Effect::Repeat(Expr::N(1), &[])]),
         ],
     },
     CardDef {
@@ -4149,7 +4346,10 @@ pub static CARDS: &[CardDef] = &[
         upg_base_cost: None,
         flags: &[],
         status: "unsupported",
-        effects: &[Effect::Unsupported("loop")],
+        effects: &[Effect::Repeat(
+            Expr::Magic,
+            &[Effect::Unsupported("AttackDamageRandomEnemyAction")],
+        )],
     },
     CardDef {
         id: "ReachHeaven",
@@ -4167,10 +4367,11 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
+        status: "parsed",
         effects: &[
             Effect::Damage(Target::Enemy, Expr::DamageBase),
-            Effect::Unsupported("MakeTempCardInDrawPileAction"),
+            Effect::Repeat(Expr::Raw("this.amount"), &[]),
+            Effect::Repeat(Expr::Raw("this.amount"), &[]),
         ],
     },
     CardDef {
@@ -4212,10 +4413,10 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
+        status: "parsed",
         effects: &[
             Effect::Block(Expr::BlockBase),
-            Effect::Unsupported("SanctityAction"),
+            Effect::Draw(Expr::Raw("this.amtToDraw")),
         ],
     },
     CardDef {
@@ -4253,10 +4454,10 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: Some(1),
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
+        status: "parsed",
         effects: &[
             Effect::Damage(Target::Enemy, Expr::DamageBase),
-            Effect::Unsupported("HeadStompAction"),
+            Effect::ApplyPower(Target::Unknown, "Weakened", Expr::Magic),
         ],
     },
     CardDef {
@@ -4275,8 +4476,8 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: Some(0),
         flags: &["exhaust"],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("ExpertiseAction")],
+        status: "parsed",
+        effects: &[Effect::Draw(Expr::Const("toDraw"))],
     },
     CardDef {
         id: "SignatureMove",
@@ -4436,8 +4637,16 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: Some(1),
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("loop")],
+        status: "parsed",
+        effects: &[
+            Effect::Repeat(
+                Expr::Magic,
+                &[Effect::Damage(Target::Enemy, Expr::DamageBase)],
+            ),
+            Effect::Repeat(Expr::N(1), &[]),
+            Effect::Repeat(Expr::N(1), &[]),
+            Effect::Repeat(Expr::N(1), &[]),
+        ],
     },
     CardDef {
         id: "ThirdEye",
@@ -4455,10 +4664,17 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: Some(2),
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
+        status: "parsed_branch",
         effects: &[
             Effect::Block(Expr::BlockBase),
-            Effect::Unsupported("ScryAction"),
+            Effect::Repeat(Expr::N(1), &[]),
+            Effect::Repeat(
+                Expr::Raw("Math.min(this.amount, AbstractDungeon.player.drawPile.size()"),
+                &[],
+            ),
+            Effect::Repeat(Expr::N(1), &[]),
+            Effect::Repeat(Expr::N(1), &[]),
+            Effect::Repeat(Expr::N(1), &[]),
         ],
     },
     CardDef {
@@ -4477,8 +4693,12 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: Some(0),
         flags: &["exhaust", "selfRetain"],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("ChangeStanceAction")],
+        status: "parsed",
+        effects: &[
+            Effect::Repeat(Expr::N(1), &[]),
+            Effect::Repeat(Expr::N(1), &[]),
+            Effect::Repeat(Expr::N(1), &[]),
+        ],
     },
     CardDef {
         id: "Unraveling",
@@ -4496,8 +4716,11 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: Some(1),
         flags: &["exhaust"],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("UnravelingAction")],
+        status: "parsed",
+        effects: &[Effect::Repeat(
+            Expr::N(1),
+            &[Effect::Repeat(Expr::N(1), &[])],
+        )],
     },
     CardDef {
         id: "Vault",
@@ -4537,10 +4760,12 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
+        status: "parsed",
         effects: &[
             Effect::Block(Expr::BlockBase),
-            Effect::Unsupported("ChangeStanceAction"),
+            Effect::Repeat(Expr::N(1), &[]),
+            Effect::Repeat(Expr::N(1), &[]),
+            Effect::Repeat(Expr::N(1), &[]),
         ],
     },
     CardDef {
@@ -4559,8 +4784,8 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("WallopAction")],
+        status: "parsed",
+        effects: &[Effect::Block(Expr::Raw("this.target.lastDamageTaken"))],
     },
     CardDef {
         id: "WaveOfTheHand",
@@ -4662,7 +4887,10 @@ pub static CARDS: &[CardDef] = &[
         upg_base_cost: None,
         flags: &["exhaust"],
         status: "unsupported",
-        effects: &[Effect::Unsupported("loop")],
+        effects: &[
+            Effect::Repeat(Expr::N(1), &[]),
+            Effect::Unsupported("ChooseOneAction"),
+        ],
     },
     CardDef {
         id: "Worship",
@@ -4806,7 +5034,10 @@ pub static CARDS: &[CardDef] = &[
         upg_base_cost: None,
         flags: &[],
         status: "unsupported",
-        effects: &[Effect::Unsupported("loop")],
+        effects: &[
+            Effect::Damage(Target::Enemy, Expr::DamageBase),
+            Effect::Repeat(Expr::Magic, &[Effect::Unsupported("ChannelAction")]),
+        ],
     },
     CardDef {
         id: "Barrage",
@@ -4824,8 +5055,11 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("BarrageAction")],
+        status: "parsed",
+        effects: &[Effect::Repeat(
+            Expr::Raw("AbstractDungeon.player.orbs.size()"),
+            &[Effect::Damage(Target::Unknown, Expr::DamageBase)],
+        )],
     },
     CardDef {
         id: "Beam Cell",
@@ -4887,8 +5121,11 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: Some(1),
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("loop")],
+        status: "parsed_branch",
+        effects: &[
+            Effect::Repeat(Expr::N(1), &[]),
+            Effect::DamageAll(Expr::DamageBase),
+        ],
     },
     CardDef {
         id: "BootSequence",
@@ -4944,8 +5181,8 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: Some(1),
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("IncreaseMaxOrbAction")],
+        status: "parsed",
+        effects: &[Effect::Repeat(Expr::Raw("this.amount"), &[])],
     },
     CardDef {
         id: "Chaos",
@@ -4963,10 +5200,10 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: Some(1),
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
+        status: "parsed_branch",
         effects: &[
-            Effect::Unsupported("ChannelAction"),
-            Effect::Unsupported("ChannelAction"),
+            Effect::Repeat(Expr::N(1), &[]),
+            Effect::Repeat(Expr::N(1), &[]),
         ],
     },
     CardDef {
@@ -4986,7 +5223,13 @@ pub static CARDS: &[CardDef] = &[
         upg_base_cost: None,
         flags: &["exhaust", "innate"],
         status: "unsupported",
-        effects: &[Effect::Unsupported("loop")],
+        effects: &[
+            Effect::Repeat(Expr::N(1), &[]),
+            Effect::Repeat(
+                Expr::Raw("count * this.magicNumber"),
+                &[Effect::Unsupported("ChannelAction")],
+            ),
+        ],
     },
     CardDef {
         id: "Gash",
@@ -5004,10 +5247,12 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
+        status: "parsed_branch",
         effects: &[
             Effect::Damage(Target::Enemy, Expr::DamageBase),
-            Effect::Unsupported("GashAction"),
+            Effect::Repeat(Expr::N(1), &[]),
+            Effect::Repeat(Expr::N(1), &[]),
+            Effect::Repeat(Expr::N(1), &[]),
         ],
     },
     CardDef {
@@ -5027,7 +5272,10 @@ pub static CARDS: &[CardDef] = &[
         upg_base_cost: None,
         flags: &[],
         status: "unsupported",
-        effects: &[Effect::Unsupported("loop")],
+        effects: &[
+            Effect::Damage(Target::Enemy, Expr::DamageBase),
+            Effect::Repeat(Expr::Magic, &[Effect::Unsupported("ChannelAction")]),
+        ],
     },
     CardDef {
         id: "Compile Driver",
@@ -5045,10 +5293,11 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
+        status: "parsed",
         effects: &[
             Effect::Damage(Target::Enemy, Expr::DamageBase),
-            Effect::Unsupported("CompileDriverAction"),
+            Effect::Repeat(Expr::N(1), &[]),
+            Effect::Draw(Expr::Const("toDraw")),
         ],
     },
     CardDef {
@@ -5089,10 +5338,10 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: Some(1),
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
+        status: "parsed",
         effects: &[
             Effect::ApplyPower(Target::SelfC, "FocusPower", Expr::Magic),
-            Effect::Unsupported("DecreaseMaxOrbAction"),
+            Effect::Repeat(Expr::Raw("this.amount"), &[]),
         ],
     },
     CardDef {
@@ -5111,11 +5360,8 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: Some(1),
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
-        effects: &[
-            Effect::Unsupported("ChannelAction"),
-            Effect::Draw(Expr::Magic),
-        ],
+        status: "parsed",
+        effects: &[Effect::Repeat(Expr::N(1), &[]), Effect::Draw(Expr::Magic)],
     },
     CardDef {
         id: "Core Surge",
@@ -5178,10 +5424,10 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
+        status: "parsed_branch",
         effects: &[
-            Effect::Unsupported("ChannelAction"),
-            Effect::Unsupported("DarkImpulseAction"),
+            Effect::Repeat(Expr::N(1), &[]),
+            Effect::Repeat(Expr::N(1), &[]),
         ],
     },
     CardDef {
@@ -5238,10 +5484,10 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
+        status: "parsed",
         effects: &[
             Effect::DamageAll(Expr::DamageBase),
-            Effect::Unsupported("ChannelAction"),
+            Effect::Repeat(Expr::N(1), &[]),
         ],
     },
     CardDef {
@@ -5279,12 +5525,12 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: Some(0),
         flags: &[],
-        status: "unsupported",
+        status: "parsed",
         effects: &[
-            Effect::Unsupported("AnimateOrbAction"),
-            Effect::Unsupported("EvokeWithoutRemovingOrbAction"),
-            Effect::Unsupported("AnimateOrbAction"),
-            Effect::Unsupported("EvokeOrbAction"),
+            Effect::Repeat(Expr::Raw("this.orbCount"), &[]),
+            Effect::Repeat(Expr::Raw("this.orbCount"), &[]),
+            Effect::Repeat(Expr::Raw("this.orbCount"), &[]),
+            Effect::Repeat(Expr::Raw("this.orbCount"), &[]),
         ],
     },
     CardDef {
@@ -5323,7 +5569,10 @@ pub static CARDS: &[CardDef] = &[
         upg_base_cost: None,
         flags: &[],
         status: "unsupported",
-        effects: &[Effect::Unsupported("loop")],
+        effects: &[
+            Effect::ApplyPower(Target::SelfC, "ElectroPower", Expr::N(1)),
+            Effect::Repeat(Expr::Magic, &[Effect::Unsupported("ChannelAction")]),
+        ],
     },
     CardDef {
         id: "Undo",
@@ -5363,8 +5612,11 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: Some(1),
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("FTLAction")],
+        status: "parsed",
+        effects: &[
+            Effect::Damage(Target::Unknown, Expr::DamageBase),
+            Effect::Draw(Expr::N(1)),
+        ],
     },
     CardDef {
         id: "Fission",
@@ -5421,7 +5673,10 @@ pub static CARDS: &[CardDef] = &[
         upg_base_cost: Some(1),
         flags: &[],
         status: "unsupported",
-        effects: &[Effect::Unsupported("loop")],
+        effects: &[Effect::Repeat(
+            Expr::Magic,
+            &[Effect::Unsupported("ChannelAction")],
+        )],
     },
     CardDef {
         id: "Genetic Algorithm",
@@ -5439,9 +5694,10 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: Some(1),
         upg_base_cost: None,
         flags: &["exhaust"],
-        status: "unsupported",
+        status: "parsed",
         effects: &[
-            Effect::Unsupported("IncreaseMiscAction"),
+            Effect::Repeat(Expr::N(1), &[]),
+            Effect::Repeat(Expr::N(1), &[]),
             Effect::Block(Expr::BlockBase),
         ],
     },
@@ -5462,7 +5718,10 @@ pub static CARDS: &[CardDef] = &[
         upg_base_cost: None,
         flags: &[],
         status: "unsupported",
-        effects: &[Effect::Unsupported("loop")],
+        effects: &[
+            Effect::Block(Expr::BlockBase),
+            Effect::Repeat(Expr::Magic, &[Effect::Unsupported("ChannelAction")]),
+        ],
     },
     CardDef {
         id: "Go for the Eyes",
@@ -5480,10 +5739,10 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: Some(1),
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
+        status: "parsed",
         effects: &[
             Effect::Damage(Target::Enemy, Expr::DamageBase),
-            Effect::Unsupported("ForTheEyesAction"),
+            Effect::ApplyPower(Target::Unknown, "Weakened", Expr::Raw("this.amount")),
         ],
     },
     CardDef {
@@ -5544,10 +5803,14 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &["exhaust"],
-        status: "unsupported",
+        status: "parsed",
         effects: &[
             Effect::Block(Expr::BlockBase),
-            Effect::Unsupported("BetterDiscardPileToHandAction"),
+            Effect::Repeat(Expr::N(1), &[]),
+            Effect::Repeat(Expr::N(1), &[]),
+            Effect::Repeat(Expr::N(1), &[]),
+            Effect::Repeat(Expr::N(1), &[]),
+            Effect::Repeat(Expr::N(1), &[]),
         ],
     },
     CardDef {
@@ -5588,8 +5851,8 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &["exhaust"],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("ImpulseAction")],
+        status: "parsed",
+        effects: &[Effect::Repeat(Expr::N(1), &[])],
     },
     CardDef {
         id: "Leap",
@@ -5709,7 +5972,10 @@ pub static CARDS: &[CardDef] = &[
         upg_base_cost: None,
         flags: &[],
         status: "unsupported",
-        effects: &[Effect::Unsupported("loop")],
+        effects: &[
+            Effect::Damage(Target::Enemy, Expr::DamageBase),
+            Effect::Repeat(Expr::Magic, &[Effect::Unsupported("ChannelAction")]),
+        ],
     },
     CardDef {
         id: "Multi-Cast",
@@ -5768,11 +6034,11 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &["exhaust"],
-        status: "unsupported",
+        status: "parsed",
         effects: &[
-            Effect::Unsupported("ChannelAction"),
-            Effect::Unsupported("ChannelAction"),
-            Effect::Unsupported("ChannelAction"),
+            Effect::Repeat(Expr::N(1), &[]),
+            Effect::Repeat(Expr::N(1), &[]),
+            Effect::Repeat(Expr::N(1), &[]),
         ],
     },
     CardDef {
@@ -5794,7 +6060,7 @@ pub static CARDS: &[CardDef] = &[
         status: "unsupported",
         effects: &[
             Effect::Unsupported("ShuffleAllAction"),
-            Effect::Unsupported("ShuffleAction"),
+            Effect::Repeat(Expr::N(1), &[]),
             Effect::Draw(Expr::Magic),
         ],
     },
@@ -5855,8 +6121,18 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: Some(0),
         flags: &[],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("RecycleAction")],
+        status: "parsed",
+        effects: &[
+            Effect::GainEnergy(Expr::Raw("EnergyPanel.getCurrentEnergy()")),
+            Effect::GainEnergy(Expr::Raw("this.p.hand.getBottomCard().costForTurn")),
+            Effect::Repeat(
+                Expr::N(1),
+                &[
+                    Effect::GainEnergy(Expr::Raw("EnergyPanel.getCurrentEnergy()")),
+                    Effect::GainEnergy(Expr::Raw("c.costForTurn")),
+                ],
+            ),
+        ],
     },
     CardDef {
         id: "Reinforced Body",
@@ -5874,8 +6150,11 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("ReinforcedBodyAction")],
+        status: "parsed",
+        effects: &[Effect::Repeat(
+            Expr::XCost,
+            &[Effect::Block(Expr::Raw("this.amount"))],
+        )],
     },
     CardDef {
         id: "Reprogram",
@@ -5917,7 +6196,10 @@ pub static CARDS: &[CardDef] = &[
         upg_base_cost: None,
         flags: &[],
         status: "unsupported",
-        effects: &[Effect::Unsupported("loop")],
+        effects: &[Effect::Repeat(
+            Expr::Magic,
+            &[Effect::Unsupported("NewRipAndTearAction")],
+        )],
     },
     CardDef {
         id: "Scrape",
@@ -5957,8 +6239,13 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: Some(1),
         upg_base_cost: None,
         flags: &["exhaust"],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("BetterDrawPileToHandAction")],
+        status: "parsed",
+        effects: &[
+            Effect::Repeat(Expr::N(1), &[]),
+            Effect::Repeat(Expr::N(1), &[]),
+            Effect::Repeat(Expr::N(1), &[]),
+            Effect::Repeat(Expr::N(1), &[]),
+        ],
     },
     CardDef {
         id: "Self Repair",
@@ -6060,10 +6347,10 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
+        status: "parsed",
         effects: &[
             Effect::Block(Expr::BlockBase),
-            Effect::Unsupported("ModifyBlockAction"),
+            Effect::Repeat(Expr::N(1), &[]),
         ],
     },
     CardDef {
@@ -6101,10 +6388,10 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
+        status: "parsed",
         effects: &[
             Effect::Damage(Target::Enemy, Expr::DamageBase),
-            Effect::Unsupported("ReduceCostAction"),
+            Effect::Repeat(Expr::N(1), &[]),
         ],
     },
     CardDef {
@@ -6142,8 +6429,8 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("SunderAction")],
+        status: "parsed_branch",
+        effects: &[Effect::GainEnergy(Expr::Raw("this.energyGainAmt"))],
     },
     CardDef {
         id: "Sweeping Beam",
@@ -6203,7 +6490,10 @@ pub static CARDS: &[CardDef] = &[
         upg_base_cost: None,
         flags: &[],
         status: "unsupported",
-        effects: &[Effect::Unsupported("loop")],
+        effects: &[
+            Effect::Repeat(Expr::N(1), &[]),
+            Effect::Repeat(Expr::N(0), &[Effect::Unsupported("NewThunderStrikeAction")]),
+        ],
     },
     CardDef {
         id: "Turbo",
@@ -6263,7 +6553,10 @@ pub static CARDS: &[CardDef] = &[
         upg_base_cost: Some(0),
         flags: &[],
         status: "unsupported",
-        effects: &[Effect::Unsupported("loop")],
+        effects: &[Effect::Repeat(
+            Expr::Magic,
+            &[Effect::Unsupported("ChannelAction")],
+        )],
     },
     CardDef {
         id: "Apotheosis",
@@ -6364,8 +6657,14 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("loop")],
+        status: "parsed_branch",
+        effects: &[
+            Effect::ApplyPower(Target::Enemy, "Weakened", Expr::Magic),
+            Effect::Repeat(
+                Expr::N(1),
+                &[Effect::ApplyPower(Target::Enemy, "Weakened", Expr::Magic)],
+            ),
+        ],
     },
     CardDef {
         id: "Chrysalis",
@@ -6384,7 +6683,10 @@ pub static CARDS: &[CardDef] = &[
         upg_base_cost: None,
         flags: &["exhaust"],
         status: "unsupported",
-        effects: &[Effect::Unsupported("loop")],
+        effects: &[Effect::Repeat(
+            Expr::Magic,
+            &[Effect::Unsupported("MakeTempCardInDrawPileAction")],
+        )],
     },
     CardDef {
         id: "Dark Shackles",
@@ -6427,7 +6729,7 @@ pub static CARDS: &[CardDef] = &[
         status: "unsupported",
         effects: &[
             Effect::Unsupported("EmptyDeckShuffleAction"),
-            Effect::Unsupported("ShuffleAction"),
+            Effect::Repeat(Expr::N(1), &[]),
             Effect::Draw(Expr::Magic),
         ],
     },
@@ -6485,8 +6787,8 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("EnlightenmentAction")],
+        status: "parsed",
+        effects: &[Effect::Repeat(Expr::N(1), &[])],
     },
     CardDef {
         id: "Finesse",
@@ -6545,8 +6847,8 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("ForethoughtAction")],
+        status: "parsed",
+        effects: &[Effect::Repeat(Expr::N(1), &[])],
     },
     CardDef {
         id: "Good Instincts",
@@ -6583,8 +6885,8 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: Some(5),
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("GreedAction")],
+        status: "parsed",
+        effects: &[Effect::Repeat(Expr::Raw("this.increaseGold"), &[])],
     },
     CardDef {
         id: "Impatience",
@@ -6602,8 +6904,8 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: Some(1),
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("ConditionalDrawAction")],
+        status: "parsed",
+        effects: &[Effect::Draw(Expr::Raw("this.amount"))],
     },
     CardDef {
         id: "J.A.X.",
@@ -6665,8 +6967,8 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: Some(0),
         flags: &["exhaust"],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("MadnessAction")],
+        status: "parsed",
+        effects: &[Effect::Repeat(Expr::N(1), &[])],
     },
     CardDef {
         id: "Magnetism",
@@ -6750,7 +7052,10 @@ pub static CARDS: &[CardDef] = &[
         upg_base_cost: None,
         flags: &["exhaust"],
         status: "unsupported",
-        effects: &[Effect::Unsupported("loop")],
+        effects: &[Effect::Repeat(
+            Expr::Magic,
+            &[Effect::Unsupported("MakeTempCardInDrawPileAction")],
+        )],
     },
     CardDef {
         id: "Mind Blast",
@@ -6870,8 +7175,11 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: Some(2),
         upg_base_cost: None,
         flags: &["exhaust"],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("RitualDaggerAction")],
+        status: "parsed",
+        effects: &[
+            Effect::Repeat(Expr::N(1), &[]),
+            Effect::Repeat(Expr::N(1), &[]),
+        ],
     },
     CardDef {
         id: "Sadistic Nature",
@@ -6912,8 +7220,11 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &["exhaust"],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("SkillFromDeckToHandAction")],
+        status: "parsed",
+        effects: &[
+            Effect::Repeat(Expr::N(1), &[]),
+            Effect::Repeat(Expr::N(1), &[]),
+        ],
     },
     CardDef {
         id: "Secret Weapon",
@@ -6931,8 +7242,11 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &["exhaust"],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("AttackFromDeckToHandAction")],
+        status: "parsed",
+        effects: &[
+            Effect::Repeat(Expr::N(1), &[]),
+            Effect::Repeat(Expr::N(1), &[]),
+        ],
     },
     CardDef {
         id: "Swift Strike",
@@ -6992,10 +7306,12 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &["exhaust"],
-        status: "unsupported",
+        status: "parsed_branch",
         effects: &[
             Effect::Draw(Expr::N(2)),
-            Effect::Unsupported("PutOnDeckAction"),
+            Effect::Repeat(Expr::Raw("this.amount"), &[]),
+            Effect::Repeat(Expr::Raw("this.p.hand.size()"), &[]),
+            Effect::Repeat(Expr::N(1), &[]),
         ],
     },
     CardDef {
@@ -7033,8 +7349,14 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("loop")],
+        status: "parsed_branch",
+        effects: &[
+            Effect::ApplyPower(Target::Enemy, "Vulnerable", Expr::Magic),
+            Effect::Repeat(
+                Expr::N(1),
+                &[Effect::ApplyPower(Target::Enemy, "Vulnerable", Expr::Magic)],
+            ),
+        ],
     },
     CardDef {
         id: "Violence",
@@ -7052,8 +7374,11 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: Some(1),
         upg_base_cost: None,
         flags: &["exhaust"],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("DrawPileToHandAction")],
+        status: "parsed",
+        effects: &[
+            Effect::Repeat(Expr::N(1), &[]),
+            Effect::Repeat(Expr::Raw("this.amount"), &[]),
+        ],
     },
     CardDef {
         id: "AscendersBane",
@@ -7337,8 +7662,11 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: Some(1),
         flags: &["exhaust"],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("MakeTempCardInDrawPileAction")],
+        status: "parsed",
+        effects: &[
+            Effect::Repeat(Expr::Raw("this.amount"), &[]),
+            Effect::Repeat(Expr::Raw("this.amount"), &[]),
+        ],
     },
     CardDef {
         id: "Expunger",
@@ -7357,7 +7685,13 @@ pub static CARDS: &[CardDef] = &[
         upg_base_cost: None,
         flags: &[],
         status: "unsupported",
-        effects: &[Effect::Unsupported("loop")],
+        effects: &[Effect::Repeat(
+            Expr::Magic,
+            &[
+                Effect::Unsupported("ExpungeVFXAction"),
+                Effect::Damage(Target::Enemy, Expr::DamageBase),
+            ],
+        )],
     },
     CardDef {
         id: "Insight",

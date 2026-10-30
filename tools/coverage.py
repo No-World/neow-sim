@@ -29,32 +29,63 @@ ENGINE_POWERS = {"Strength", "Vulnerable", "Weakened", "Frail", "Ritual",
                  "IntangiblePlayer", "Energized", "Combust", "Dark Embrace", "Rage"}
 
 
+CLASS_NAMES = {c["class"] for c in cards["data"]}
+
+
+def expr_ok(a):
+    return not isinstance(a, dict)
+
+
+def effect_supported(e):
+    """与 cards.rs engine_playable 保持同步的镜像判定（递归支持 Repeat）"""
+    k = next(iter(e))
+    if k == "Damage":
+        t, a = e[k]
+        return t == "Enemy" and expr_ok(a)
+    if k in ("DamageAll", "Block", "Draw", "GainEnergy", "Heal", "LoseHP"):
+        return expr_ok(e[k])
+    if k == "ApplyPower":
+        _, p, a = e[k]
+        return expr_ok(a) and p in ENGINE_POWERS
+    if k == "CopySelfToDiscard":
+        return True
+    if k == "MakeInDiscard":
+        cls, a = e[k]
+        return expr_ok(a) and cls in CLASS_NAMES
+    if k == "Repeat":
+        cnt, inner = e[k]
+        return expr_ok(cnt) and all(effect_supported(ie) for ie in inner)
+    return False  # ExhaustHand / Unsupported
+
+
 def reject_reason(c):
     if c.get("cost") == -2:
         return "不可打出(-2费)"
     for e in c.get("effects", []):
         k = next(iter(e))
-        if k == "Unsupported":
-            return f"未支持动作: {e[k]}"
-        if k == "Damage":
-            t, a = e[k]
-            if t != "Enemy":
-                return f"伤害目标异常: {t}"
-            if isinstance(a, dict):
-                return "表达式未解析"
-        elif k in ("DamageAll", "Block", "Draw", "GainEnergy", "Heal", "LoseHP"):
-            if isinstance(e[k], dict):
-                return "表达式未解析"
-        elif k == "ApplyPower":
-            _, p, a = e[k]
-            if p not in ENGINE_POWERS:
-                return f"power 未实现: {p}"
-            if isinstance(a, dict):
-                return "表达式未解析"
-        elif k in ("MakeInDiscard",):
-            return "MakeInDiscard 类名映射"
-        elif k == "ExhaustHand":
-            return "ExhaustAction 语义待核"
+        if not effect_supported(e):
+            if k == "Unsupported":
+                return f"未支持动作: {e[k]}"
+            if k == "Repeat":
+                cnt, inner = e[k]
+                bad = next((ie for ie in inner if not effect_supported(ie)), None)
+                if bad is not None:
+                    bk = next(iter(bad))
+                    if bk == "Unsupported":
+                        return f"未支持动作: {bad[bk]}"
+                    if bk == "ApplyPower":
+                        return f"power 未实现: {bad[bk][1]}"
+                    return f"循环体内 {bk} 不支持"
+                return "循环次数未解析"
+            if k == "Damage":
+                return f"伤害目标异常: {e[k][0]}"
+            if k == "ApplyPower":
+                return f"power 未实现: {e[k][1]}"
+            if k == "MakeInDiscard":
+                return "MakeInDiscard 类名映射"
+            if k == "ExhaustHand":
+                return "ExhaustAction 语义待核"
+            return "表达式未解析"
     return None
 
 

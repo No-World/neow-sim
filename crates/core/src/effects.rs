@@ -46,6 +46,8 @@ pub enum Effect {
     CopySelfToDiscard,
     MakeInDiscard(&'static str, Expr),
     ExhaustHand,
+    /// 循环放招（for (i < N)：N 为次数表达式，inner 为循环体效果）
+    Repeat(Expr, &'static [Effect]),
     /// 未支持动作（值为 Java 动作类名）——手移植清单
     Unsupported(&'static str),
 }

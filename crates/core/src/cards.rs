@@ -89,21 +89,28 @@ fn expr_ok(e: Expr) -> bool {
     !matches!(e, Expr::Const(_) | Expr::Raw(_))
 }
 
-/// 引擎当前能否完整执行该卡（不含能量/目标检查）
-pub fn engine_playable(def: &CardDef) -> bool {
-    if def.cost == Some(-2) {
-        return false; // 不可打出（进阶之灾/状态等）
-    }
-    def.effects.iter().all(|e| match e {
+/// 单个效果是否被引擎支持（递归：Repeat 展开检查）
+fn effect_supported(e: &Effect) -> bool {
+    match e {
         Effect::Damage(t, x) => matches!(t, Target::Enemy) && expr_ok(*x),
         Effect::DamageAll(x) | Effect::Block(x) | Effect::Draw(x) => expr_ok(*x),
         Effect::ApplyPower(_, pid, x) => expr_ok(*x) && ENGINE_POWERS.contains(pid),
         Effect::GainEnergy(x) | Effect::Heal(x) | Effect::LoseHP(x) => expr_ok(*x),
         Effect::CopySelfToDiscard => true,
         Effect::MakeInDiscard(cls, x) => expr_ok(*x) && CardInst::new_by_class(cls).is_some(),
+        // 循环放招：次数可求值 + 循环体全部支持
+        Effect::Repeat(n, inner) => expr_ok(*n) && inner.iter().all(effect_supported),
         // ExhaustHand（ExhaustAction 弃牌语义待核）与其余未知动作暂不可玩
         Effect::ExhaustHand | Effect::Unsupported(_) => false,
-    })
+    }
+}
+
+/// 引擎当前能否完整执行该卡（不含能量/目标检查）
+pub fn engine_playable(def: &CardDef) -> bool {
+    if def.cost == Some(-2) {
+        return false; // 不可打出（进阶之灾/状态等）
+    }
+    def.effects.iter().all(effect_supported)
 }
 
 /// 铁甲战士起始卡组（来自 generated::CHARACTERS；A10+ 追加进阶之灾）

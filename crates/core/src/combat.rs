@@ -264,71 +264,7 @@ impl Combat {
             }
         }
         for &eff in card.def.effects {
-            match eff {
-                Effect::Damage(Target::Enemy, e) => {
-                    let base = self.eval(e, card, x_cost);
-                    let d = calc_player_card_damage(
-                        base,
-                        DamageType::Normal,
-                        &self.player.creature.powers,
-                        &self.monsters[ti].creature.powers,
-                    );
-                    q.push(Q::DamageMonster { target: ti, dmg: d });
-                }
-                // 可玩性过滤已排除 SelfC/Unknown 目标伤害
-                Effect::Damage(_, _) => unreachable!("can_play 已过滤非敌方目标伤害"),
-                Effect::DamageAll(e) => {
-                    let base = self.eval(e, card, x_cost);
-                    for (mi, mon) in self.monsters.iter().enumerate() {
-                        if mon.creature.is_dead() {
-                            continue;
-                        }
-                        // multiDamage：各目标分别过自己的 receive 管线
-                        let d = calc_player_card_damage(
-                            base,
-                            DamageType::Normal,
-                            &self.player.creature.powers,
-                            &mon.creature.powers,
-                        );
-                        q.push(Q::DamageMonster { target: mi, dmg: d });
-                    }
-                }
-                Effect::Block(e) => {
-                    let base = self.eval(e, card, x_cost);
-                    let b = calc_player_card_block(base, &self.player.creature.powers);
-                    q.push(Q::PlayerBlock(b));
-                }
-                Effect::Draw(e) => q.push(Q::Draw(self.eval(e, card, x_cost))),
-                Effect::ApplyPower(t, pid, e) => {
-                    let n = self.eval(e, card, x_cost);
-                    let kind = power_kind(pid).expect("can_play 已过滤 power 白名单");
-                    match t {
-                        Target::Enemy | Target::AllEnemies => {
-                            q.push(Q::ApplyPowerToMonster {
-                                target: ti,
-                                kind,
-                                amount: n,
-                            });
-                        }
-                        _ => q.push(Q::ApplyPowerToSelf { kind, amount: n }),
-                    }
-                }
-                Effect::GainEnergy(e) => q.push(Q::GainEnergy(self.eval(e, card, x_cost))),
-                Effect::Heal(e) => q.push(Q::Heal(self.eval(e, card, x_cost))),
-                Effect::LoseHP(e) => q.push(Q::LoseHP(self.eval(e, card, x_cost))),
-                Effect::CopySelfToDiscard => q.push(Q::MakeDiscard(card)),
-                Effect::MakeInDiscard(cls, e) => {
-                    let n = self.eval(e, card, x_cost);
-                    if let Some(c) = CardInst::new_by_class(cls) {
-                        for _ in 0..n {
-                            q.push(Q::MakeDiscard(c));
-                        }
-                    }
-                }
-                Effect::ExhaustHand | Effect::Unsupported(_) => {
-                    unreachable!("can_play 已过滤不可玩效果")
-                }
-            }
+            self.apply_effect(eff, card, ti, x_cost, &mut q, 0);
         }
         // UseCardAction 去向：exhaust 旗标 → 消耗堆，否则弃牌堆
         self.player.hand.remove(i);
@@ -355,6 +291,92 @@ impl Combat {
             card.cost_pay()
         };
         self.drain(q);
+    }
+
+    /// 效果 DSL 递归解释执行（Repeat 展开，深度防御上限 8）
+    fn apply_effect(
+        &self,
+        eff: Effect,
+        card: CardInst,
+        ti: usize,
+        x_cost: i32,
+        q: &mut Vec<Q>,
+        depth: u32,
+    ) {
+        if depth > 8 {
+            return;
+        }
+        match eff {
+            Effect::Damage(Target::Enemy, e) => {
+                let base = self.eval(e, card, x_cost);
+                let d = calc_player_card_damage(
+                    base,
+                    DamageType::Normal,
+                    &self.player.creature.powers,
+                    &self.monsters[ti].creature.powers,
+                );
+                q.push(Q::DamageMonster { target: ti, dmg: d });
+            }
+            Effect::DamageAll(e) => {
+                let base = self.eval(e, card, x_cost);
+                for (mi, mon) in self.monsters.iter().enumerate() {
+                    if mon.creature.is_dead() {
+                        continue;
+                    }
+                    let d = calc_player_card_damage(
+                        base,
+                        DamageType::Normal,
+                        &self.player.creature.powers,
+                        &mon.creature.powers,
+                    );
+                    q.push(Q::DamageMonster { target: mi, dmg: d });
+                }
+            }
+            Effect::Block(e) => {
+                let base = self.eval(e, card, x_cost);
+                let b = calc_player_card_block(base, &self.player.creature.powers);
+                q.push(Q::PlayerBlock(b));
+            }
+            Effect::Draw(e) => q.push(Q::Draw(self.eval(e, card, x_cost))),
+            Effect::ApplyPower(t, pid, e) => {
+                let n = self.eval(e, card, x_cost);
+                let kind = power_kind(pid).expect("can_play 已过滤 power 白名单");
+                match t {
+                    Target::Enemy | Target::AllEnemies => {
+                        q.push(Q::ApplyPowerToMonster {
+                            target: ti,
+                            kind,
+                            amount: n,
+                        });
+                    }
+                    _ => q.push(Q::ApplyPowerToSelf { kind, amount: n }),
+                }
+            }
+            Effect::GainEnergy(e) => q.push(Q::GainEnergy(self.eval(e, card, x_cost))),
+            Effect::Heal(e) => q.push(Q::Heal(self.eval(e, card, x_cost))),
+            Effect::LoseHP(e) => q.push(Q::LoseHP(self.eval(e, card, x_cost))),
+            Effect::CopySelfToDiscard => q.push(Q::MakeDiscard(card)),
+            Effect::MakeInDiscard(cls, e) => {
+                let n = self.eval(e, card, x_cost);
+                if let Some(c) = CardInst::new_by_class(cls) {
+                    for _ in 0..n {
+                        q.push(Q::MakeDiscard(c));
+                    }
+                }
+            }
+            Effect::Repeat(n_expr, inner) => {
+                let n = self.eval(n_expr, card, x_cost).clamp(0, 999);
+                for _ in 0..n {
+                    for &ie in inner {
+                        self.apply_effect(ie, card, ti, x_cost, q, depth + 1);
+                    }
+                }
+            }
+            Effect::ExhaustHand | Effect::Unsupported(_) => {
+                unreachable!("can_play 已过滤不可玩效果")
+            }
+            Effect::Damage(_, _) => unreachable!("can_play 已过滤非敌方目标伤害"),
+        }
     }
 
     fn end_turn(&mut self) {
@@ -953,7 +975,7 @@ mod tests {
         println!("engine_playable = {n}/{}", CARDS.len());
         // 上限 = 375 - 系统性未支持(约160) - 本就不可打出(-2费约25)；
         // 余量主要被未实现 power 持有（每个 power 解锁若干卡，见 docs/coverage.md）
-        assert!(n >= 88, "数据驱动出牌应达到当前硬上限附近，当前 {n}");
+        assert!(n >= 138, "数据驱动出牌应达到当前硬上限附近，当前 {n}");
     }
 
     /// 默认状态 = 全解锁 + A20：起始卡组含进阶之灾、玩家 72/80 HP、大颚虫 A17 档数值
@@ -1195,6 +1217,21 @@ mod tests {
         w2.determinize(2002);
         assert_eq!(w1.public_hash(), pub0);
         assert_eq!(w2.public_hash(), pub0);
+    }
+
+    /// 旋风斩：X 费支付全部能量（3 能量 → 打 3 次全场 5 伤）
+    #[test]
+    fn whirlwind_x_cost_repeat() {
+        let mut c = Combat::new_with(9, 0, &[MonsterKind::JawWorm, MonsterKind::JawWorm]);
+        let (hp0, hp1) = (c.monsters[0].creature.hp, c.monsters[1].creature.hp);
+        force_hand(&mut c, &["Whirlwind"]);
+        c.step(&Action::PlayCard {
+            index: 0,
+            target: None,
+        });
+        assert_eq!(c.player.energy, 0, "X 费支付全部能量");
+        assert_eq!(hp0 - c.monsters[0].creature.hp, 15, "5×3");
+        assert_eq!(hp1 - c.monsters[1].creature.hp, 15);
     }
 
     fn pamount(c: &Combat, k: PowerKind) -> Option<i32> {

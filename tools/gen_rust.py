@@ -64,6 +64,12 @@ def effect_rs(eff) -> str:
         return f"Effect::MakeInDiscard({s(cls)}, {expr_rs(n)})"
     if "ExhaustHand" in eff:
         return "Effect::ExhaustHand"
+    if "Repeat" in eff:
+        cnt, inner = eff["Repeat"]
+        if not inner:
+            return f"Effect::Repeat({expr_rs(cnt)}, &[])"
+        inner_s = ",\n            ".join(effect_rs(e) for e in inner)
+        return f"Effect::Repeat({expr_rs(cnt)}, &[\n            {inner_s},\n        ])"
     if "Unsupported" in eff:
         return f"Effect::Unsupported({s(eff['Unsupported'])})"
     raise ValueError(eff)

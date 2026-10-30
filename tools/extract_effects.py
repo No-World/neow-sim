@@ -34,11 +34,13 @@ POWER_IDS = {
 
 
 def balanced(s: str, start: int) -> tuple[str, int]:
+    """通用括号配对：s[start] 是 '(' 或 '{'，返回（内部文本, 结束下标）"""
+    op, cl = ("(", ")") if s[start] == "(" else ("{", "}")
     depth = 0
     for j in range(start, len(s)):
-        if s[j] == "(":
+        if s[j] == op:
             depth += 1
-        elif s[j] == ")":
+        elif s[j] == cl:
             depth -= 1
             if depth == 0:
                 return s[start + 1:j], j
@@ -193,27 +195,79 @@ def collect_overrides(body: str, consts: dict) -> dict:
     return overrides
 
 
+def collect_lvars(body: str) -> dict:
+    """局部计数变量：`int x = 3` / `x = this.energyOnUse`（X 费次数）"""
+    lv = {}
+    for m in re.finditer(r"\bint\s+(\w+)\s*=\s*(-?\d+)\s*;", body):
+        lv[m.group(1)] = int(m.group(2))
+    for m in re.finditer(r"\b(\w+)\s*=\s*this\.energyOnUse\s*;", body):
+        lv[m.group(1)] = "XCost"
+    return lv
+
+
+def resolve_bound(bound: str, consts: dict, overrides: dict, lvars: dict):
+    v = expr(bound, consts, overrides)
+    if isinstance(v, (int, str)):
+        return v
+    if bound.strip() in lvars:
+        return lvars[bound.strip()]
+    return {"Raw": bound[:60]}
+
+
+FOR_RE = re.compile(r"\bfor\s*\(")
+NEW_RE = re.compile(r"new\s+([A-Z]\w+)\s*\(")
+
+
+def scan_actions(text: str, consts: dict, overrides: dict, lvars: dict, depth: int):
+    """按源码顺序扫描：for 循环 → Repeat DSL；动作构造 → 效果 DSL"""
+    effects, unsupported = [], []
+    i = 0
+    while i < len(text):
+        mf = FOR_RE.search(text, i)
+        mn = NEW_RE.search(text, i)
+        if not mf and not mn:
+            break
+        if mf and (not mn or mf.start() < mn.start()):
+            if depth >= 3:
+                return [{"Unsupported": "nested-loop"}], ["nested-loop"]
+            hdr_open = text.find("(", mf.start())
+            hdr, close = balanced(text, hdr_open)
+            bm = re.search(r"<\s*([^;]+)\s*;", hdr)
+            cnt = resolve_bound(bm.group(1) if bm else "1", consts, overrides, lvars)
+            j = close + 1
+            while j < len(text) and text[j] in " \t\r\n":
+                j += 1
+            if j < len(text) and text[j] == "{":
+                inner, end = balanced(text, j)
+            else:
+                semi = text.find(";", j)
+                inner, end = text[j:max(semi, j)], max(semi - 1, j)
+            inner_effects, inner_unsup = scan_actions(
+                inner, consts, overrides, lvars, depth + 1)
+            effects.append({"Repeat": [cnt, inner_effects]})
+            unsupported.extend(inner_unsup)
+            i = end + 1
+        else:
+            cls = mn.group(1)
+            args, end = balanced(text, mn.end() - 1)
+            if cls.endswith("Action"):
+                eff = classify_action(cls, args, consts, overrides)
+                if eff is not None:
+                    effects.append(eff)
+                    if "Unsupported" in eff:
+                        unsupported.append(eff["Unsupported"])
+            i = end + 1
+    return effects, unsupported
+
+
 def parse_use(raw_body: str, consts: dict):
     body = strip_debug_branches(raw_body)
     overrides = collect_overrides(body, consts)
-    effects, unsupported = [], []
-    if re.search(r"\b(for|while)\s*\(", body):
-        return [{"Unsupported": "loop"}], ["loop"], False
+    lvars = collect_lvars(body)
+    if re.search(r"\bwhile\s*\(", body):
+        return [{"Unsupported": "while-loop"}], ["while-loop"], False
+    effects, unsupported = scan_actions(body, consts, overrides, lvars, 0)
     has_branch = bool(re.search(r"\bif\s*\(", body))
-    i = 0
-    while i < len(body):
-        m = re.compile(r"new\s+([A-Z]\w+)\s*\(").search(body, i)
-        if not m:
-            break
-        cls = m.group(1)
-        inner, end = balanced(body, m.end() - 1)
-        if cls.endswith("Action"):
-            eff = classify_action(cls, inner, consts, overrides)
-            if eff is not None:
-                effects.append(eff)
-                if "Unsupported" in eff:
-                    unsupported.append(eff["Unsupported"])
-        i = end + 1
     return effects, unsupported, has_branch
 
 
@@ -233,10 +287,56 @@ def method_body(text: str, sig: str):
     return None
 
 
+def follow_action(root: Path, actions_index: dict, cls: str, call_args: str,
+                  consts: dict, overrides: dict, lvars: dict):
+    """跟进自定义动作类：解析其 update() 体，this.amount 映射回调用点参数，
+    this.multiDamage/this.damage 映射为 DamageBase。仅在完全可解析时返回效果列表。"""
+    f = actions_index.get(cls)
+    if f is None:
+        return None
+    text = f.read_text(errors="replace")
+    up = method_body(text, r"public\s+void\s+update\s*\(")
+    if up is None:
+        return None
+    # 找到动作构造器中名为 amount 的参数位置
+    pos = None
+    for cm in re.finditer(r"public\s+" + cls + r"\s*\(([^)]*)\)", text):
+        params = [a.strip() for a in cm.group(1).split(",")]
+        for i, prm in enumerate(params):
+            if prm.endswith(" amount") or prm.endswith(" int amount"):
+                pos = i
+        if pos is not None:
+            break
+    count_val = "XCost"
+    if pos is not None:
+        args = split_top(call_args)
+        if pos < len(args):
+            count_val = expr(args[pos], consts, overrides)
+            if isinstance(count_val, dict):
+                count_val = lvars.get(args[pos].strip(), count_val)
+    # 动作体内变量替换表
+    sub = {"this.amount": count_val if isinstance(count_val, (int, str)) else 1,
+           "this.multiDamage": "DamageBase", "this.damage": "DamageBase",
+           "this.block": "BlockBase", "this.magicNumber": "Magic"}
+    ov2 = dict(overrides)
+    for k, v in sub.items():
+        ov2[k] = v
+    # expr() 识别的字段名不带 this. 前缀——改写映射键
+    ov3 = {}
+    for k, v in ov2.items():
+        ov3[k] = v
+    effs, unsup = scan_actions(up, consts, ov3, collect_lvars(up), 1)
+    # 空效果 = 动作体没有可识别的规则效果（如换姿态/充能），静默为空会变成 no-op，拒绝跟进
+    if unsup or not effs:
+        return None
+    return effs
+
+
 def main():
     root = Path(sys.argv[1])
     data_dir = Path(sys.argv[2])
     cards = json.loads((data_dir / "cards.json").read_text(encoding="utf-8"))["data"]
+    actions_index = {q.stem: q for q in (root / "com/megacrit/cardcrawl/actions").rglob("*.java")}
 
     dirs = ["red", "green", "purple", "blue", "colorless", "curses", "tempCards", "status", "optionCards"]
     full, stats = [], {"parsed": 0, "parsed_branch": 0, "no_use": 0, "unsupported": 0}
@@ -259,6 +359,23 @@ def main():
             else:
                 consts = static_ints(text)
                 effects, unsupported, branch = parse_use(body, consts)
+                # 自定义动作跟进：尝试把 Unsupported(ActionCls) 换成动作体效果
+                for ei, eff in enumerate(list(effects)):
+                    if isinstance(eff, dict) and "Unsupported" in eff:
+                        cls = eff["Unsupported"]
+                        cm = re.search(r"new\s+" + cls + r"\s*\(", body)
+                        call_args = ""
+                        if cm:
+                            call_args, _ = balanced(body, cm.end() - 1)
+                        lv = collect_lvars(body)
+                        spliced = follow_action(root, actions_index, cls, call_args,
+                                                consts, collect_overrides(body, consts), lv)
+                        if spliced:
+                            effects[ei:ei + 1] = spliced
+                            unsupported = [u for u in unsupported if u != cls]
+                effects, unsupported = effects, unsupported
+                if not unsupported and branch:
+                    pass
                 entry["effects"] = effects
                 if unsupported:
                     entry["status"] = "unsupported"
