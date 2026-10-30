@@ -75,7 +75,7 @@ FIELD_OF = {"this.damage": "baseDamage", "this.block": "baseBlock",
             "this.magicNumber": "baseMagicNumber"}
 
 
-def expr(e: str, consts: dict, overrides: dict):
+def expr(e: str, consts: dict, overrides: dict, lvars: dict | None = None):
     """参数表达式 → DSL（consts=类常量，overrides=use() 内动态赋值）"""
     e = e.strip().rstrip(";")
     if e in FIELD_OF and FIELD_OF[e] in overrides:
@@ -88,6 +88,8 @@ def expr(e: str, consts: dict, overrides: dict):
         return m[e]
     if re.fullmatch(r"-?\d+", e):
         return int(e)
+    if lvars and re.fullmatch(r"\w+", e) and e in lvars:
+        return lvars[e]
     if consts and re.fullmatch(r"\w+", e) and e in consts:
         return consts[e]
     if re.fullmatch(r"\w+", e):
@@ -107,7 +109,7 @@ def target_of(first_arg: str):
 NUMERICISH = re.compile(r"^-?\d+$|magicNumber|this\.damage|this\.block|currentBlock|energyOnUse")
 
 
-def classify_action(cls: str, args: str, consts: dict, overrides: dict):
+def classify_action(cls: str, args: str, consts: dict, overrides: dict, lvars: dict | None = None):
     parts = split_top(args)
     if cls == "DamageAction":
         di = re.search(r"new\s+DamageInfo\s*\(", args)
@@ -151,6 +153,27 @@ def classify_action(cls: str, args: str, consts: dict, overrides: dict):
         return {"MakeInDiscard": [cm.group(1) if cm else "?", n]}
     if cls in ("ExhaustAction", "ExhaustSpecificCardAction"):
         return {"ExhaustHand": True}
+    if cls == "MakeTempCardInHandAction":
+        if "makeStatEquivalentCopy" in args or "makeSameInstanceOf" in args:
+            return {"CopySelfToHand": expr(parts[1], consts, overrides, lvars) if len(parts) > 1 else 1}
+        cm = re.search(r"new\s+(\w+)\s*\(", args)
+        n = expr(parts[1], consts, overrides, lvars) if len(parts) > 1 else 1
+        return {"MakeInHand": [cm.group(1) if cm else "?", n]}
+    if cls == "MakeTempCardInDrawPileAction":
+        cm = re.search(r"new\s+(\w+)\s*\(", args)
+        n = expr(parts[1], consts, overrides, lvars) if len(parts) > 1 else 1
+        random_spot = len(parts) > 2 and parts[2].strip() == "true"
+        kind = "MakeInDrawRandom" if random_spot else "MakeInDrawTop"
+        return {kind: [cm.group(1) if cm else "?", n]}
+    if cls == "AttackDamageRandomEnemyAction":
+        # 目标 = getRandomMonster(null, true, cardRandomRng)——引擎用 card_random 流复刻
+        return {"DamageRandom": "DamageBase"}
+    if cls == "PummelDamageAction":
+        # (target, info[, times])：同目标多次伤害
+        if len(parts) >= 3:
+            times = expr(parts[2], consts, overrides, lvars)
+            return {"Repeat": [times, [{"Damage": ["Enemy", "DamageBase"]}]]}
+        return {"Damage": ["Enemy", "DamageBase"]}
     if cls == "LoseHPAction":
         return {"LoseHP": expr(parts[1], consts, overrides) if len(parts) > 1 else 0}
     if cls in PERFORMATIVE:
@@ -202,6 +225,10 @@ def collect_lvars(body: str) -> dict:
         lv[m.group(1)] = int(m.group(2))
     for m in re.finditer(r"\b(\w+)\s*=\s*this\.energyOnUse\s*;", body):
         lv[m.group(1)] = "XCost"
+    for m in re.finditer(r"\bint\s+(\w+)\s*=\s*this\.(magicNumber|baseMagicNumber)\s*;", body):
+        lv[m.group(1)] = "Magic"
+    for m in re.finditer(r"\bint\s+(\w+)\s*=\s*(this\.damage|this\.block)\s*;", body):
+        lv[m.group(1)] = "DamageBase" if "damage" in m.group(2) else "BlockBase"
     return lv
 
 
@@ -251,7 +278,7 @@ def scan_actions(text: str, consts: dict, overrides: dict, lvars: dict, depth: i
             cls = mn.group(1)
             args, end = balanced(text, mn.end() - 1)
             if cls.endswith("Action"):
-                eff = classify_action(cls, args, consts, overrides)
+                eff = classify_action(cls, args, consts, overrides, lvars)
                 if eff is not None:
                     effects.append(eff)
                     if "Unsupported" in eff:
@@ -326,10 +353,33 @@ def follow_action(root: Path, actions_index: dict, cls: str, call_args: str,
     for k, v in ov2.items():
         ov3[k] = v
     effs, unsup = scan_actions(up, consts, ov3, collect_lvars(up), 1)
-    # 空效果 = 动作体没有可识别的规则效果（如换姿态/充能），静默为空会变成 no-op，拒绝跟进
-    if unsup or not effs:
+    # 洁净检查：拒绝空效果（静默 no-op）、空循环体、未解析次数——只接收完整可执行的动作体
+    if unsup or not effs or not effects_clean(effs):
         return None
     return effs
+
+
+def effects_clean(effs) -> bool:
+    for e in effs:
+        k = next(iter(e))
+        v = e[k]
+        if k == "Repeat":
+            cnt, inner = v
+            if isinstance(cnt, dict) or not inner:
+                return False
+            if not effects_clean(inner):
+                return False
+        elif isinstance(v, list):
+            for item in v:
+                if isinstance(item, dict):
+                    return False
+                if isinstance(item, list):
+                    for x in item:
+                        if isinstance(x, dict):
+                            return False
+        elif isinstance(v, dict):
+            return False
+    return True
 
 
 def main():

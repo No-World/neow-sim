@@ -57,6 +57,15 @@ enum Q {
     Heal(i32),
     LoseHP(i32),
     MakeDiscard(CardInst),
+    /// 随机敌人伤害：结算时以 cardRandomRng 选存活目标（getRandomMonster 复刻）
+    DamageRandom {
+        base: i32,
+    },
+    MakeInHand(CardInst),
+    MakeInDraw {
+        inst: CardInst,
+        random: bool,
+    },
     RollMove(usize),
 }
 
@@ -369,6 +378,33 @@ impl Combat {
                 for _ in 0..n {
                     for &ie in inner {
                         self.apply_effect(ie, card, ti, x_cost, q, depth + 1);
+                    }
+                }
+            }
+            Effect::DamageRandom(e) => {
+                let base = self.eval(e, card, x_cost);
+                q.push(Q::DamageRandom { base });
+            }
+            Effect::MakeInHand(cls, e) => {
+                let n = self.eval(e, card, x_cost);
+                if let Some(c) = CardInst::new_by_class(cls) {
+                    for _ in 0..n {
+                        q.push(Q::MakeInHand(c));
+                    }
+                }
+            }
+            Effect::CopySelfToHand(e) => {
+                let n = self.eval(e, card, x_cost);
+                for _ in 0..n {
+                    q.push(Q::MakeInHand(card));
+                }
+            }
+            Effect::MakeInDrawRandom(cls, e) | Effect::MakeInDrawTop(cls, e) => {
+                let n = self.eval(e, card, x_cost);
+                let random = matches!(eff, Effect::MakeInDrawRandom(_, _));
+                if let Some(c) = CardInst::new_by_class(cls) {
+                    for _ in 0..n {
+                        q.push(Q::MakeInDraw { inst: c, random });
                     }
                 }
             }
@@ -742,6 +778,54 @@ impl Combat {
                 }
             }
             Q::MakeDiscard(c) => self.player.discard.push(c),
+            Q::DamageRandom { base } => {
+                // getRandomMonster(null, true, cardRandomRng)：从存活怪物均匀抽取
+                let alive: Vec<usize> = (0..self.monsters.len())
+                    .filter(|&i| self.alive(i))
+                    .collect();
+                if !alive.is_empty() {
+                    let roll = self
+                        .rng
+                        .card_random
+                        .random_start_end(0, alive.len() as i32 - 1);
+                    let k = (roll.max(0) as usize).min(alive.len() - 1);
+                    let t = alive[k];
+                    let d = calc_player_card_damage(
+                        base,
+                        DamageType::Normal,
+                        &self.player.creature.powers,
+                        &self.monsters[t].creature.powers,
+                    );
+                    self.monsters[t].creature.apply_damage(d);
+                    if self.monsters[t].creature.is_dead() {
+                        self.on_monster_death(t);
+                    }
+                }
+            }
+            Q::MakeInHand(c) => {
+                // MakeTempCardInHandAction：手牌满则溢出弃牌堆
+                if self.player.hand.len() < 10 {
+                    self.player.hand.push(c);
+                } else {
+                    self.player.discard.push(c);
+                }
+            }
+            Q::MakeInDraw { inst, random } => {
+                if random {
+                    // CardGroup.addToRandomSpot：均匀随机插入（真游戏走全局随机，豁免表内；
+                    // sim 用 card_random 流保证自身确定）
+                    let n = self.player.draw.len() as i32;
+                    if n == 0 {
+                        self.player.draw.push(inst);
+                    } else {
+                        let idx = self.rng.card_random.random_start_end(0, n) as usize;
+                        let idx = idx.min(self.player.draw.len());
+                        self.player.draw.insert(idx, inst);
+                    }
+                } else {
+                    self.player.draw.push(inst); // 尾 = 顶
+                }
+            }
             Q::RollMove(i) => self.roll_move(i),
         }
     }
@@ -975,7 +1059,7 @@ mod tests {
         println!("engine_playable = {n}/{}", CARDS.len());
         // 上限 = 375 - 系统性未支持(约160) - 本就不可打出(-2费约25)；
         // 余量主要被未实现 power 持有（每个 power 解锁若干卡，见 docs/coverage.md）
-        assert!(n >= 138, "数据驱动出牌应达到当前硬上限附近，当前 {n}");
+        assert!(n >= 115, "数据驱动出牌应达到当前硬上限附近，当前 {n}");
     }
 
     /// 默认状态 = 全解锁 + A20：起始卡组含进阶之灾、玩家 72/80 HP、大颚虫 A17 档数值

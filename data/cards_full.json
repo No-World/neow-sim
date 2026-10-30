@@ -4,10 +4,10 @@
   "note": "use() 效果 DSL；Unsupported 需手移植"
  },
  "stats": {
-  "parsed": 264,
-  "parsed_branch": 49,
+  "parsed": 210,
+  "parsed_branch": 45,
   "no_use": 0,
-  "unsupported": 62
+  "unsupported": 120
  },
  "data": [
   {
@@ -58,31 +58,13 @@
      "Block": "BlockBase"
     },
     {
-     "Repeat": [
-      1,
-      []
-     ]
-    },
-    {
-     "Repeat": [
-      1,
-      []
-     ]
-    },
-    {
-     "Repeat": [
-      1,
-      []
-     ]
-    },
-    {
-     "Repeat": [
-      1,
-      []
-     ]
+     "Unsupported": "ArmamentsAction"
     }
    ],
-   "status": "parsed"
+   "status": "unsupported",
+   "unsupported": [
+    "ArmamentsAction"
+   ]
   },
   {
    "id": "Barricade",
@@ -828,25 +810,13 @@
    },
    "effects": [
     {
-     "Repeat": [
-      1,
-      []
-     ]
-    },
-    {
-     "Repeat": [
-      1,
-      []
-     ]
-    },
-    {
-     "Repeat": [
-      1,
-      []
-     ]
+     "Unsupported": "ExhumeAction"
     }
    ],
-   "status": "parsed"
+   "status": "unsupported",
+   "unsupported": [
+    "ExhumeAction"
+   ]
   },
   {
    "id": "Feed",
@@ -924,37 +894,13 @@
    },
    "effects": [
     {
-     "Repeat": [
-      {
-       "Raw": "count"
-      },
-      [
-       {
-        "Damage": [
-         "Unknown",
-         "DamageBase"
-        ]
-       }
-      ]
-     ]
-    },
-    {
-     "Repeat": [
-      {
-       "Raw": "count"
-      },
-      [
-       {
-        "ExhaustHand": true
-       },
-       {
-        "ExhaustHand": true
-       }
-      ]
-     ]
+     "Unsupported": "FiendFireAction"
     }
    ],
-   "status": "parsed"
+   "status": "unsupported",
+   "unsupported": [
+    "FiendFireAction"
+   ]
   },
   {
    "id": "Fire Breathing",
@@ -1123,13 +1069,13 @@
      ]
     },
     {
-     "Repeat": [
-      1,
-      []
-     ]
+     "Unsupported": "DiscardPileToTopOfDeckAction"
     }
    ],
-   "status": "parsed"
+   "status": "unsupported",
+   "unsupported": [
+    "DiscardPileToTopOfDeckAction"
+   ]
   },
   {
    "id": "Heavy Blade",
@@ -1262,13 +1208,15 @@
    },
    "effects": [
     {
-     "Unsupported": "MakeTempCardInHandAction"
+     "MakeInHand": [
+      "?",
+      {
+       "Const": "true"
+      }
+     ]
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "MakeTempCardInHandAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Inflame",
@@ -1408,16 +1356,13 @@
    "upgrade": {},
    "effects": [
     {
-     "ApplyPower": [
-      "Unknown",
-      "Strength",
-      {
-       "Const": "strAmt"
-      }
-     ]
+     "Unsupported": "LimitBreakAction"
     }
    ],
-   "status": "parsed"
+   "status": "unsupported",
+   "unsupported": [
+    "LimitBreakAction"
+   ]
   },
   {
    "id": "Metallicize",
@@ -1553,16 +1498,16 @@
    },
    "effects": [
     {
-     "Unsupported": "MakeTempCardInHandAction"
+     "MakeInHand": [
+      "Wound",
+      2
+     ]
     },
     {
      "Block": "BlockBase"
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "MakeTempCardInHandAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Pummel",
@@ -1588,7 +1533,10 @@
       "Magic",
       [
        {
-        "Unsupported": "PummelDamageAction"
+        "Damage": [
+         "Enemy",
+         "DamageBase"
+        ]
        }
       ]
      ]
@@ -1600,10 +1548,7 @@
      ]
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "PummelDamageAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Rage",
@@ -1656,13 +1601,13 @@
      ]
     },
     {
-     "Repeat": [
-      1,
-      []
-     ]
+     "Unsupported": "ModifyDamageAction"
     }
    ],
-   "status": "parsed"
+   "status": "unsupported",
+   "unsupported": [
+    "ModifyDamageAction"
+   ]
   },
   {
    "id": "Reaper",
@@ -1684,43 +1629,13 @@
    },
    "effects": [
     {
-     "Repeat": [
-      {
-       "Raw": "temp"
-      },
-      []
-     ]
-    },
-    {
-     "Repeat": [
-      1,
-      []
-     ]
-    },
-    {
-     "Repeat": [
-      {
-       "Raw": "AbstractDungeon.getCurrRoom().monsters.monsters.size()"
-      },
-      [
-       {
-        "Repeat": [
-         {
-          "Raw": "target.lastDamageTaken / 2 && j < 10"
-         },
-         []
-        ]
-       }
-      ]
-     ]
-    },
-    {
-     "Heal": {
-      "Const": "healAmount"
-     }
+     "Unsupported": "VampireDamageAllEnemiesAction"
     }
    ],
-   "status": "parsed"
+   "status": "unsupported",
+   "unsupported": [
+    "VampireDamageAllEnemiesAction"
+   ]
   },
   {
    "id": "Reckless Charge",
@@ -1746,19 +1661,9 @@
      ]
     },
     {
-     "Repeat": [
-      {
-       "Raw": "this.amount"
-      },
-      []
-     ]
-    },
-    {
-     "Repeat": [
-      {
-       "Raw": "this.amount"
-      },
-      []
+     "MakeInDrawRandom": [
+      "Dazed",
+      1
      ]
     }
    ],
@@ -1837,35 +1742,13 @@
    },
    "effects": [
     {
-     "Repeat": [
-      1,
-      []
-     ]
-    },
-    {
-     "Repeat": [
-      1,
-      [
-       {
-        "Block": {
-         "Raw": "this.blockPerCard"
-        }
-       }
-      ]
-     ]
-    },
-    {
-     "Repeat": [
-      1,
-      [
-       {
-        "ExhaustHand": true
-       }
-      ]
-     ]
+     "Unsupported": "BlockPerNonAttackAction"
     }
    ],
-   "status": "parsed"
+   "status": "unsupported",
+   "unsupported": [
+    "BlockPerNonAttackAction"
+   ]
   },
   {
    "id": "Seeing Red",
@@ -2038,16 +1921,13 @@
    },
    "effects": [
     {
-     "ApplyPower": [
-      "Self",
-      "Strength",
-      {
-       "Raw": "this.damageIncrease"
-      }
-     ]
+     "Unsupported": "SpotWeaknessAction"
     }
    ],
-   "status": "parsed"
+   "status": "unsupported",
+   "unsupported": [
+    "SpotWeaknessAction"
+   ]
   },
   {
    "id": "Strike_R",
@@ -2097,16 +1977,13 @@
       "Magic",
       [
        {
-        "Unsupported": "AttackDamageRandomEnemyAction"
+        "DamageRandom": "DamageBase"
        }
       ]
      ]
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "AttackDamageRandomEnemyAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Thunderclap",
@@ -2275,29 +2152,13 @@
      "Draw": "Magic"
     },
     {
-     "Repeat": [
-      {
-       "Raw": "this.amount"
-      },
-      []
-     ]
-    },
-    {
-     "Repeat": [
-      {
-       "Raw": "this.p.hand.size()"
-      },
-      []
-     ]
-    },
-    {
-     "Repeat": [
-      1,
-      []
-     ]
+     "Unsupported": "PutOnDeckAction"
     }
    ],
-   "status": "parsed"
+   "status": "unsupported",
+   "unsupported": [
+    "PutOnDeckAction"
+   ]
   },
   {
    "id": "Whirlwind",
@@ -2353,19 +2214,9 @@
      ]
     },
     {
-     "Repeat": [
-      {
-       "Raw": "this.amount"
-      },
-      []
-     ]
-    },
-    {
-     "Repeat": [
-      {
-       "Raw": "this.amount"
-      },
-      []
+     "MakeInDrawRandom": [
+      "Wound",
+      1
      ]
     }
    ],
@@ -2446,29 +2297,13 @@
      "Draw": "Magic"
     },
     {
-     "Repeat": [
-      {
-       "Raw": "tmp"
-      },
-      []
-     ]
-    },
-    {
-     "Repeat": [
-      {
-       "Raw": "this.amount"
-      },
-      []
-     ]
-    },
-    {
-     "Repeat": [
-      1,
-      []
-     ]
+     "Unsupported": "DiscardAction"
     }
    ],
-   "status": "parsed"
+   "status": "unsupported",
+   "unsupported": [
+    "DiscardAction"
+   ]
   },
   {
    "id": "Adrenaline",
@@ -2579,29 +2414,13 @@
      "DamageAll": "DamageBase"
     },
     {
-     "Repeat": [
-      {
-       "Raw": "tmp"
-      },
-      []
-     ]
-    },
-    {
-     "Repeat": [
-      {
-       "Raw": "this.amount"
-      },
-      []
-     ]
-    },
-    {
-     "Repeat": [
-      1,
-      []
-     ]
+     "Unsupported": "DiscardAction"
     }
    ],
-   "status": "parsed"
+   "status": "unsupported",
+   "unsupported": [
+    "DiscardAction"
+   ]
   },
   {
    "id": "Backflip",
@@ -2708,13 +2527,13 @@
    },
    "effects": [
     {
-     "Unsupported": "MakeTempCardInHandAction"
+     "MakeInHand": [
+      "Shiv",
+      "Magic"
+     ]
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "MakeTempCardInHandAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Blur",
@@ -2797,13 +2616,13 @@
      ]
     },
     {
-     "Repeat": [
-      1,
-      []
-     ]
+     "Unsupported": "ApplyBulletTimeAction"
     }
    ],
-   "status": "parsed"
+   "status": "unsupported",
+   "unsupported": [
+    "ApplyBulletTimeAction"
+   ]
   },
   {
    "id": "Burst",
@@ -2903,25 +2722,17 @@
    "upgrade": {},
    "effects": [
     {
-     "ApplyPower": [
-      "Unknown",
-      "Poison",
-      {
-       "Raw": "this.source"
-      }
-     ]
+     "Unsupported": "DoublePoisonAction"
     },
     {
-     "ApplyPower": [
-      "Unknown",
-      "Poison",
-      {
-       "Raw": "this.source"
-      }
-     ]
+     "Unsupported": "TriplePoisonAction"
     }
    ],
-   "status": "parsed_branch"
+   "status": "unsupported",
+   "unsupported": [
+    "DoublePoisonAction",
+    "TriplePoisonAction"
+   ]
   },
   {
    "id": "Choke",
@@ -2977,13 +2788,13 @@
      "Block": "BlockBase"
     },
     {
-     "Unsupported": "MakeTempCardInHandAction"
+     "MakeInHand": [
+      "Shiv",
+      "Magic"
+     ]
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "MakeTempCardInHandAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Concentrate",
@@ -3003,32 +2814,16 @@
    },
    "effects": [
     {
-     "Repeat": [
-      {
-       "Raw": "tmp"
-      },
-      []
-     ]
-    },
-    {
-     "Repeat": [
-      {
-       "Raw": "this.amount"
-      },
-      []
-     ]
-    },
-    {
-     "Repeat": [
-      1,
-      []
-     ]
+     "Unsupported": "DiscardAction"
     },
     {
      "GainEnergy": 2
     }
    ],
-   "status": "parsed"
+   "status": "unsupported",
+   "unsupported": [
+    "DiscardAction"
+   ]
   },
   {
    "id": "Corpse Explosion",
@@ -3160,29 +2955,13 @@
      "Draw": 1
     },
     {
-     "Repeat": [
-      {
-       "Raw": "tmp"
-      },
-      []
-     ]
-    },
-    {
-     "Repeat": [
-      {
-       "Raw": "this.amount"
-      },
-      []
-     ]
-    },
-    {
-     "Repeat": [
-      1,
-      []
-     ]
+     "Unsupported": "DiscardAction"
     }
    ],
-   "status": "parsed_branch"
+   "status": "unsupported",
+   "unsupported": [
+    "DiscardAction"
+   ]
   },
   {
    "id": "Dash",
@@ -3332,13 +3111,15 @@
    },
    "effects": [
     {
-     "Unsupported": "MakeTempCardInHandAction"
+     "MakeInHand": [
+      "?",
+      {
+       "Const": "true"
+      }
+     ]
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "MakeTempCardInHandAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Dodge and Roll",
@@ -3388,25 +3169,13 @@
    "upgrade": {},
    "effects": [
     {
-     "ApplyPower": [
-      "Unknown",
-      "EnergizedPower",
-      {
-       "Const": "effect"
-      }
-     ]
-    },
-    {
-     "ApplyPower": [
-      "Unknown",
-      "DrawCardNextTurnPower",
-      {
-       "Const": "effect"
-      }
-     ]
+     "Unsupported": "DoppelgangerAction"
     }
    ],
-   "status": "parsed"
+   "status": "unsupported",
+   "unsupported": [
+    "DoppelgangerAction"
+   ]
   },
   {
    "id": "Endless Agony",
@@ -3544,12 +3313,13 @@
    },
    "effects": [
     {
-     "Draw": {
-      "Const": "toDraw"
-     }
+     "Unsupported": "ExpertiseAction"
     }
    ],
-   "status": "parsed"
+   "status": "unsupported",
+   "unsupported": [
+    "ExpertiseAction"
+   ]
   },
   {
    "id": "Finisher",
@@ -3569,26 +3339,13 @@
    },
    "effects": [
     {
-     "Repeat": [
-      1,
-      []
-     ]
-    },
-    {
-     "Repeat": [
-      0,
-      [
-       {
-        "Damage": [
-         "Unknown",
-         "DamageBase"
-        ]
-       }
-      ]
-     ]
+     "Unsupported": "DamagePerAttackPlayedAction"
     }
    ],
-   "status": "parsed"
+   "status": "unsupported",
+   "unsupported": [
+    "DamagePerAttackPlayedAction"
+   ]
   },
   {
    "id": "Flechettes",
@@ -3713,13 +3470,13 @@
      ]
     },
     {
-     "Repeat": [
-      1,
-      []
-     ]
+     "Unsupported": "ModifyDamageAction"
     }
    ],
-   "status": "parsed"
+   "status": "unsupported",
+   "unsupported": [
+    "ModifyDamageAction"
+   ]
   },
   {
    "id": "Grand Finale",
@@ -3856,25 +3613,13 @@
    "upgrade": {},
    "effects": [
     {
-     "ApplyPower": [
-      "Unknown",
-      "Strength",
-      {
-       "Raw": "-effect"
-      }
-     ]
-    },
-    {
-     "ApplyPower": [
-      "Unknown",
-      "Weakened",
-      {
-       "Const": "effect"
-      }
-     ]
+     "Unsupported": "MalaiseAction"
     }
    ],
-   "status": "parsed"
+   "status": "unsupported",
+   "unsupported": [
+    "MalaiseAction"
+   ]
   },
   {
    "id": "Masterful Stab",
@@ -3956,25 +3701,13 @@
    },
    "effects": [
     {
-     "ApplyPower": [
-      "Unknown",
-      "NightmarePower",
-      {
-       "Raw": "this.amount"
-      }
-     ]
-    },
-    {
-     "ApplyPower": [
-      "Unknown",
-      "NightmarePower",
-      {
-       "Raw": "this.amount"
-      }
-     ]
+     "Unsupported": "NightmareAction"
     }
    ],
-   "status": "parsed"
+   "status": "unsupported",
+   "unsupported": [
+    "NightmareAction"
+   ]
   },
   {
    "id": "Noxious Fumes",
@@ -4202,29 +3935,13 @@
      "Draw": "Magic"
     },
     {
-     "Repeat": [
-      {
-       "Raw": "tmp"
-      },
-      []
-     ]
-    },
-    {
-     "Repeat": [
-      {
-       "Raw": "this.amount"
-      },
-      []
-     ]
-    },
-    {
-     "Repeat": [
-      1,
-      []
-     ]
+     "Unsupported": "DiscardAction"
     }
    ],
-   "status": "parsed"
+   "status": "unsupported",
+   "unsupported": [
+    "DiscardAction"
+   ]
   },
   {
    "id": "Quick Slash",
@@ -4329,13 +4046,13 @@
    },
    "effects": [
     {
-     "Repeat": [
-      1,
-      []
-     ]
+     "Unsupported": "SetupAction"
     }
    ],
-   "status": "parsed"
+   "status": "unsupported",
+   "unsupported": [
+    "SetupAction"
+   ]
   },
   {
    "id": "Skewer",
@@ -4420,13 +4137,13 @@
      ]
     },
     {
-     "Repeat": [
-      1,
-      []
-     ]
+     "Unsupported": "GainEnergyIfDiscardAction"
     }
    ],
-   "status": "parsed"
+   "status": "unsupported",
+   "unsupported": [
+    "GainEnergyIfDiscardAction"
+   ]
   },
   {
    "id": "Storm of Steel",
@@ -4533,29 +4250,13 @@
      "Block": "BlockBase"
     },
     {
-     "Repeat": [
-      {
-       "Raw": "tmp"
-      },
-      []
-     ]
-    },
-    {
-     "Repeat": [
-      {
-       "Raw": "this.amount"
-      },
-      []
-     ]
-    },
-    {
-     "Repeat": [
-      1,
-      []
-     ]
+     "Unsupported": "DiscardAction"
     }
    ],
-   "status": "parsed"
+   "status": "unsupported",
+   "unsupported": [
+    "DiscardAction"
+   ]
   },
   {
    "id": "Tactician",
@@ -4748,19 +4449,9 @@
    },
    "effects": [
     {
-     "Repeat": [
-      {
-       "Raw": "this.amount"
-      },
-      []
-     ]
-    },
-    {
-     "Repeat": [
-      {
-       "Raw": "this.amount"
-      },
-      []
+     "MakeInDrawRandom": [
+      "?",
+      1
      ]
     }
    ],
@@ -4820,22 +4511,7 @@
    },
    "effects": [
     {
-     "Repeat": [
-      1,
-      []
-     ]
-    },
-    {
-     "Repeat": [
-      1,
-      []
-     ]
-    },
-    {
-     "Repeat": [
-      1,
-      []
-     ]
+     "Unsupported": "ChangeStanceAction"
     },
     {
      "ApplyPower": [
@@ -4845,7 +4521,10 @@
      ]
     }
    ],
-   "status": "parsed"
+   "status": "unsupported",
+   "unsupported": [
+    "ChangeStanceAction"
+   ]
   },
   {
    "id": "BowlingBash",
@@ -4930,13 +4609,10 @@
      ]
     },
     {
-     "Unsupported": "MakeTempCardInHandAction"
+     "CopySelfToHand": 1
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "MakeTempCardInHandAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Collect",
@@ -4956,16 +4632,13 @@
    "upgrade": {},
    "effects": [
     {
-     "ApplyPower": [
-      "Unknown",
-      "CollectPower",
-      {
-       "Const": "effect"
-      }
-     ]
+     "Unsupported": "CollectAction"
     }
    ],
-   "status": "parsed"
+   "status": "unsupported",
+   "unsupported": [
+    "CollectAction"
+   ]
   },
   {
    "id": "Conclude",
@@ -5014,17 +4687,19 @@
    "upgrade": {},
    "effects": [
     {
-     "Unsupported": "ConjureBladeAction"
+     "MakeInDrawRandom": [
+      "?",
+      1
+     ]
     },
     {
-     "Unsupported": "ConjureBladeAction"
+     "MakeInDrawRandom": [
+      "?",
+      1
+     ]
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "ConjureBladeAction",
-    "ConjureBladeAction"
-   ]
+   "status": "parsed_branch"
   },
   {
    "id": "Consecrate",
@@ -5070,25 +4745,13 @@
    },
    "effects": [
     {
-     "Repeat": [
-      1,
-      []
-     ]
-    },
-    {
-     "Repeat": [
-      1,
-      []
-     ]
-    },
-    {
-     "Repeat": [
-      1,
-      []
-     ]
+     "Unsupported": "ChangeStanceAction"
     }
    ],
-   "status": "parsed"
+   "status": "unsupported",
+   "unsupported": [
+    "ChangeStanceAction"
+   ]
   },
   {
    "id": "CrushJoints",
@@ -5149,42 +4812,16 @@
      ]
     },
     {
-     "Repeat": [
-      1,
-      []
-     ]
-    },
-    {
-     "Repeat": [
-      {
-       "Raw": "Math.min(this.amount, AbstractDungeon.player.drawPile.size()"
-      },
-      []
-     ]
-    },
-    {
-     "Repeat": [
-      1,
-      []
-     ]
-    },
-    {
-     "Repeat": [
-      1,
-      []
-     ]
-    },
-    {
-     "Repeat": [
-      1,
-      []
-     ]
+     "Unsupported": "ScryAction"
     },
     {
      "Draw": 1
     }
    ],
-   "status": "parsed"
+   "status": "unsupported",
+   "unsupported": [
+    "ScryAction"
+   ]
   },
   {
    "id": "DeceiveReality",
@@ -5207,13 +4844,10 @@
      "Block": "BlockBase"
     },
     {
-     "Unsupported": "MakeTempCardInHandAction"
+     "CopySelfToHand": 1
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "MakeTempCardInHandAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Defend_P",
@@ -5364,27 +4998,13 @@
      "Unsupported": "NotStanceCheckAction"
     },
     {
-     "Repeat": [
-      1,
-      []
-     ]
-    },
-    {
-     "Repeat": [
-      1,
-      []
-     ]
-    },
-    {
-     "Repeat": [
-      1,
-      []
-     ]
+     "Unsupported": "ChangeStanceAction"
     }
    ],
    "status": "unsupported",
    "unsupported": [
-    "NotStanceCheckAction"
+    "NotStanceCheckAction",
+    "ChangeStanceAction"
    ]
   },
   {
@@ -5414,27 +5034,13 @@
      "Unsupported": "NotStanceCheckAction"
     },
     {
-     "Repeat": [
-      1,
-      []
-     ]
-    },
-    {
-     "Repeat": [
-      1,
-      []
-     ]
-    },
-    {
-     "Repeat": [
-      1,
-      []
-     ]
+     "Unsupported": "ChangeStanceAction"
     }
    ],
    "status": "unsupported",
    "unsupported": [
-    "NotStanceCheckAction"
+    "NotStanceCheckAction",
+    "ChangeStanceAction"
    ]
   },
   {
@@ -5461,27 +5067,13 @@
      "Unsupported": "NotStanceCheckAction"
     },
     {
-     "Repeat": [
-      1,
-      []
-     ]
-    },
-    {
-     "Repeat": [
-      1,
-      []
-     ]
-    },
-    {
-     "Repeat": [
-      1,
-      []
-     ]
+     "Unsupported": "ChangeStanceAction"
     }
    ],
    "status": "unsupported",
    "unsupported": [
-    "NotStanceCheckAction"
+    "NotStanceCheckAction",
+    "ChangeStanceAction"
    ]
   },
   {
@@ -5508,25 +5100,13 @@
      ]
     },
     {
-     "Repeat": [
-      1,
-      []
-     ]
-    },
-    {
-     "Repeat": [
-      1,
-      []
-     ]
-    },
-    {
-     "Repeat": [
-      1,
-      []
-     ]
+     "Unsupported": "ChangeStanceAction"
     }
    ],
-   "status": "parsed"
+   "status": "unsupported",
+   "unsupported": [
+    "ChangeStanceAction"
+   ]
   },
   {
    "id": "Establishment",
@@ -5580,19 +5160,9 @@
      "Block": "BlockBase"
     },
     {
-     "Repeat": [
-      {
-       "Raw": "this.amount"
-      },
-      []
-     ]
-    },
-    {
-     "Repeat": [
-      {
-       "Raw": "this.amount"
-      },
-      []
+     "MakeInDrawRandom": [
+      "?",
+      1
      ]
     }
    ],
@@ -5825,17 +5395,13 @@
    },
    "effects": [
     {
-     "Block": {
-      "Raw": "this.amount + this.additionalAmt"
-     }
-    },
-    {
-     "Block": {
-      "Raw": "this.amount"
-     }
+     "Unsupported": "HaltAction"
     }
    ],
-   "status": "parsed"
+   "status": "unsupported",
+   "unsupported": [
+    "HaltAction"
+   ]
   },
   {
    "id": "Indignation",
@@ -5935,36 +5501,7 @@
    },
    "effects": [
     {
-     "Repeat": [
-      1,
-      []
-     ]
-    },
-    {
-     "Repeat": [
-      {
-       "Raw": "Math.min(this.amount, AbstractDungeon.player.drawPile.size()"
-      },
-      []
-     ]
-    },
-    {
-     "Repeat": [
-      1,
-      []
-     ]
-    },
-    {
-     "Repeat": [
-      1,
-      []
-     ]
-    },
-    {
-     "Repeat": [
-      1,
-      []
-     ]
+     "Unsupported": "ScryAction"
     },
     {
      "Block": "BlockBase"
@@ -5976,7 +5513,10 @@
      ]
     }
    ],
-   "status": "parsed"
+   "status": "unsupported",
+   "unsupported": [
+    "ScryAction"
+   ]
   },
   {
    "id": "LessonLearned",
@@ -5998,13 +5538,13 @@
    },
    "effects": [
     {
-     "Repeat": [
-      1,
-      []
-     ]
+     "Unsupported": "LessonLearnedAction"
     }
    ],
-   "status": "parsed"
+   "status": "unsupported",
+   "unsupported": [
+    "LessonLearnedAction"
+   ]
   },
   {
    "id": "LikeWater",
@@ -6078,40 +5618,7 @@
    },
    "effects": [
     {
-     "Repeat": [
-      1,
-      []
-     ]
-    },
-    {
-     "Repeat": [
-      1,
-      []
-     ]
-    },
-    {
-     "Repeat": [
-      1,
-      []
-     ]
-    },
-    {
-     "Repeat": [
-      1,
-      []
-     ]
-    },
-    {
-     "Repeat": [
-      1,
-      []
-     ]
-    },
-    {
-     "Repeat": [
-      1,
-      []
-     ]
+     "Unsupported": "MeditateAction"
     },
     {
      "Unsupported": "ChangeStanceAction"
@@ -6122,6 +5629,8 @@
    ],
    "status": "unsupported",
    "unsupported": [
+    "MeditateAction",
+    "ChangeStanceAction",
     "PressEndTurnButtonAction"
    ]
   },
@@ -6258,19 +5767,9 @@
      ]
     },
     {
-     "Repeat": [
-      {
-       "Raw": "this.amount"
-      },
-      []
-     ]
-    },
-    {
-     "Repeat": [
-      {
-       "Raw": "this.amount"
-      },
-      []
+     "MakeInDrawRandom": [
+      "?",
+      1
      ]
     }
    ],
@@ -6301,20 +5800,13 @@
      ]
     },
     {
-     "Repeat": [
-      1,
-      [
-       {
-        "Repeat": [
-         1,
-         []
-        ]
-       }
-      ]
-     ]
+     "Unsupported": "TriggerMarksAction"
     }
    ],
-   "status": "parsed_branch"
+   "status": "unsupported",
+   "unsupported": [
+    "TriggerMarksAction"
+   ]
   },
   {
    "id": "Prostrate",
@@ -6394,16 +5886,13 @@
       "Magic",
       [
        {
-        "Unsupported": "AttackDamageRandomEnemyAction"
+        "DamageRandom": "DamageBase"
        }
       ]
      ]
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "AttackDamageRandomEnemyAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "ReachHeaven",
@@ -6429,19 +5918,9 @@
      ]
     },
     {
-     "Repeat": [
-      {
-       "Raw": "this.amount"
-      },
-      []
-     ]
-    },
-    {
-     "Repeat": [
-      {
-       "Raw": "this.amount"
-      },
-      []
+     "MakeInDrawRandom": [
+      "?",
+      1
      ]
     }
    ],
@@ -6495,12 +5974,13 @@
      "Block": "BlockBase"
     },
     {
-     "Draw": {
-      "Raw": "this.amtToDraw"
-     }
+     "Unsupported": "SanctityAction"
     }
    ],
-   "status": "parsed"
+   "status": "unsupported",
+   "unsupported": [
+    "SanctityAction"
+   ]
   },
   {
    "id": "SandsOfTime",
@@ -6584,12 +6064,13 @@
    },
    "effects": [
     {
-     "Draw": {
-      "Const": "toDraw"
-     }
+     "Unsupported": "ExpertiseAction"
     }
    ],
-   "status": "parsed"
+   "status": "unsupported",
+   "unsupported": [
+    "ExpertiseAction"
+   ]
   },
   {
    "id": "SignatureMove",
@@ -6826,25 +6307,13 @@
      ]
     },
     {
-     "Repeat": [
-      1,
-      []
-     ]
-    },
-    {
-     "Repeat": [
-      1,
-      []
-     ]
-    },
-    {
-     "Repeat": [
-      1,
-      []
-     ]
+     "Unsupported": "ChangeStanceAction"
     }
    ],
-   "status": "parsed"
+   "status": "unsupported",
+   "unsupported": [
+    "ChangeStanceAction"
+   ]
   },
   {
    "id": "ThirdEye",
@@ -6868,39 +6337,13 @@
      "Block": "BlockBase"
     },
     {
-     "Repeat": [
-      1,
-      []
-     ]
-    },
-    {
-     "Repeat": [
-      {
-       "Raw": "Math.min(this.amount, AbstractDungeon.player.drawPile.size()"
-      },
-      []
-     ]
-    },
-    {
-     "Repeat": [
-      1,
-      []
-     ]
-    },
-    {
-     "Repeat": [
-      1,
-      []
-     ]
-    },
-    {
-     "Repeat": [
-      1,
-      []
-     ]
+     "Unsupported": "ScryAction"
     }
    ],
-   "status": "parsed_branch"
+   "status": "unsupported",
+   "unsupported": [
+    "ScryAction"
+   ]
   },
   {
    "id": "ClearTheMind",
@@ -6923,25 +6366,13 @@
    },
    "effects": [
     {
-     "Repeat": [
-      1,
-      []
-     ]
-    },
-    {
-     "Repeat": [
-      1,
-      []
-     ]
-    },
-    {
-     "Repeat": [
-      1,
-      []
-     ]
+     "Unsupported": "ChangeStanceAction"
     }
    ],
-   "status": "parsed"
+   "status": "unsupported",
+   "unsupported": [
+    "ChangeStanceAction"
+   ]
   },
   {
    "id": "Unraveling",
@@ -6963,20 +6394,13 @@
    },
    "effects": [
     {
-     "Repeat": [
-      1,
-      [
-       {
-        "Repeat": [
-         1,
-         []
-        ]
-       }
-      ]
-     ]
+     "Unsupported": "UnravelingAction"
     }
    ],
-   "status": "parsed"
+   "status": "unsupported",
+   "unsupported": [
+    "UnravelingAction"
+   ]
   },
   {
    "id": "Vault",
@@ -7031,25 +6455,13 @@
      "Block": "BlockBase"
     },
     {
-     "Repeat": [
-      1,
-      []
-     ]
-    },
-    {
-     "Repeat": [
-      1,
-      []
-     ]
-    },
-    {
-     "Repeat": [
-      1,
-      []
-     ]
+     "Unsupported": "ChangeStanceAction"
     }
    ],
-   "status": "parsed"
+   "status": "unsupported",
+   "unsupported": [
+    "ChangeStanceAction"
+   ]
   },
   {
    "id": "Wallop",
@@ -7069,12 +6481,13 @@
    },
    "effects": [
     {
-     "Block": {
-      "Raw": "this.target.lastDamageTaken"
-     }
+     "Unsupported": "WallopAction"
     }
    ],
-   "status": "parsed"
+   "status": "unsupported",
+   "unsupported": [
+    "WallopAction"
+   ]
   },
   {
    "id": "WaveOfTheHand",
@@ -7446,22 +6859,13 @@
    },
    "effects": [
     {
-     "Repeat": [
-      {
-       "Raw": "AbstractDungeon.player.orbs.size()"
-      },
-      [
-       {
-        "Damage": [
-         "Unknown",
-         "DamageBase"
-        ]
-       }
-      ]
-     ]
+     "Unsupported": "BarrageAction"
     }
    ],
-   "status": "parsed"
+   "status": "unsupported",
+   "unsupported": [
+    "BarrageAction"
+   ]
   },
   {
    "id": "Beam Cell",
@@ -7631,15 +7035,13 @@
    },
    "effects": [
     {
-     "Repeat": [
-      {
-       "Raw": "this.amount"
-      },
-      []
-     ]
+     "Unsupported": "IncreaseMaxOrbAction"
     }
    ],
-   "status": "parsed"
+   "status": "unsupported",
+   "unsupported": [
+    "IncreaseMaxOrbAction"
+   ]
   },
   {
    "id": "Chaos",
@@ -7659,19 +7061,17 @@
    },
    "effects": [
     {
-     "Repeat": [
-      1,
-      []
-     ]
+     "Unsupported": "ChannelAction"
     },
     {
-     "Repeat": [
-      1,
-      []
-     ]
+     "Unsupported": "ChannelAction"
     }
    ],
-   "status": "parsed_branch"
+   "status": "unsupported",
+   "unsupported": [
+    "ChannelAction",
+    "ChannelAction"
+   ]
   },
   {
    "id": "Chill",
@@ -7743,25 +7143,13 @@
      ]
     },
     {
-     "Repeat": [
-      1,
-      []
-     ]
-    },
-    {
-     "Repeat": [
-      1,
-      []
-     ]
-    },
-    {
-     "Repeat": [
-      1,
-      []
-     ]
+     "Unsupported": "GashAction"
     }
    ],
-   "status": "parsed_branch"
+   "status": "unsupported",
+   "unsupported": [
+    "GashAction"
+   ]
   },
   {
    "id": "Cold Snap",
@@ -7826,18 +7214,13 @@
      ]
     },
     {
-     "Repeat": [
-      1,
-      []
-     ]
-    },
-    {
-     "Draw": {
-      "Const": "toDraw"
-     }
+     "Unsupported": "CompileDriverAction"
     }
    ],
-   "status": "parsed"
+   "status": "unsupported",
+   "unsupported": [
+    "CompileDriverAction"
+   ]
   },
   {
    "id": "Conserve Battery",
@@ -7894,15 +7277,13 @@
      ]
     },
     {
-     "Repeat": [
-      {
-       "Raw": "this.amount"
-      },
-      []
-     ]
+     "Unsupported": "DecreaseMaxOrbAction"
     }
    ],
-   "status": "parsed"
+   "status": "unsupported",
+   "unsupported": [
+    "DecreaseMaxOrbAction"
+   ]
   },
   {
    "id": "Coolheaded",
@@ -7922,16 +7303,16 @@
    },
    "effects": [
     {
-     "Repeat": [
-      1,
-      []
-     ]
+     "Unsupported": "ChannelAction"
     },
     {
      "Draw": "Magic"
     }
    ],
-   "status": "parsed"
+   "status": "unsupported",
+   "unsupported": [
+    "ChannelAction"
+   ]
   },
   {
    "id": "Core Surge",
@@ -8011,19 +7392,17 @@
    "upgrade": {},
    "effects": [
     {
-     "Repeat": [
-      1,
-      []
-     ]
+     "Unsupported": "ChannelAction"
     },
     {
-     "Repeat": [
-      1,
-      []
-     ]
+     "Unsupported": "DarkImpulseAction"
     }
    ],
-   "status": "parsed_branch"
+   "status": "unsupported",
+   "unsupported": [
+    "ChannelAction",
+    "DarkImpulseAction"
+   ]
   },
   {
    "id": "Defend_B",
@@ -8096,13 +7475,13 @@
      "DamageAll": "DamageBase"
     },
     {
-     "Repeat": [
-      1,
-      []
-     ]
+     "Unsupported": "ChannelAction"
     }
    ],
-   "status": "parsed"
+   "status": "unsupported",
+   "unsupported": [
+    "ChannelAction"
+   ]
   },
   {
    "id": "Double Energy",
@@ -8150,39 +7529,25 @@
    },
    "effects": [
     {
-     "Repeat": [
-      {
-       "Raw": "this.orbCount"
-      },
-      []
-     ]
+     "Unsupported": "AnimateOrbAction"
     },
     {
-     "Repeat": [
-      {
-       "Raw": "this.orbCount"
-      },
-      []
-     ]
+     "Unsupported": "EvokeWithoutRemovingOrbAction"
     },
     {
-     "Repeat": [
-      {
-       "Raw": "this.orbCount"
-      },
-      []
-     ]
+     "Unsupported": "AnimateOrbAction"
     },
     {
-     "Repeat": [
-      {
-       "Raw": "this.orbCount"
-      },
-      []
-     ]
+     "Unsupported": "EvokeOrbAction"
     }
    ],
-   "status": "parsed"
+   "status": "unsupported",
+   "unsupported": [
+    "AnimateOrbAction",
+    "EvokeWithoutRemovingOrbAction",
+    "AnimateOrbAction",
+    "EvokeOrbAction"
+   ]
   },
   {
    "id": "Echo Form",
@@ -8416,22 +7781,16 @@
    },
    "effects": [
     {
-     "Repeat": [
-      1,
-      []
-     ]
-    },
-    {
-     "Repeat": [
-      1,
-      []
-     ]
+     "Unsupported": "IncreaseMiscAction"
     },
     {
      "Block": "BlockBase"
     }
    ],
-   "status": "parsed"
+   "status": "unsupported",
+   "unsupported": [
+    "IncreaseMiscAction"
+   ]
   },
   {
    "id": "Glacier",
@@ -8494,16 +7853,13 @@
      ]
     },
     {
-     "ApplyPower": [
-      "Unknown",
-      "Weakened",
-      {
-       "Raw": "this.amount"
-      }
-     ]
+     "Unsupported": "ForTheEyesAction"
     }
    ],
-   "status": "parsed"
+   "status": "unsupported",
+   "unsupported": [
+    "ForTheEyesAction"
+   ]
   },
   {
    "id": "Heatsinks",
@@ -8586,37 +7942,13 @@
      "Block": "BlockBase"
     },
     {
-     "Repeat": [
-      1,
-      []
-     ]
-    },
-    {
-     "Repeat": [
-      1,
-      []
-     ]
-    },
-    {
-     "Repeat": [
-      1,
-      []
-     ]
-    },
-    {
-     "Repeat": [
-      1,
-      []
-     ]
-    },
-    {
-     "Repeat": [
-      1,
-      []
-     ]
+     "Unsupported": "BetterDiscardPileToHandAction"
     }
    ],
-   "status": "parsed"
+   "status": "unsupported",
+   "unsupported": [
+    "BetterDiscardPileToHandAction"
+   ]
   },
   {
    "id": "Hyperbeam",
@@ -8668,13 +8000,13 @@
    "upgrade": {},
    "effects": [
     {
-     "Repeat": [
-      1,
-      []
-     ]
+     "Unsupported": "ImpulseAction"
     }
    ],
-   "status": "parsed"
+   "status": "unsupported",
+   "unsupported": [
+    "ImpulseAction"
+   ]
   },
   {
    "id": "Leap",
@@ -8935,25 +8267,21 @@
    "upgrade": {},
    "effects": [
     {
-     "Repeat": [
-      1,
-      []
-     ]
+     "Unsupported": "ChannelAction"
     },
     {
-     "Repeat": [
-      1,
-      []
-     ]
+     "Unsupported": "ChannelAction"
     },
     {
-     "Repeat": [
-      1,
-      []
-     ]
+     "Unsupported": "ChannelAction"
     }
    ],
-   "status": "parsed"
+   "status": "unsupported",
+   "unsupported": [
+    "ChannelAction",
+    "ChannelAction",
+    "ChannelAction"
+   ]
   },
   {
    "id": "Reboot",
@@ -8978,10 +8306,7 @@
      "Unsupported": "ShuffleAllAction"
     },
     {
-     "Repeat": [
-      1,
-      []
-     ]
+     "Unsupported": "ShuffleAction"
     },
     {
      "Draw": "Magic"
@@ -8989,7 +8314,8 @@
    ],
    "status": "unsupported",
    "unsupported": [
-    "ShuffleAllAction"
+    "ShuffleAllAction",
+    "ShuffleAction"
    ]
   },
   {
@@ -9069,34 +8395,13 @@
    },
    "effects": [
     {
-     "GainEnergy": {
-      "Raw": "EnergyPanel.getCurrentEnergy()"
-     }
-    },
-    {
-     "GainEnergy": {
-      "Raw": "this.p.hand.getBottomCard().costForTurn"
-     }
-    },
-    {
-     "Repeat": [
-      1,
-      [
-       {
-        "GainEnergy": {
-         "Raw": "EnergyPanel.getCurrentEnergy()"
-        }
-       },
-       {
-        "GainEnergy": {
-         "Raw": "c.costForTurn"
-        }
-       }
-      ]
-     ]
+     "Unsupported": "RecycleAction"
     }
    ],
-   "status": "parsed"
+   "status": "unsupported",
+   "unsupported": [
+    "RecycleAction"
+   ]
   },
   {
    "id": "Reinforced Body",
@@ -9116,19 +8421,13 @@
    },
    "effects": [
     {
-     "Repeat": [
-      "XCost",
-      [
-       {
-        "Block": {
-         "Raw": "this.amount"
-        }
-       }
-      ]
-     ]
+     "Unsupported": "ReinforcedBodyAction"
     }
    ],
-   "status": "parsed"
+   "status": "unsupported",
+   "unsupported": [
+    "ReinforcedBodyAction"
+   ]
   },
   {
    "id": "Reprogram",
@@ -9258,31 +8557,13 @@
    },
    "effects": [
     {
-     "Repeat": [
-      1,
-      []
-     ]
-    },
-    {
-     "Repeat": [
-      1,
-      []
-     ]
-    },
-    {
-     "Repeat": [
-      1,
-      []
-     ]
-    },
-    {
-     "Repeat": [
-      1,
-      []
-     ]
+     "Unsupported": "BetterDrawPileToHandAction"
     }
    ],
-   "status": "parsed"
+   "status": "unsupported",
+   "unsupported": [
+    "BetterDrawPileToHandAction"
+   ]
   },
   {
    "id": "Self Repair",
@@ -9405,13 +8686,13 @@
      "Block": "BlockBase"
     },
     {
-     "Repeat": [
-      1,
-      []
-     ]
+     "Unsupported": "ModifyBlockAction"
     }
    ],
-   "status": "parsed"
+   "status": "unsupported",
+   "unsupported": [
+    "ModifyBlockAction"
+   ]
   },
   {
    "id": "Storm",
@@ -9468,13 +8749,13 @@
      ]
     },
     {
-     "Repeat": [
-      1,
-      []
-     ]
+     "Unsupported": "ReduceCostAction"
     }
    ],
-   "status": "parsed"
+   "status": "unsupported",
+   "unsupported": [
+    "ReduceCostAction"
+   ]
   },
   {
    "id": "Strike_B",
@@ -9520,12 +8801,13 @@
    },
    "effects": [
     {
-     "GainEnergy": {
-      "Raw": "this.energyGainAmt"
-     }
+     "Unsupported": "SunderAction"
     }
    ],
-   "status": "parsed_branch"
+   "status": "unsupported",
+   "unsupported": [
+    "SunderAction"
+   ]
   },
   {
    "id": "Sweeping Beam",
@@ -9667,13 +8949,15 @@
    },
    "effects": [
     {
-     "Unsupported": "MakeTempCardInHandAction"
+     "MakeInHand": [
+      "?",
+      {
+       "Const": "true"
+      }
+     ]
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "MakeTempCardInHandAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Zap",
@@ -9882,16 +9166,16 @@
       "Magic",
       [
        {
-        "Unsupported": "MakeTempCardInDrawPileAction"
+        "MakeInDrawRandom": [
+         "?",
+         1
+        ]
        }
       ]
      ]
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "MakeTempCardInDrawPileAction"
-   ]
+   "status": "parsed_branch"
   },
   {
    "id": "Dark Shackles",
@@ -9952,10 +9236,7 @@
      "Unsupported": "EmptyDeckShuffleAction"
     },
     {
-     "Repeat": [
-      1,
-      []
-     ]
+     "Unsupported": "ShuffleAction"
     },
     {
      "Draw": "Magic"
@@ -9963,7 +9244,8 @@
    ],
    "status": "unsupported",
    "unsupported": [
-    "EmptyDeckShuffleAction"
+    "EmptyDeckShuffleAction",
+    "ShuffleAction"
    ]
   },
   {
@@ -10034,13 +9316,13 @@
    "upgrade": {},
    "effects": [
     {
-     "Repeat": [
-      1,
-      []
-     ]
+     "Unsupported": "EnlightenmentAction"
     }
    ],
-   "status": "parsed"
+   "status": "unsupported",
+   "unsupported": [
+    "EnlightenmentAction"
+   ]
   },
   {
    "id": "Finesse",
@@ -10113,13 +9395,13 @@
    "upgrade": {},
    "effects": [
     {
-     "Repeat": [
-      1,
-      []
-     ]
+     "Unsupported": "ForethoughtAction"
     }
    ],
-   "status": "parsed"
+   "status": "unsupported",
+   "unsupported": [
+    "ForethoughtAction"
+   ]
   },
   {
    "id": "Good Instincts",
@@ -10163,15 +9445,13 @@
    },
    "effects": [
     {
-     "Repeat": [
-      {
-       "Raw": "this.increaseGold"
-      },
-      []
-     ]
+     "Unsupported": "GreedAction"
     }
    ],
-   "status": "parsed"
+   "status": "unsupported",
+   "unsupported": [
+    "GreedAction"
+   ]
   },
   {
    "id": "Impatience",
@@ -10191,12 +9471,13 @@
    },
    "effects": [
     {
-     "Draw": {
-      "Raw": "this.amount"
-     }
+     "Unsupported": "ConditionalDrawAction"
     }
    ],
-   "status": "parsed"
+   "status": "unsupported",
+   "unsupported": [
+    "ConditionalDrawAction"
+   ]
   },
   {
    "id": "J.A.X.",
@@ -10250,17 +9531,19 @@
    },
    "effects": [
     {
-     "Unsupported": "MakeTempCardInHandAction"
+     "MakeInHand": [
+      "?",
+      1
+     ]
     },
     {
-     "Unsupported": "MakeTempCardInHandAction"
+     "MakeInHand": [
+      "?",
+      1
+     ]
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "MakeTempCardInHandAction",
-    "MakeTempCardInHandAction"
-   ]
+   "status": "parsed_branch"
   },
   {
    "id": "Madness",
@@ -10282,13 +9565,13 @@
    },
    "effects": [
     {
-     "Repeat": [
-      1,
-      []
-     ]
+     "Unsupported": "MadnessAction"
     }
    ],
-   "status": "parsed"
+   "status": "unsupported",
+   "unsupported": [
+    "MadnessAction"
+   ]
   },
   {
    "id": "Magnetism",
@@ -10393,16 +9676,16 @@
       "Magic",
       [
        {
-        "Unsupported": "MakeTempCardInDrawPileAction"
+        "MakeInDrawRandom": [
+         "?",
+         1
+        ]
        }
       ]
      ]
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "MakeTempCardInDrawPileAction"
-   ]
+   "status": "parsed_branch"
   },
   {
    "id": "Mind Blast",
@@ -10568,19 +9851,13 @@
    },
    "effects": [
     {
-     "Repeat": [
-      1,
-      []
-     ]
-    },
-    {
-     "Repeat": [
-      1,
-      []
-     ]
+     "Unsupported": "RitualDaggerAction"
     }
    ],
-   "status": "parsed"
+   "status": "unsupported",
+   "unsupported": [
+    "RitualDaggerAction"
+   ]
   },
   {
    "id": "Sadistic Nature",
@@ -10627,19 +9904,13 @@
    "upgrade": {},
    "effects": [
     {
-     "Repeat": [
-      1,
-      []
-     ]
-    },
-    {
-     "Repeat": [
-      1,
-      []
-     ]
+     "Unsupported": "SkillFromDeckToHandAction"
     }
    ],
-   "status": "parsed"
+   "status": "unsupported",
+   "unsupported": [
+    "SkillFromDeckToHandAction"
+   ]
   },
   {
    "id": "Secret Weapon",
@@ -10659,19 +9930,13 @@
    "upgrade": {},
    "effects": [
     {
-     "Repeat": [
-      1,
-      []
-     ]
-    },
-    {
-     "Repeat": [
-      1,
-      []
-     ]
+     "Unsupported": "AttackFromDeckToHandAction"
     }
    ],
-   "status": "parsed"
+   "status": "unsupported",
+   "unsupported": [
+    "AttackFromDeckToHandAction"
+   ]
   },
   {
    "id": "Swift Strike",
@@ -10747,29 +10012,13 @@
      "Draw": 2
     },
     {
-     "Repeat": [
-      {
-       "Raw": "this.amount"
-      },
-      []
-     ]
-    },
-    {
-     "Repeat": [
-      {
-       "Raw": "this.p.hand.size()"
-      },
-      []
-     ]
-    },
-    {
-     "Repeat": [
-      1,
-      []
-     ]
+     "Unsupported": "PutOnDeckAction"
     }
    ],
-   "status": "parsed_branch"
+   "status": "unsupported",
+   "unsupported": [
+    "PutOnDeckAction"
+   ]
   },
   {
    "id": "Transmutation",
@@ -10789,13 +10038,20 @@
    "upgrade": {},
    "effects": [
     {
-     "Unsupported": "TransmutationAction"
+     "Repeat": [
+      "XCost",
+      [
+       {
+        "MakeInHand": [
+         "?",
+         1
+        ]
+       }
+      ]
+     ]
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "TransmutationAction"
-   ]
+   "status": "parsed_branch"
   },
   {
    "id": "Trip",
@@ -10856,21 +10112,13 @@
    },
    "effects": [
     {
-     "Repeat": [
-      1,
-      []
-     ]
-    },
-    {
-     "Repeat": [
-      {
-       "Raw": "this.amount"
-      },
-      []
-     ]
+     "Unsupported": "DrawPileToHandAction"
     }
    ],
-   "status": "parsed"
+   "status": "unsupported",
+   "unsupported": [
+    "DrawPileToHandAction"
+   ]
   },
   {
    "id": "AscendersBane",
@@ -11197,19 +10445,9 @@
    },
    "effects": [
     {
-     "Repeat": [
-      {
-       "Raw": "this.amount"
-      },
-      []
-     ]
-    },
-    {
-     "Repeat": [
-      {
-       "Raw": "this.amount"
-      },
-      []
+     "MakeInDrawRandom": [
+      "?",
+      1
      ]
     }
    ],

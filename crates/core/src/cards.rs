@@ -100,6 +100,11 @@ fn effect_supported(e: &Effect) -> bool {
         Effect::MakeInDiscard(cls, x) => expr_ok(*x) && CardInst::new_by_class(cls).is_some(),
         // 循环放招：次数可求值 + 循环体全部支持
         Effect::Repeat(n, inner) => expr_ok(*n) && inner.iter().all(effect_supported),
+        Effect::DamageRandom(x) => expr_ok(*x),
+        Effect::MakeInHand(cls, x)
+        | Effect::MakeInDrawRandom(cls, x)
+        | Effect::MakeInDrawTop(cls, x) => expr_ok(*x) && CardInst::new_by_class(cls).is_some(),
+        Effect::CopySelfToHand(x) => expr_ok(*x),
         // ExhaustHand（ExhaustAction 弃牌语义待核）与其余未知动作暂不可玩
         Effect::ExhaustHand | Effect::Unsupported(_) => false,
     }

@@ -55,6 +55,13 @@ def effect_supported(e):
     if k == "Repeat":
         cnt, inner = e[k]
         return expr_ok(cnt) and all(effect_supported(ie) for ie in inner)
+    if k == "DamageRandom":
+        return expr_ok(e[k])
+    if k in ("MakeInHand", "MakeInDrawRandom", "MakeInDrawTop"):
+        cls, a = e[k]
+        return expr_ok(a) and cls in CLASS_NAMES
+    if k == "CopySelfToHand":
+        return expr_ok(e[k])
     return False  # ExhaustHand / Unsupported
 
 

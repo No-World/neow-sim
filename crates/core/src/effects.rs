@@ -48,6 +48,14 @@ pub enum Effect {
     ExhaustHand,
     /// 循环放招（for (i < N)：N 为次数表达式，inner 为循环体效果）
     Repeat(Expr, &'static [Effect]),
+    /// 随机敌人伤害（AttackDamageRandomEnemyAction：cardRandomRng 选目标，可对拍复刻）
+    DamageRandom(Expr),
+    /// 生成临时牌入手牌（MakeTempCardInHandAction：手牌满则溢出弃牌堆）
+    MakeInHand(&'static str, Expr),
+    CopySelfToHand(Expr),
+    /// 生成牌入抽牌堆：随机位置（CardGroup.addToRandomSpot）/ 置顶
+    MakeInDrawRandom(&'static str, Expr),
+    MakeInDrawTop(&'static str, Expr),
     /// 未支持动作（值为 Java 动作类名）——手移植清单
     Unsupported(&'static str),
 }

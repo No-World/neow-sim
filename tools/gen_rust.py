@@ -64,6 +64,19 @@ def effect_rs(eff) -> str:
         return f"Effect::MakeInDiscard({s(cls)}, {expr_rs(n)})"
     if "ExhaustHand" in eff:
         return "Effect::ExhaustHand"
+    if "DamageRandom" in eff:
+        return f"Effect::DamageRandom({expr_rs(eff['DamageRandom'])})"
+    if "MakeInHand" in eff:
+        cls, n = eff["MakeInHand"]
+        return f"Effect::MakeInHand({s(cls)}, {expr_rs(n)})"
+    if "CopySelfToHand" in eff:
+        return f"Effect::CopySelfToHand({expr_rs(eff['CopySelfToHand'])})"
+    if "MakeInDrawRandom" in eff:
+        cls, n = eff["MakeInDrawRandom"]
+        return f"Effect::MakeInDrawRandom({s(cls)}, {expr_rs(n)})"
+    if "MakeInDrawTop" in eff:
+        cls, n = eff["MakeInDrawTop"]
+        return f"Effect::MakeInDrawTop({s(cls)}, {expr_rs(n)})"
     if "Repeat" in eff:
         cnt, inner = eff["Repeat"]
         if not inner:
