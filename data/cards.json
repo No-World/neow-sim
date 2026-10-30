@@ -1,0 +1,6627 @@
+{
+ "meta": {
+  "generator": "neow-sim/tools/extract_data.py",
+  "source": "desktop-1.0.jar (CFR decompiled)",
+  "date": "2026-10-30",
+  "note": "草稿表：文本挖掘产物，M4 对拍统一校验"
+ },
+ "data": [
+  {
+   "id": "Anger",
+   "class": "Anger",
+   "color": "RED",
+   "type": "ATTACK",
+   "rarity": "COMMON",
+   "target": "ENEMY",
+   "cost": 0,
+   "baseDamage": 6,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 2
+   }
+  },
+  {
+   "id": "Armaments",
+   "class": "Armaments",
+   "color": "RED",
+   "type": "SKILL",
+   "rarity": "COMMON",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": 5,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {}
+  },
+  {
+   "id": "Barricade",
+   "class": "Barricade",
+   "color": "RED",
+   "type": "POWER",
+   "rarity": "RARE",
+   "target": "SELF",
+   "cost": 3,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "baseCost": 2
+   }
+  },
+  {
+   "id": "Bash",
+   "class": "Bash",
+   "color": "RED",
+   "type": "ATTACK",
+   "rarity": "BASIC",
+   "target": "ENEMY",
+   "cost": 2,
+   "baseDamage": 8,
+   "baseBlock": null,
+   "baseMagicNumber": 2,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 2,
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Battle Trance",
+   "class": "BattleTrance",
+   "color": "RED",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "NONE",
+   "cost": 0,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 3,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Berserk",
+   "class": "Berserk",
+   "color": "RED",
+   "type": "POWER",
+   "rarity": "RARE",
+   "target": "SELF",
+   "cost": 0,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 2,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": -1
+   }
+  },
+  {
+   "id": "Blood for Blood",
+   "class": "BloodForBlood",
+   "color": "RED",
+   "type": "ATTACK",
+   "rarity": "UNCOMMON",
+   "target": "ENEMY",
+   "cost": 4,
+   "baseDamage": 18,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 4,
+    "baseCost": null
+   }
+  },
+  {
+   "id": "Bloodletting",
+   "class": "Bloodletting",
+   "color": "RED",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "SELF",
+   "cost": 0,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 2,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Bludgeon",
+   "class": "Bludgeon",
+   "color": "RED",
+   "type": "ATTACK",
+   "rarity": "RARE",
+   "target": "ENEMY",
+   "cost": 3,
+   "baseDamage": 32,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 10
+   }
+  },
+  {
+   "id": "Body Slam",
+   "class": "BodySlam",
+   "color": "RED",
+   "type": "ATTACK",
+   "rarity": "COMMON",
+   "target": "ENEMY",
+   "cost": 1,
+   "baseDamage": 0,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "baseCost": 0
+   }
+  },
+  {
+   "id": "Brutality",
+   "class": "Brutality",
+   "color": "RED",
+   "type": "POWER",
+   "rarity": "RARE",
+   "target": "SELF",
+   "cost": 0,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [
+    "innate"
+   ],
+   "review": [],
+   "upgrade": {
+    "flags": [
+     "innate"
+    ]
+   }
+  },
+  {
+   "id": "Burning Pact",
+   "class": "BurningPact",
+   "color": "RED",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "NONE",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 2,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Carnage",
+   "class": "Carnage",
+   "color": "RED",
+   "type": "ATTACK",
+   "rarity": "UNCOMMON",
+   "target": "ENEMY",
+   "cost": 2,
+   "baseDamage": 20,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [
+    "ethereal"
+   ],
+   "review": [],
+   "upgrade": {
+    "damage": 8
+   }
+  },
+  {
+   "id": "Clash",
+   "class": "Clash",
+   "color": "RED",
+   "type": "ATTACK",
+   "rarity": "COMMON",
+   "target": "ENEMY",
+   "cost": 0,
+   "baseDamage": 14,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 4
+   }
+  },
+  {
+   "id": "Cleave",
+   "class": "Cleave",
+   "color": "RED",
+   "type": "ATTACK",
+   "rarity": "COMMON",
+   "target": "ALL_ENEMY",
+   "cost": 1,
+   "baseDamage": 8,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 3
+   }
+  },
+  {
+   "id": "Clothesline",
+   "class": "Clothesline",
+   "color": "RED",
+   "type": "ATTACK",
+   "rarity": "COMMON",
+   "target": "ENEMY",
+   "cost": 2,
+   "baseDamage": 12,
+   "baseBlock": null,
+   "baseMagicNumber": 2,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 2,
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Combust",
+   "class": "Combust",
+   "color": "RED",
+   "type": "POWER",
+   "rarity": "UNCOMMON",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 5,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 2
+   }
+  },
+  {
+   "id": "Corruption",
+   "class": "Corruption",
+   "color": "RED",
+   "type": "POWER",
+   "rarity": "RARE",
+   "target": "SELF",
+   "cost": 3,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 3,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "baseCost": 2
+   }
+  },
+  {
+   "id": "Dark Embrace",
+   "class": "DarkEmbrace",
+   "color": "RED",
+   "type": "POWER",
+   "rarity": "UNCOMMON",
+   "target": "SELF",
+   "cost": 2,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "baseCost": 1
+   }
+  },
+  {
+   "id": "Defend_R",
+   "class": "Defend_Red",
+   "color": "RED",
+   "type": "SKILL",
+   "rarity": "BASIC",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": 5,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "block": 3
+   }
+  },
+  {
+   "id": "Demon Form",
+   "class": "DemonForm",
+   "color": "RED",
+   "type": "POWER",
+   "rarity": "RARE",
+   "target": "NONE",
+   "cost": 3,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 2,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Disarm",
+   "class": "Disarm",
+   "color": "RED",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "ENEMY",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 2,
+   "flags": [
+    "exhaust"
+   ],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Double Tap",
+   "class": "DoubleTap",
+   "color": "RED",
+   "type": "SKILL",
+   "rarity": "RARE",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 1,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Dropkick",
+   "class": "Dropkick",
+   "color": "RED",
+   "type": "ATTACK",
+   "rarity": "UNCOMMON",
+   "target": "ENEMY",
+   "cost": 1,
+   "baseDamage": 5,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 3
+   }
+  },
+  {
+   "id": "Dual Wield",
+   "class": "DualWield",
+   "color": "RED",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "NONE",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 1,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Entrench",
+   "class": "Entrench",
+   "color": "RED",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "SELF",
+   "cost": 2,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "baseCost": 1
+   }
+  },
+  {
+   "id": "Evolve",
+   "class": "Evolve",
+   "color": "RED",
+   "type": "POWER",
+   "rarity": "UNCOMMON",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 1,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Exhume",
+   "class": "Exhume",
+   "color": "RED",
+   "type": "SKILL",
+   "rarity": "RARE",
+   "target": "NONE",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [
+    "exhaust"
+   ],
+   "review": [],
+   "upgrade": {
+    "baseCost": 0
+   }
+  },
+  {
+   "id": "Feed",
+   "class": "Feed",
+   "color": "RED",
+   "type": "ATTACK",
+   "rarity": "RARE",
+   "target": "ENEMY",
+   "cost": 1,
+   "baseDamage": 10,
+   "baseBlock": null,
+   "baseMagicNumber": 3,
+   "flags": [
+    "exhaust"
+   ],
+   "review": [],
+   "upgrade": {
+    "damage": 2,
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Feel No Pain",
+   "class": "FeelNoPain",
+   "color": "RED",
+   "type": "POWER",
+   "rarity": "UNCOMMON",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 3,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Fiend Fire",
+   "class": "FiendFire",
+   "color": "RED",
+   "type": "ATTACK",
+   "rarity": "RARE",
+   "target": "ENEMY",
+   "cost": 2,
+   "baseDamage": 7,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [
+    "exhaust"
+   ],
+   "review": [],
+   "upgrade": {
+    "damage": 3
+   }
+  },
+  {
+   "id": "Fire Breathing",
+   "class": "FireBreathing",
+   "color": "RED",
+   "type": "POWER",
+   "rarity": "UNCOMMON",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 6,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 4
+   }
+  },
+  {
+   "id": "Flame Barrier",
+   "class": "FlameBarrier",
+   "color": "RED",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "SELF",
+   "cost": 2,
+   "baseDamage": null,
+   "baseBlock": 12,
+   "baseMagicNumber": 4,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "block": 4,
+    "magicNumber": 2
+   }
+  },
+  {
+   "id": "Flex",
+   "class": "Flex",
+   "color": "RED",
+   "type": "SKILL",
+   "rarity": "COMMON",
+   "target": "SELF",
+   "cost": 0,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 2,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 2
+   }
+  },
+  {
+   "id": "Ghostly Armor",
+   "class": "GhostlyArmor",
+   "color": "RED",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": 10,
+   "baseMagicNumber": null,
+   "flags": [
+    "ethereal"
+   ],
+   "review": [],
+   "upgrade": {
+    "block": 3
+   }
+  },
+  {
+   "id": "Havoc",
+   "class": "Havoc",
+   "color": "RED",
+   "type": "SKILL",
+   "rarity": "COMMON",
+   "target": "NONE",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "baseCost": 0
+   }
+  },
+  {
+   "id": "Headbutt",
+   "class": "Headbutt",
+   "color": "RED",
+   "type": "ATTACK",
+   "rarity": "COMMON",
+   "target": "ENEMY",
+   "cost": 1,
+   "baseDamage": 9,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 3
+   }
+  },
+  {
+   "id": "Heavy Blade",
+   "class": "HeavyBlade",
+   "color": "RED",
+   "type": "ATTACK",
+   "rarity": "COMMON",
+   "target": "ENEMY",
+   "cost": 2,
+   "baseDamage": 14,
+   "baseBlock": null,
+   "baseMagicNumber": 3,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 2
+   }
+  },
+  {
+   "id": "Hemokinesis",
+   "class": "Hemokinesis",
+   "color": "RED",
+   "type": "ATTACK",
+   "rarity": "UNCOMMON",
+   "target": "ENEMY",
+   "cost": 1,
+   "baseDamage": 15,
+   "baseBlock": null,
+   "baseMagicNumber": 2,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 5
+   }
+  },
+  {
+   "id": "Immolate",
+   "class": "Immolate",
+   "color": "RED",
+   "type": "ATTACK",
+   "rarity": "RARE",
+   "target": "ALL_ENEMY",
+   "cost": 2,
+   "baseDamage": 21,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 7
+   }
+  },
+  {
+   "id": "Impervious",
+   "class": "Impervious",
+   "color": "RED",
+   "type": "SKILL",
+   "rarity": "RARE",
+   "target": "SELF",
+   "cost": 2,
+   "baseDamage": null,
+   "baseBlock": 30,
+   "baseMagicNumber": null,
+   "flags": [
+    "exhaust"
+   ],
+   "review": [],
+   "upgrade": {
+    "block": 10
+   }
+  },
+  {
+   "id": "Infernal Blade",
+   "class": "InfernalBlade",
+   "color": "RED",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "NONE",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [
+    "exhaust"
+   ],
+   "review": [],
+   "upgrade": {
+    "baseCost": 0
+   }
+  },
+  {
+   "id": "Inflame",
+   "class": "Inflame",
+   "color": "RED",
+   "type": "POWER",
+   "rarity": "UNCOMMON",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 2,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Intimidate",
+   "class": "Intimidate",
+   "color": "RED",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "ALL_ENEMY",
+   "cost": 0,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 1,
+   "flags": [
+    "exhaust"
+   ],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Iron Wave",
+   "class": "IronWave",
+   "color": "RED",
+   "type": "ATTACK",
+   "rarity": "COMMON",
+   "target": "ENEMY",
+   "cost": 1,
+   "baseDamage": 5,
+   "baseBlock": 5,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 2,
+    "block": 2
+   }
+  },
+  {
+   "id": "Juggernaut",
+   "class": "Juggernaut",
+   "color": "RED",
+   "type": "POWER",
+   "rarity": "RARE",
+   "target": "SELF",
+   "cost": 2,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 5,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 2
+   }
+  },
+  {
+   "id": "Limit Break",
+   "class": "LimitBreak",
+   "color": "RED",
+   "type": "SKILL",
+   "rarity": "RARE",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [
+    "exhaust"
+   ],
+   "review": [],
+   "upgrade": {}
+  },
+  {
+   "id": "Metallicize",
+   "class": "Metallicize",
+   "color": "RED",
+   "type": "POWER",
+   "rarity": "UNCOMMON",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 3,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Offering",
+   "class": "Offering",
+   "color": "RED",
+   "type": "SKILL",
+   "rarity": "RARE",
+   "target": "SELF",
+   "cost": 0,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 3,
+   "flags": [
+    "exhaust"
+   ],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 2
+   }
+  },
+  {
+   "id": "Perfected Strike",
+   "class": "PerfectedStrike",
+   "color": "RED",
+   "type": "ATTACK",
+   "rarity": "COMMON",
+   "target": "ENEMY",
+   "cost": 2,
+   "baseDamage": 6,
+   "baseBlock": null,
+   "baseMagicNumber": 2,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Pommel Strike",
+   "class": "PommelStrike",
+   "color": "RED",
+   "type": "ATTACK",
+   "rarity": "COMMON",
+   "target": "ENEMY",
+   "cost": 1,
+   "baseDamage": 9,
+   "baseBlock": null,
+   "baseMagicNumber": 1,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 1,
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Power Through",
+   "class": "PowerThrough",
+   "color": "RED",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": 15,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "block": 5
+   }
+  },
+  {
+   "id": "Pummel",
+   "class": "Pummel",
+   "color": "RED",
+   "type": "ATTACK",
+   "rarity": "UNCOMMON",
+   "target": "ENEMY",
+   "cost": 1,
+   "baseDamage": 2,
+   "baseBlock": null,
+   "baseMagicNumber": 4,
+   "flags": [
+    "exhaust"
+   ],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Rage",
+   "class": "Rage",
+   "color": "RED",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "SELF",
+   "cost": 0,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 3,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 2
+   }
+  },
+  {
+   "id": "Rampage",
+   "class": "Rampage",
+   "color": "RED",
+   "type": "ATTACK",
+   "rarity": "UNCOMMON",
+   "target": "ENEMY",
+   "cost": 1,
+   "baseDamage": 8,
+   "baseBlock": null,
+   "baseMagicNumber": 5,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 3
+   }
+  },
+  {
+   "id": "Reaper",
+   "class": "Reaper",
+   "color": "RED",
+   "type": "ATTACK",
+   "rarity": "RARE",
+   "target": "ALL_ENEMY",
+   "cost": 2,
+   "baseDamage": 4,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [
+    "exhaust"
+   ],
+   "review": [],
+   "upgrade": {
+    "damage": 1
+   }
+  },
+  {
+   "id": "Reckless Charge",
+   "class": "RecklessCharge",
+   "color": "RED",
+   "type": "ATTACK",
+   "rarity": "UNCOMMON",
+   "target": "ENEMY",
+   "cost": 0,
+   "baseDamage": 7,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 3
+   }
+  },
+  {
+   "id": "Rupture",
+   "class": "Rupture",
+   "color": "RED",
+   "type": "POWER",
+   "rarity": "UNCOMMON",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 1,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Searing Blow",
+   "class": "SearingBlow",
+   "color": "RED",
+   "type": null,
+   "rarity": null,
+   "target": null,
+   "cost": null,
+   "baseDamage": 12,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [
+    "no_upgradeName"
+   ],
+   "upgrade": {
+    "damage": null
+   }
+  },
+  {
+   "id": "Second Wind",
+   "class": "SecondWind",
+   "color": "RED",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": 5,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "block": 2
+   }
+  },
+  {
+   "id": "Seeing Red",
+   "class": "SeeingRed",
+   "color": "RED",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "NONE",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [
+    "exhaust"
+   ],
+   "review": [],
+   "upgrade": {
+    "baseCost": 0
+   }
+  },
+  {
+   "id": "Sentinel",
+   "class": "Sentinel",
+   "color": "RED",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": 5,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "block": 3
+   }
+  },
+  {
+   "id": "Sever Soul",
+   "class": "SeverSoul",
+   "color": "RED",
+   "type": "ATTACK",
+   "rarity": "UNCOMMON",
+   "target": "ENEMY",
+   "cost": 2,
+   "baseDamage": 16,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 6
+   }
+  },
+  {
+   "id": "Shockwave",
+   "class": "Shockwave",
+   "color": "RED",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "ALL_ENEMY",
+   "cost": 2,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 3,
+   "flags": [
+    "exhaust"
+   ],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 2
+   }
+  },
+  {
+   "id": "Shrug It Off",
+   "class": "ShrugItOff",
+   "color": "RED",
+   "type": "SKILL",
+   "rarity": "COMMON",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": 8,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "block": 3
+   }
+  },
+  {
+   "id": "Spot Weakness",
+   "class": "SpotWeakness",
+   "color": "RED",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "SELF_AND_ENEMY",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 3,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Strike_R",
+   "class": "Strike_Red",
+   "color": "RED",
+   "type": "ATTACK",
+   "rarity": "BASIC",
+   "target": "ENEMY",
+   "cost": 1,
+   "baseDamage": 6,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 3
+   }
+  },
+  {
+   "id": "Sword Boomerang",
+   "class": "SwordBoomerang",
+   "color": "RED",
+   "type": "ATTACK",
+   "rarity": "COMMON",
+   "target": "ALL_ENEMY",
+   "cost": 1,
+   "baseDamage": 3,
+   "baseBlock": null,
+   "baseMagicNumber": 3,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Thunderclap",
+   "class": "ThunderClap",
+   "color": "RED",
+   "type": "ATTACK",
+   "rarity": "COMMON",
+   "target": "ALL_ENEMY",
+   "cost": 1,
+   "baseDamage": 4,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 3
+   }
+  },
+  {
+   "id": "True Grit",
+   "class": "TrueGrit",
+   "color": "RED",
+   "type": "SKILL",
+   "rarity": "COMMON",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": 7,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "block": 2
+   }
+  },
+  {
+   "id": "Twin Strike",
+   "class": "TwinStrike",
+   "color": "RED",
+   "type": "ATTACK",
+   "rarity": "COMMON",
+   "target": "ENEMY",
+   "cost": 1,
+   "baseDamage": 5,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 2
+   }
+  },
+  {
+   "id": "Uppercut",
+   "class": "Uppercut",
+   "color": "RED",
+   "type": "ATTACK",
+   "rarity": "UNCOMMON",
+   "target": "ENEMY",
+   "cost": 2,
+   "baseDamage": 13,
+   "baseBlock": null,
+   "baseMagicNumber": 1,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Warcry",
+   "class": "Warcry",
+   "color": "RED",
+   "type": "SKILL",
+   "rarity": "COMMON",
+   "target": "SELF",
+   "cost": 0,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 1,
+   "flags": [
+    "exhaust"
+   ],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Whirlwind",
+   "class": "Whirlwind",
+   "color": "RED",
+   "type": "ATTACK",
+   "rarity": "UNCOMMON",
+   "target": "ALL_ENEMY",
+   "cost": -1,
+   "baseDamage": 5,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 3
+   }
+  },
+  {
+   "id": "Wild Strike",
+   "class": "WildStrike",
+   "color": "RED",
+   "type": "ATTACK",
+   "rarity": "COMMON",
+   "target": "ENEMY",
+   "cost": 1,
+   "baseDamage": 12,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 5
+   }
+  },
+  {
+   "id": "A Thousand Cuts",
+   "class": "AThousandCuts",
+   "color": "GREEN",
+   "type": "POWER",
+   "rarity": "RARE",
+   "target": "SELF",
+   "cost": 2,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 1,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Accuracy",
+   "class": "Accuracy",
+   "color": "GREEN",
+   "type": "POWER",
+   "rarity": "UNCOMMON",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 4,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 2
+   }
+  },
+  {
+   "id": "Acrobatics",
+   "class": "Acrobatics",
+   "color": "GREEN",
+   "type": "SKILL",
+   "rarity": "COMMON",
+   "target": "NONE",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 3,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Adrenaline",
+   "class": "Adrenaline",
+   "color": "GREEN",
+   "type": "SKILL",
+   "rarity": "RARE",
+   "target": "SELF",
+   "cost": 0,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [
+    "exhaust"
+   ],
+   "review": [],
+   "upgrade": {}
+  },
+  {
+   "id": "After Image",
+   "class": "AfterImage",
+   "color": "GREEN",
+   "type": "POWER",
+   "rarity": "RARE",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [
+    "innate"
+   ],
+   "review": [],
+   "upgrade": {
+    "flags": [
+     "innate"
+    ]
+   }
+  },
+  {
+   "id": "Venomology",
+   "class": "Alchemize",
+   "color": "GREEN",
+   "type": "SKILL",
+   "rarity": "RARE",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [
+    "exhaust"
+   ],
+   "review": [],
+   "upgrade": {
+    "baseCost": 0
+   }
+  },
+  {
+   "id": "All Out Attack",
+   "class": "AllOutAttack",
+   "color": "GREEN",
+   "type": "ATTACK",
+   "rarity": "UNCOMMON",
+   "target": "ALL_ENEMY",
+   "cost": 1,
+   "baseDamage": 10,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 4
+   }
+  },
+  {
+   "id": "Backflip",
+   "class": "Backflip",
+   "color": "GREEN",
+   "type": "SKILL",
+   "rarity": "COMMON",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": 5,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "block": 3
+   }
+  },
+  {
+   "id": "Backstab",
+   "class": "Backstab",
+   "color": "GREEN",
+   "type": "ATTACK",
+   "rarity": "UNCOMMON",
+   "target": "ENEMY",
+   "cost": 0,
+   "baseDamage": 11,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [
+    "exhaust",
+    "innate"
+   ],
+   "review": [],
+   "upgrade": {
+    "damage": 4
+   }
+  },
+  {
+   "id": "Bane",
+   "class": "Bane",
+   "color": "GREEN",
+   "type": "ATTACK",
+   "rarity": "COMMON",
+   "target": "ENEMY",
+   "cost": 1,
+   "baseDamage": 7,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 3
+   }
+  },
+  {
+   "id": "Blade Dance",
+   "class": "BladeDance",
+   "color": "GREEN",
+   "type": "SKILL",
+   "rarity": "COMMON",
+   "target": "NONE",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 3,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Blur",
+   "class": "Blur",
+   "color": "GREEN",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": 5,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "block": 3
+   }
+  },
+  {
+   "id": "Bouncing Flask",
+   "class": "BouncingFlask",
+   "color": "GREEN",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "ALL_ENEMY",
+   "cost": 2,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 3,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Bullet Time",
+   "class": "BulletTime",
+   "color": "GREEN",
+   "type": "SKILL",
+   "rarity": "RARE",
+   "target": "NONE",
+   "cost": 3,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "baseCost": 2
+   }
+  },
+  {
+   "id": "Burst",
+   "class": "Burst",
+   "color": "GREEN",
+   "type": "SKILL",
+   "rarity": "RARE",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 1,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Calculated Gamble",
+   "class": "CalculatedGamble",
+   "color": "GREEN",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "NONE",
+   "cost": 0,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [
+    "exhaust"
+   ],
+   "review": [],
+   "upgrade": {}
+  },
+  {
+   "id": "Caltrops",
+   "class": "Caltrops",
+   "color": "GREEN",
+   "type": "POWER",
+   "rarity": "UNCOMMON",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 3,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 2
+   }
+  },
+  {
+   "id": "Catalyst",
+   "class": "Catalyst",
+   "color": "GREEN",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "ENEMY",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [
+    "exhaust"
+   ],
+   "review": [],
+   "upgrade": {}
+  },
+  {
+   "id": "Choke",
+   "class": "Choke",
+   "color": "GREEN",
+   "type": "ATTACK",
+   "rarity": "UNCOMMON",
+   "target": "ENEMY",
+   "cost": 2,
+   "baseDamage": 12,
+   "baseBlock": null,
+   "baseMagicNumber": 3,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 2
+   }
+  },
+  {
+   "id": "Cloak And Dagger",
+   "class": "CloakAndDagger",
+   "color": "GREEN",
+   "type": "SKILL",
+   "rarity": "COMMON",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": 6,
+   "baseMagicNumber": 1,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Concentrate",
+   "class": "Concentrate",
+   "color": "GREEN",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "SELF",
+   "cost": 0,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 3,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": -1
+   }
+  },
+  {
+   "id": "Corpse Explosion",
+   "class": "CorpseExplosion",
+   "color": "GREEN",
+   "type": "SKILL",
+   "rarity": "RARE",
+   "target": "ENEMY",
+   "cost": 2,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 6,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 3
+   }
+  },
+  {
+   "id": "Crippling Poison",
+   "class": "CripplingPoison",
+   "color": "GREEN",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "ALL_ENEMY",
+   "cost": 2,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 4,
+   "flags": [
+    "exhaust"
+   ],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 3
+   }
+  },
+  {
+   "id": "Dagger Spray",
+   "class": "DaggerSpray",
+   "color": "GREEN",
+   "type": "ATTACK",
+   "rarity": "COMMON",
+   "target": "ALL_ENEMY",
+   "cost": 1,
+   "baseDamage": 4,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 2
+   }
+  },
+  {
+   "id": "Dagger Throw",
+   "class": "DaggerThrow",
+   "color": "GREEN",
+   "type": "ATTACK",
+   "rarity": "COMMON",
+   "target": "ENEMY",
+   "cost": 1,
+   "baseDamage": 9,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 3
+   }
+  },
+  {
+   "id": "Dash",
+   "class": "Dash",
+   "color": "GREEN",
+   "type": "ATTACK",
+   "rarity": "UNCOMMON",
+   "target": "ENEMY",
+   "cost": 2,
+   "baseDamage": 10,
+   "baseBlock": 10,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 3,
+    "block": 3
+   }
+  },
+  {
+   "id": "Deadly Poison",
+   "class": "DeadlyPoison",
+   "color": "GREEN",
+   "type": "SKILL",
+   "rarity": "COMMON",
+   "target": "ENEMY",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 5,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 2
+   }
+  },
+  {
+   "id": "Defend_G",
+   "class": "Defend_Green",
+   "color": "GREEN",
+   "type": "SKILL",
+   "rarity": "BASIC",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": 5,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "block": 3
+   }
+  },
+  {
+   "id": "Deflect",
+   "class": "Deflect",
+   "color": "GREEN",
+   "type": "SKILL",
+   "rarity": "COMMON",
+   "target": "SELF",
+   "cost": 0,
+   "baseDamage": null,
+   "baseBlock": 4,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "block": 3
+   }
+  },
+  {
+   "id": "Die Die Die",
+   "class": "DieDieDie",
+   "color": "GREEN",
+   "type": "ATTACK",
+   "rarity": "RARE",
+   "target": "ALL_ENEMY",
+   "cost": 1,
+   "baseDamage": 13,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [
+    "exhaust"
+   ],
+   "review": [],
+   "upgrade": {
+    "damage": 4
+   }
+  },
+  {
+   "id": "Distraction",
+   "class": "Distraction",
+   "color": "GREEN",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "NONE",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [
+    "exhaust"
+   ],
+   "review": [],
+   "upgrade": {
+    "baseCost": 0
+   }
+  },
+  {
+   "id": "Dodge and Roll",
+   "class": "DodgeAndRoll",
+   "color": "GREEN",
+   "type": "SKILL",
+   "rarity": "COMMON",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": 4,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "block": 2
+   }
+  },
+  {
+   "id": "Doppelganger",
+   "class": "Doppelganger",
+   "color": "GREEN",
+   "type": "SKILL",
+   "rarity": "RARE",
+   "target": "SELF",
+   "cost": -1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [
+    "exhaust"
+   ],
+   "review": [],
+   "upgrade": {}
+  },
+  {
+   "id": "Endless Agony",
+   "class": "EndlessAgony",
+   "color": "GREEN",
+   "type": "ATTACK",
+   "rarity": "UNCOMMON",
+   "target": "ENEMY",
+   "cost": 0,
+   "baseDamage": 4,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [
+    "exhaust"
+   ],
+   "review": [],
+   "upgrade": {
+    "damage": 2
+   }
+  },
+  {
+   "id": "Envenom",
+   "class": "Envenom",
+   "color": "GREEN",
+   "type": "POWER",
+   "rarity": "RARE",
+   "target": "SELF",
+   "cost": 2,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "baseCost": 1
+   }
+  },
+  {
+   "id": "Escape Plan",
+   "class": "EscapePlan",
+   "color": "GREEN",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "SELF",
+   "cost": 0,
+   "baseDamage": null,
+   "baseBlock": 3,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "block": 2
+   }
+  },
+  {
+   "id": "Eviscerate",
+   "class": "Eviscerate",
+   "color": "GREEN",
+   "type": "ATTACK",
+   "rarity": "UNCOMMON",
+   "target": "ENEMY",
+   "cost": 3,
+   "baseDamage": 7,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 2
+   }
+  },
+  {
+   "id": "Expertise",
+   "class": "Expertise",
+   "color": "GREEN",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 6,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Finisher",
+   "class": "Finisher",
+   "color": "GREEN",
+   "type": "ATTACK",
+   "rarity": "UNCOMMON",
+   "target": "ENEMY",
+   "cost": 1,
+   "baseDamage": 6,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 2
+   }
+  },
+  {
+   "id": "Flechettes",
+   "class": "Flechettes",
+   "color": "GREEN",
+   "type": "ATTACK",
+   "rarity": "UNCOMMON",
+   "target": "ENEMY",
+   "cost": 1,
+   "baseDamage": 4,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 2
+   }
+  },
+  {
+   "id": "Flying Knee",
+   "class": "FlyingKnee",
+   "color": "GREEN",
+   "type": "ATTACK",
+   "rarity": "COMMON",
+   "target": "ENEMY",
+   "cost": 1,
+   "baseDamage": 8,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 3
+   }
+  },
+  {
+   "id": "Footwork",
+   "class": "Footwork",
+   "color": "GREEN",
+   "type": "POWER",
+   "rarity": "UNCOMMON",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 2,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Glass Knife",
+   "class": "GlassKnife",
+   "color": "GREEN",
+   "type": "ATTACK",
+   "rarity": "RARE",
+   "target": "ENEMY",
+   "cost": 1,
+   "baseDamage": 8,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 4
+   }
+  },
+  {
+   "id": "Grand Finale",
+   "class": "GrandFinale",
+   "color": "GREEN",
+   "type": "ATTACK",
+   "rarity": "RARE",
+   "target": "ALL_ENEMY",
+   "cost": 0,
+   "baseDamage": 50,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 10
+   }
+  },
+  {
+   "id": "Heel Hook",
+   "class": "HeelHook",
+   "color": "GREEN",
+   "type": "ATTACK",
+   "rarity": "UNCOMMON",
+   "target": "ENEMY",
+   "cost": 1,
+   "baseDamage": 5,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 3
+   }
+  },
+  {
+   "id": "Infinite Blades",
+   "class": "InfiniteBlades",
+   "color": "GREEN",
+   "type": "POWER",
+   "rarity": "UNCOMMON",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [
+    "innate"
+   ],
+   "review": [],
+   "upgrade": {
+    "flags": [
+     "innate"
+    ]
+   }
+  },
+  {
+   "id": "Leg Sweep",
+   "class": "LegSweep",
+   "color": "GREEN",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "ENEMY",
+   "cost": 2,
+   "baseDamage": null,
+   "baseBlock": 11,
+   "baseMagicNumber": 2,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "block": 3,
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Malaise",
+   "class": "Malaise",
+   "color": "GREEN",
+   "type": "SKILL",
+   "rarity": "RARE",
+   "target": "ENEMY",
+   "cost": -1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [
+    "exhaust"
+   ],
+   "review": [],
+   "upgrade": {}
+  },
+  {
+   "id": "Masterful Stab",
+   "class": "MasterfulStab",
+   "color": "GREEN",
+   "type": "ATTACK",
+   "rarity": "UNCOMMON",
+   "target": "ENEMY",
+   "cost": 0,
+   "baseDamage": 12,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 4
+   }
+  },
+  {
+   "id": "Neutralize",
+   "class": "Neutralize",
+   "color": "GREEN",
+   "type": "ATTACK",
+   "rarity": "BASIC",
+   "target": "ENEMY",
+   "cost": 0,
+   "baseDamage": 3,
+   "baseBlock": null,
+   "baseMagicNumber": 1,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 1,
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Night Terror",
+   "class": "Nightmare",
+   "color": "GREEN",
+   "type": "SKILL",
+   "rarity": "RARE",
+   "target": "NONE",
+   "cost": 3,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 3,
+   "flags": [
+    "exhaust"
+   ],
+   "review": [],
+   "upgrade": {
+    "baseCost": 2
+   }
+  },
+  {
+   "id": "Noxious Fumes",
+   "class": "NoxiousFumes",
+   "color": "GREEN",
+   "type": "POWER",
+   "rarity": "UNCOMMON",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 2,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Outmaneuver",
+   "class": "Outmaneuver",
+   "color": "GREEN",
+   "type": "SKILL",
+   "rarity": "COMMON",
+   "target": "NONE",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {}
+  },
+  {
+   "id": "Phantasmal Killer",
+   "class": "PhantasmalKiller",
+   "color": "GREEN",
+   "type": "SKILL",
+   "rarity": "RARE",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "baseCost": 0
+   }
+  },
+  {
+   "id": "PiercingWail",
+   "class": "PiercingWail",
+   "color": "GREEN",
+   "type": "SKILL",
+   "rarity": "COMMON",
+   "target": "ALL_ENEMY",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 6,
+   "flags": [
+    "exhaust"
+   ],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 2
+   }
+  },
+  {
+   "id": "Poisoned Stab",
+   "class": "PoisonedStab",
+   "color": "GREEN",
+   "type": "ATTACK",
+   "rarity": "COMMON",
+   "target": "ENEMY",
+   "cost": 1,
+   "baseDamage": 6,
+   "baseBlock": null,
+   "baseMagicNumber": 3,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 2,
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Predator",
+   "class": "Predator",
+   "color": "GREEN",
+   "type": "ATTACK",
+   "rarity": "UNCOMMON",
+   "target": "ENEMY",
+   "cost": 2,
+   "baseDamage": 15,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 5
+   }
+  },
+  {
+   "id": "Prepared",
+   "class": "Prepared",
+   "color": "GREEN",
+   "type": "SKILL",
+   "rarity": "COMMON",
+   "target": "NONE",
+   "cost": 0,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 1,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Quick Slash",
+   "class": "QuickSlash",
+   "color": "GREEN",
+   "type": "ATTACK",
+   "rarity": "COMMON",
+   "target": "ENEMY",
+   "cost": 1,
+   "baseDamage": 8,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 4
+   }
+  },
+  {
+   "id": "Reflex",
+   "class": "Reflex",
+   "color": "GREEN",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "NONE",
+   "cost": -2,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 2,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Riddle With Holes",
+   "class": "RiddleWithHoles",
+   "color": "GREEN",
+   "type": "ATTACK",
+   "rarity": "UNCOMMON",
+   "target": "ENEMY",
+   "cost": 2,
+   "baseDamage": 3,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 1
+   }
+  },
+  {
+   "id": "Setup",
+   "class": "Setup",
+   "color": "GREEN",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "NONE",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "baseCost": 0
+   }
+  },
+  {
+   "id": "Skewer",
+   "class": "Skewer",
+   "color": "GREEN",
+   "type": "ATTACK",
+   "rarity": "UNCOMMON",
+   "target": "ENEMY",
+   "cost": -1,
+   "baseDamage": 7,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 3
+   }
+  },
+  {
+   "id": "Slice",
+   "class": "Slice",
+   "color": "GREEN",
+   "type": "ATTACK",
+   "rarity": "COMMON",
+   "target": "ENEMY",
+   "cost": 0,
+   "baseDamage": 6,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 3
+   }
+  },
+  {
+   "id": "Underhanded Strike",
+   "class": "SneakyStrike",
+   "color": "GREEN",
+   "type": "ATTACK",
+   "rarity": "COMMON",
+   "target": "ENEMY",
+   "cost": 2,
+   "baseDamage": 12,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 4
+   }
+  },
+  {
+   "id": "Storm of Steel",
+   "class": "StormOfSteel",
+   "color": "GREEN",
+   "type": "SKILL",
+   "rarity": "RARE",
+   "target": "NONE",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {}
+  },
+  {
+   "id": "Strike_G",
+   "class": "Strike_Green",
+   "color": "GREEN",
+   "type": "ATTACK",
+   "rarity": "BASIC",
+   "target": "ENEMY",
+   "cost": 1,
+   "baseDamage": 6,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 3
+   }
+  },
+  {
+   "id": "Sucker Punch",
+   "class": "SuckerPunch",
+   "color": "GREEN",
+   "type": "ATTACK",
+   "rarity": "COMMON",
+   "target": "ENEMY",
+   "cost": 1,
+   "baseDamage": 7,
+   "baseBlock": null,
+   "baseMagicNumber": 1,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 2,
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Survivor",
+   "class": "Survivor",
+   "color": "GREEN",
+   "type": "SKILL",
+   "rarity": "BASIC",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": 8,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "block": 3
+   }
+  },
+  {
+   "id": "Tactician",
+   "class": "Tactician",
+   "color": "GREEN",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "NONE",
+   "cost": -2,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 1,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Terror",
+   "class": "Terror",
+   "color": "GREEN",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "ENEMY",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [
+    "exhaust"
+   ],
+   "review": [],
+   "upgrade": {
+    "baseCost": 0
+   }
+  },
+  {
+   "id": "Tools of the Trade",
+   "class": "ToolsOfTheTrade",
+   "color": "GREEN",
+   "type": "POWER",
+   "rarity": "RARE",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "baseCost": 0
+   }
+  },
+  {
+   "id": "Unload",
+   "class": "Unload",
+   "color": "GREEN",
+   "type": "ATTACK",
+   "rarity": "RARE",
+   "target": "ENEMY",
+   "cost": 1,
+   "baseDamage": 14,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 4
+   }
+  },
+  {
+   "id": "Well Laid Plans",
+   "class": "WellLaidPlans",
+   "color": "GREEN",
+   "type": "POWER",
+   "rarity": "UNCOMMON",
+   "target": "NONE",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 1,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Wraith Form v2",
+   "class": "WraithForm",
+   "color": "GREEN",
+   "type": "POWER",
+   "rarity": "RARE",
+   "target": "SELF",
+   "cost": 3,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 2,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Alpha",
+   "class": "Alpha",
+   "color": "PURPLE",
+   "type": "SKILL",
+   "rarity": "RARE",
+   "target": "NONE",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [
+    "exhaust",
+    "innate"
+   ],
+   "review": [],
+   "upgrade": {
+    "flags": [
+     "innate"
+    ]
+   }
+  },
+  {
+   "id": "BattleHymn",
+   "class": "BattleHymn",
+   "color": "PURPLE",
+   "type": "POWER",
+   "rarity": "UNCOMMON",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 1,
+   "flags": [
+    "innate"
+   ],
+   "review": [],
+   "upgrade": {
+    "flags": [
+     "innate"
+    ]
+   }
+  },
+  {
+   "id": "Blasphemy",
+   "class": "Blasphemy",
+   "color": "PURPLE",
+   "type": "SKILL",
+   "rarity": "RARE",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [
+    "exhaust",
+    "selfRetain"
+   ],
+   "review": [],
+   "upgrade": {
+    "flags": [
+     "selfRetain"
+    ]
+   }
+  },
+  {
+   "id": "BowlingBash",
+   "class": "BowlingBash",
+   "color": "PURPLE",
+   "type": "ATTACK",
+   "rarity": "COMMON",
+   "target": "ENEMY",
+   "cost": 1,
+   "baseDamage": 7,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 3
+   }
+  },
+  {
+   "id": "Brilliance",
+   "class": "Brilliance",
+   "color": "PURPLE",
+   "type": "ATTACK",
+   "rarity": "RARE",
+   "target": "ENEMY",
+   "cost": 1,
+   "baseDamage": 12,
+   "baseBlock": null,
+   "baseMagicNumber": 0,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 4
+   }
+  },
+  {
+   "id": "CarveReality",
+   "class": "CarveReality",
+   "color": "PURPLE",
+   "type": "ATTACK",
+   "rarity": "UNCOMMON",
+   "target": "ENEMY",
+   "cost": 1,
+   "baseDamage": 6,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 4
+   }
+  },
+  {
+   "id": "Collect",
+   "class": "Collect",
+   "color": "PURPLE",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "SELF",
+   "cost": -1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [
+    "exhaust"
+   ],
+   "review": [],
+   "upgrade": {}
+  },
+  {
+   "id": "Conclude",
+   "class": "Conclude",
+   "color": "PURPLE",
+   "type": "ATTACK",
+   "rarity": "UNCOMMON",
+   "target": "ALL_ENEMY",
+   "cost": 1,
+   "baseDamage": 12,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 4
+   }
+  },
+  {
+   "id": "ConjureBlade",
+   "class": "ConjureBlade",
+   "color": "PURPLE",
+   "type": "SKILL",
+   "rarity": "RARE",
+   "target": "SELF",
+   "cost": -1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [
+    "exhaust"
+   ],
+   "review": [],
+   "upgrade": {}
+  },
+  {
+   "id": "Consecrate",
+   "class": "Consecrate",
+   "color": "PURPLE",
+   "type": "ATTACK",
+   "rarity": "COMMON",
+   "target": "ALL_ENEMY",
+   "cost": 0,
+   "baseDamage": 5,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 3
+   }
+  },
+  {
+   "id": "Crescendo",
+   "class": "Crescendo",
+   "color": "PURPLE",
+   "type": "SKILL",
+   "rarity": "COMMON",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [
+    "exhaust",
+    "selfRetain"
+   ],
+   "review": [],
+   "upgrade": {
+    "baseCost": 0
+   }
+  },
+  {
+   "id": "CrushJoints",
+   "class": "CrushJoints",
+   "color": "PURPLE",
+   "type": "ATTACK",
+   "rarity": "COMMON",
+   "target": "ENEMY",
+   "cost": 1,
+   "baseDamage": 8,
+   "baseBlock": null,
+   "baseMagicNumber": 1,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 2,
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "CutThroughFate",
+   "class": "CutThroughFate",
+   "color": "PURPLE",
+   "type": "ATTACK",
+   "rarity": "COMMON",
+   "target": "ENEMY",
+   "cost": 1,
+   "baseDamage": 7,
+   "baseBlock": null,
+   "baseMagicNumber": 2,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 2,
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "DeceiveReality",
+   "class": "DeceiveReality",
+   "color": "PURPLE",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": 4,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "block": 3
+   }
+  },
+  {
+   "id": "Defend_P",
+   "class": "Defend_Watcher",
+   "color": "PURPLE",
+   "type": "SKILL",
+   "rarity": "BASIC",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": 5,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "block": 3
+   }
+  },
+  {
+   "id": "DeusExMachina",
+   "class": "DeusExMachina",
+   "color": "PURPLE",
+   "type": "SKILL",
+   "rarity": "RARE",
+   "target": "SELF",
+   "cost": -2,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 2,
+   "flags": [
+    "exhaust"
+   ],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "DevaForm",
+   "class": "DevaForm",
+   "color": "PURPLE",
+   "type": "POWER",
+   "rarity": "RARE",
+   "target": "SELF",
+   "cost": 3,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 1,
+   "flags": [
+    "ethereal"
+   ],
+   "review": [],
+   "upgrade": {}
+  },
+  {
+   "id": "Devotion",
+   "class": "Devotion",
+   "color": "PURPLE",
+   "type": "POWER",
+   "rarity": "RARE",
+   "target": "NONE",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 2,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Discipline",
+   "class": "Discipline",
+   "color": "PURPLE",
+   "type": "POWER",
+   "rarity": "RARE",
+   "target": "SELF",
+   "cost": 2,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "baseCost": 1
+   }
+  },
+  {
+   "id": "EmptyBody",
+   "class": "EmptyBody",
+   "color": "PURPLE",
+   "type": "SKILL",
+   "rarity": "COMMON",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": 7,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "block": 3
+   }
+  },
+  {
+   "id": "EmptyFist",
+   "class": "EmptyFist",
+   "color": "PURPLE",
+   "type": "ATTACK",
+   "rarity": "COMMON",
+   "target": "ENEMY",
+   "cost": 1,
+   "baseDamage": 9,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 5
+   }
+  },
+  {
+   "id": "EmptyMind",
+   "class": "EmptyMind",
+   "color": "PURPLE",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 2,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Eruption",
+   "class": "Eruption",
+   "color": "PURPLE",
+   "type": "ATTACK",
+   "rarity": "BASIC",
+   "target": "ENEMY",
+   "cost": 2,
+   "baseDamage": 9,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "baseCost": 1
+   }
+  },
+  {
+   "id": "Establishment",
+   "class": "Establishment",
+   "color": "PURPLE",
+   "type": "POWER",
+   "rarity": "RARE",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 1,
+   "flags": [
+    "innate"
+   ],
+   "review": [],
+   "upgrade": {
+    "flags": [
+     "innate"
+    ]
+   }
+  },
+  {
+   "id": "Evaluate",
+   "class": "Evaluate",
+   "color": "PURPLE",
+   "type": "SKILL",
+   "rarity": "COMMON",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": 6,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "block": 4
+   }
+  },
+  {
+   "id": "Fasting2",
+   "class": "Fasting",
+   "color": "PURPLE",
+   "type": "POWER",
+   "rarity": "UNCOMMON",
+   "target": "SELF",
+   "cost": 2,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 3,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "FearNoEvil",
+   "class": "FearNoEvil",
+   "color": "PURPLE",
+   "type": "ATTACK",
+   "rarity": "UNCOMMON",
+   "target": "ENEMY",
+   "cost": 1,
+   "baseDamage": 8,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 3
+   }
+  },
+  {
+   "id": "FlurryOfBlows",
+   "class": "FlurryOfBlows",
+   "color": "PURPLE",
+   "type": "ATTACK",
+   "rarity": "COMMON",
+   "target": "ENEMY",
+   "cost": 0,
+   "baseDamage": 4,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 2
+   }
+  },
+  {
+   "id": "FlyingSleeves",
+   "class": "FlyingSleeves",
+   "color": "PURPLE",
+   "type": "ATTACK",
+   "rarity": "COMMON",
+   "target": "ENEMY",
+   "cost": 1,
+   "baseDamage": 4,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [
+    "selfRetain"
+   ],
+   "review": [],
+   "upgrade": {
+    "damage": 2
+   }
+  },
+  {
+   "id": "FollowUp",
+   "class": "FollowUp",
+   "color": "PURPLE",
+   "type": "ATTACK",
+   "rarity": "COMMON",
+   "target": "ENEMY",
+   "cost": 1,
+   "baseDamage": 7,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 4
+   }
+  },
+  {
+   "id": "ForeignInfluence",
+   "class": "ForeignInfluence",
+   "color": "PURPLE",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "NONE",
+   "cost": 0,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [
+    "exhaust"
+   ],
+   "review": [],
+   "upgrade": {}
+  },
+  {
+   "id": "Wireheading",
+   "class": "Foresight",
+   "color": "PURPLE",
+   "type": "POWER",
+   "rarity": "UNCOMMON",
+   "target": "NONE",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 3,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Halt",
+   "class": "Halt",
+   "color": "PURPLE",
+   "type": "SKILL",
+   "rarity": "COMMON",
+   "target": "SELF",
+   "cost": 0,
+   "baseDamage": null,
+   "baseBlock": 3,
+   "baseMagicNumber": 9,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "block": 1
+   }
+  },
+  {
+   "id": "Indignation",
+   "class": "Indignation",
+   "color": "PURPLE",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "NONE",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 3,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 2
+   }
+  },
+  {
+   "id": "InnerPeace",
+   "class": "InnerPeace",
+   "color": "PURPLE",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 3,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Judgement",
+   "class": "Judgement",
+   "color": "PURPLE",
+   "type": "SKILL",
+   "rarity": "RARE",
+   "target": "ENEMY",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 30,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 10
+   }
+  },
+  {
+   "id": "JustLucky",
+   "class": "JustLucky",
+   "color": "PURPLE",
+   "type": "ATTACK",
+   "rarity": "COMMON",
+   "target": "ENEMY",
+   "cost": 0,
+   "baseDamage": 3,
+   "baseBlock": 2,
+   "baseMagicNumber": 1,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 1,
+    "block": 1,
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "LessonLearned",
+   "class": "LessonLearned",
+   "color": "PURPLE",
+   "type": "ATTACK",
+   "rarity": "RARE",
+   "target": "ENEMY",
+   "cost": 2,
+   "baseDamage": 10,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [
+    "exhaust"
+   ],
+   "review": [],
+   "upgrade": {
+    "damage": 3
+   }
+  },
+  {
+   "id": "LikeWater",
+   "class": "LikeWater",
+   "color": "PURPLE",
+   "type": "POWER",
+   "rarity": "UNCOMMON",
+   "target": "NONE",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 5,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 2
+   }
+  },
+  {
+   "id": "MasterReality",
+   "class": "MasterReality",
+   "color": "PURPLE",
+   "type": "POWER",
+   "rarity": "RARE",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "baseCost": 0
+   }
+  },
+  {
+   "id": "Meditate",
+   "class": "Meditate",
+   "color": "PURPLE",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "NONE",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 1,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "MentalFortress",
+   "class": "MentalFortress",
+   "color": "PURPLE",
+   "type": "POWER",
+   "rarity": "UNCOMMON",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 4,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 2
+   }
+  },
+  {
+   "id": "Nirvana",
+   "class": "Nirvana",
+   "color": "PURPLE",
+   "type": "POWER",
+   "rarity": "UNCOMMON",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 3,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Omniscience",
+   "class": "Omniscience",
+   "color": "PURPLE",
+   "type": "SKILL",
+   "rarity": "RARE",
+   "target": "NONE",
+   "cost": 4,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 2,
+   "flags": [
+    "exhaust"
+   ],
+   "review": [],
+   "upgrade": {
+    "baseCost": 3
+   }
+  },
+  {
+   "id": "Perseverance",
+   "class": "Perseverance",
+   "color": "PURPLE",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": 5,
+   "baseMagicNumber": 2,
+   "flags": [
+    "selfRetain"
+   ],
+   "review": [],
+   "upgrade": {
+    "block": 2,
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Pray",
+   "class": "Pray",
+   "color": "PURPLE",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 3,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "PathToVictory",
+   "class": "PressurePoints",
+   "color": "PURPLE",
+   "type": "SKILL",
+   "rarity": "COMMON",
+   "target": "ENEMY",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 8,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 3
+   }
+  },
+  {
+   "id": "Prostrate",
+   "class": "Prostrate",
+   "color": "PURPLE",
+   "type": "SKILL",
+   "rarity": "COMMON",
+   "target": "SELF",
+   "cost": 0,
+   "baseDamage": null,
+   "baseBlock": 4,
+   "baseMagicNumber": 2,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Protect",
+   "class": "Protect",
+   "color": "PURPLE",
+   "type": "SKILL",
+   "rarity": "COMMON",
+   "target": "SELF",
+   "cost": 2,
+   "baseDamage": null,
+   "baseBlock": 12,
+   "baseMagicNumber": null,
+   "flags": [
+    "selfRetain"
+   ],
+   "review": [],
+   "upgrade": {
+    "block": 4
+   }
+  },
+  {
+   "id": "Ragnarok",
+   "class": "Ragnarok",
+   "color": "PURPLE",
+   "type": "ATTACK",
+   "rarity": "RARE",
+   "target": "ALL_ENEMY",
+   "cost": 3,
+   "baseDamage": 5,
+   "baseBlock": null,
+   "baseMagicNumber": 5,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 1,
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "ReachHeaven",
+   "class": "ReachHeaven",
+   "color": "PURPLE",
+   "type": "ATTACK",
+   "rarity": "UNCOMMON",
+   "target": "ENEMY",
+   "cost": 2,
+   "baseDamage": 10,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 5
+   }
+  },
+  {
+   "id": "Adaptation",
+   "class": "Rushdown",
+   "color": "PURPLE",
+   "type": "POWER",
+   "rarity": "UNCOMMON",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 2,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "baseCost": 0
+   }
+  },
+  {
+   "id": "Sanctity",
+   "class": "Sanctity",
+   "color": "PURPLE",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": 6,
+   "baseMagicNumber": 2,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "block": 3
+   }
+  },
+  {
+   "id": "SandsOfTime",
+   "class": "SandsOfTime",
+   "color": "PURPLE",
+   "type": "ATTACK",
+   "rarity": "UNCOMMON",
+   "target": "ENEMY",
+   "cost": 4,
+   "baseDamage": 20,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [
+    "selfRetain"
+   ],
+   "review": [],
+   "upgrade": {
+    "damage": 6
+   }
+  },
+  {
+   "id": "SashWhip",
+   "class": "SashWhip",
+   "color": "PURPLE",
+   "type": "ATTACK",
+   "rarity": "COMMON",
+   "target": "ENEMY",
+   "cost": 1,
+   "baseDamage": 8,
+   "baseBlock": null,
+   "baseMagicNumber": 1,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 2,
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Scrawl",
+   "class": "Scrawl",
+   "color": "PURPLE",
+   "type": "SKILL",
+   "rarity": "RARE",
+   "target": "NONE",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [
+    "exhaust"
+   ],
+   "review": [],
+   "upgrade": {
+    "baseCost": 0
+   }
+  },
+  {
+   "id": "SignatureMove",
+   "class": "SignatureMove",
+   "color": "PURPLE",
+   "type": "ATTACK",
+   "rarity": "UNCOMMON",
+   "target": "ENEMY",
+   "cost": 2,
+   "baseDamage": 30,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 10
+   }
+  },
+  {
+   "id": "Vengeance",
+   "class": "SimmeringFury",
+   "color": "PURPLE",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "NONE",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 2,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "SpiritShield",
+   "class": "SpiritShield",
+   "color": "PURPLE",
+   "type": "SKILL",
+   "rarity": "RARE",
+   "target": "SELF",
+   "cost": 2,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 3,
+   "flags": [],
+   "review": [
+    "baseBlock=count * this.magicNumber"
+   ],
+   "upgrade": {
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Strike_P",
+   "class": "Strike_Purple",
+   "color": "PURPLE",
+   "type": "ATTACK",
+   "rarity": "BASIC",
+   "target": "ENEMY",
+   "cost": 1,
+   "baseDamage": 6,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 3
+   }
+  },
+  {
+   "id": "Study",
+   "class": "Study",
+   "color": "PURPLE",
+   "type": "POWER",
+   "rarity": "UNCOMMON",
+   "target": "SELF",
+   "cost": 2,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 1,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "baseCost": 1
+   }
+  },
+  {
+   "id": "Swivel",
+   "class": "Swivel",
+   "color": "PURPLE",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "SELF",
+   "cost": 2,
+   "baseDamage": null,
+   "baseBlock": 8,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "block": 3
+   }
+  },
+  {
+   "id": "TalkToTheHand",
+   "class": "TalkToTheHand",
+   "color": "PURPLE",
+   "type": "ATTACK",
+   "rarity": "UNCOMMON",
+   "target": "ENEMY",
+   "cost": 1,
+   "baseDamage": 5,
+   "baseBlock": null,
+   "baseMagicNumber": 2,
+   "flags": [
+    "exhaust"
+   ],
+   "review": [],
+   "upgrade": {
+    "damage": 2,
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Tantrum",
+   "class": "Tantrum",
+   "color": "PURPLE",
+   "type": "ATTACK",
+   "rarity": "UNCOMMON",
+   "target": "ENEMY",
+   "cost": 1,
+   "baseDamage": 3,
+   "baseBlock": null,
+   "baseMagicNumber": 3,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "ThirdEye",
+   "class": "ThirdEye",
+   "color": "PURPLE",
+   "type": "SKILL",
+   "rarity": "COMMON",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": 7,
+   "baseMagicNumber": 3,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "block": 2,
+    "magicNumber": 2
+   }
+  },
+  {
+   "id": "ClearTheMind",
+   "class": "Tranquility",
+   "color": "PURPLE",
+   "type": "SKILL",
+   "rarity": "COMMON",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [
+    "exhaust",
+    "selfRetain"
+   ],
+   "review": [],
+   "upgrade": {
+    "baseCost": 0
+   }
+  },
+  {
+   "id": "Unraveling",
+   "class": "Unraveling",
+   "color": "PURPLE",
+   "type": "SKILL",
+   "rarity": "RARE",
+   "target": "NONE",
+   "cost": 2,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [
+    "exhaust"
+   ],
+   "review": [],
+   "upgrade": {
+    "baseCost": 1
+   }
+  },
+  {
+   "id": "Vault",
+   "class": "Vault",
+   "color": "PURPLE",
+   "type": "SKILL",
+   "rarity": "RARE",
+   "target": "ALL",
+   "cost": 3,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [
+    "exhaust"
+   ],
+   "review": [],
+   "upgrade": {
+    "baseCost": 2
+   }
+  },
+  {
+   "id": "Vigilance",
+   "class": "Vigilance",
+   "color": "PURPLE",
+   "type": "SKILL",
+   "rarity": "BASIC",
+   "target": "SELF",
+   "cost": 2,
+   "baseDamage": null,
+   "baseBlock": 8,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "block": 4
+   }
+  },
+  {
+   "id": "Wallop",
+   "class": "Wallop",
+   "color": "PURPLE",
+   "type": "ATTACK",
+   "rarity": "UNCOMMON",
+   "target": "ENEMY",
+   "cost": 2,
+   "baseDamage": 9,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 3
+   }
+  },
+  {
+   "id": "WaveOfTheHand",
+   "class": "WaveOfTheHand",
+   "color": "PURPLE",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 1,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Weave",
+   "class": "Weave",
+   "color": "PURPLE",
+   "type": "ATTACK",
+   "rarity": "UNCOMMON",
+   "target": "ENEMY",
+   "cost": 0,
+   "baseDamage": 4,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 2
+   }
+  },
+  {
+   "id": "WheelKick",
+   "class": "WheelKick",
+   "color": "PURPLE",
+   "type": "ATTACK",
+   "rarity": "UNCOMMON",
+   "target": "ENEMY",
+   "cost": 2,
+   "baseDamage": 15,
+   "baseBlock": null,
+   "baseMagicNumber": 2,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 5
+   }
+  },
+  {
+   "id": "WindmillStrike",
+   "class": "WindmillStrike",
+   "color": "PURPLE",
+   "type": "ATTACK",
+   "rarity": "UNCOMMON",
+   "target": "ENEMY",
+   "cost": 2,
+   "baseDamage": 7,
+   "baseBlock": null,
+   "baseMagicNumber": 4,
+   "flags": [
+    "selfRetain"
+   ],
+   "review": [],
+   "upgrade": {
+    "damage": 3,
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Wish",
+   "class": "Wish",
+   "color": "PURPLE",
+   "type": "SKILL",
+   "rarity": "RARE",
+   "target": "NONE",
+   "cost": 3,
+   "baseDamage": 3,
+   "baseBlock": 6,
+   "baseMagicNumber": 25,
+   "flags": [
+    "exhaust"
+   ],
+   "review": [],
+   "upgrade": {
+    "damage": 1,
+    "block": 2,
+    "magicNumber": 5
+   }
+  },
+  {
+   "id": "Worship",
+   "class": "Worship",
+   "color": "PURPLE",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "SELF",
+   "cost": 2,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 5,
+   "flags": [
+    "selfRetain"
+   ],
+   "review": [],
+   "upgrade": {
+    "flags": [
+     "selfRetain"
+    ]
+   }
+  },
+  {
+   "id": "WreathOfFlame",
+   "class": "WreathOfFlame",
+   "color": "PURPLE",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 5,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 3
+   }
+  },
+  {
+   "id": "Aggregate",
+   "class": "Aggregate",
+   "color": "BLUE",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 4,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": -1
+   }
+  },
+  {
+   "id": "All For One",
+   "class": "AllForOne",
+   "color": "BLUE",
+   "type": "ATTACK",
+   "rarity": "RARE",
+   "target": "ENEMY",
+   "cost": 2,
+   "baseDamage": 10,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 4
+   }
+  },
+  {
+   "id": "Amplify",
+   "class": "Amplify",
+   "color": "BLUE",
+   "type": "SKILL",
+   "rarity": "RARE",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 1,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Auto Shields",
+   "class": "AutoShields",
+   "color": "BLUE",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": 11,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "block": 4
+   }
+  },
+  {
+   "id": "Ball Lightning",
+   "class": "BallLightning",
+   "color": "BLUE",
+   "type": "ATTACK",
+   "rarity": "COMMON",
+   "target": "ENEMY",
+   "cost": 1,
+   "baseDamage": 7,
+   "baseBlock": null,
+   "baseMagicNumber": 1,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 3
+   }
+  },
+  {
+   "id": "Barrage",
+   "class": "Barrage",
+   "color": "BLUE",
+   "type": "ATTACK",
+   "rarity": "COMMON",
+   "target": "ENEMY",
+   "cost": 1,
+   "baseDamage": 4,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 2
+   }
+  },
+  {
+   "id": "Beam Cell",
+   "class": "BeamCell",
+   "color": "BLUE",
+   "type": "ATTACK",
+   "rarity": "COMMON",
+   "target": "ENEMY",
+   "cost": 0,
+   "baseDamage": 3,
+   "baseBlock": null,
+   "baseMagicNumber": 1,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 1,
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Biased Cognition",
+   "class": "BiasedCognition",
+   "color": "BLUE",
+   "type": "POWER",
+   "rarity": "RARE",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 4,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Blizzard",
+   "class": "Blizzard",
+   "color": "BLUE",
+   "type": "ATTACK",
+   "rarity": "UNCOMMON",
+   "target": "ALL_ENEMY",
+   "cost": 1,
+   "baseDamage": 0,
+   "baseBlock": null,
+   "baseMagicNumber": 2,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "BootSequence",
+   "class": "BootSequence",
+   "color": "BLUE",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "SELF",
+   "cost": 0,
+   "baseDamage": null,
+   "baseBlock": 10,
+   "baseMagicNumber": null,
+   "flags": [
+    "exhaust",
+    "innate"
+   ],
+   "review": [],
+   "upgrade": {
+    "block": 3
+   }
+  },
+  {
+   "id": "Buffer",
+   "class": "Buffer",
+   "color": "BLUE",
+   "type": "POWER",
+   "rarity": "RARE",
+   "target": "SELF",
+   "cost": 2,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 1,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Capacitor",
+   "class": "Capacitor",
+   "color": "BLUE",
+   "type": "POWER",
+   "rarity": "UNCOMMON",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 2,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Chaos",
+   "class": "Chaos",
+   "color": "BLUE",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 1,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Chill",
+   "class": "Chill",
+   "color": "BLUE",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "SELF",
+   "cost": 0,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 1,
+   "flags": [
+    "exhaust",
+    "innate"
+   ],
+   "review": [],
+   "upgrade": {
+    "flags": [
+     "innate"
+    ]
+   }
+  },
+  {
+   "id": "Gash",
+   "class": "Claw",
+   "color": "BLUE",
+   "type": "ATTACK",
+   "rarity": "COMMON",
+   "target": "ENEMY",
+   "cost": 0,
+   "baseDamage": 3,
+   "baseBlock": null,
+   "baseMagicNumber": 2,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 2
+   }
+  },
+  {
+   "id": "Cold Snap",
+   "class": "ColdSnap",
+   "color": "BLUE",
+   "type": "ATTACK",
+   "rarity": "COMMON",
+   "target": "ENEMY",
+   "cost": 1,
+   "baseDamage": 6,
+   "baseBlock": null,
+   "baseMagicNumber": 1,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 3
+   }
+  },
+  {
+   "id": "Compile Driver",
+   "class": "CompileDriver",
+   "color": "BLUE",
+   "type": "ATTACK",
+   "rarity": "COMMON",
+   "target": "ENEMY",
+   "cost": 1,
+   "baseDamage": 7,
+   "baseBlock": null,
+   "baseMagicNumber": 1,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 3
+   }
+  },
+  {
+   "id": "Conserve Battery",
+   "class": "ConserveBattery",
+   "color": "BLUE",
+   "type": "SKILL",
+   "rarity": "COMMON",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": 7,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "block": 3
+   }
+  },
+  {
+   "id": "Consume",
+   "class": "Consume",
+   "color": "BLUE",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "SELF",
+   "cost": 2,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 2,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Coolheaded",
+   "class": "Coolheaded",
+   "color": "BLUE",
+   "type": "SKILL",
+   "rarity": "COMMON",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 1,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Core Surge",
+   "class": "CoreSurge",
+   "color": "BLUE",
+   "type": "ATTACK",
+   "rarity": "RARE",
+   "target": "ENEMY",
+   "cost": 1,
+   "baseDamage": 11,
+   "baseBlock": null,
+   "baseMagicNumber": 1,
+   "flags": [
+    "exhaust"
+   ],
+   "review": [],
+   "upgrade": {
+    "damage": 4
+   }
+  },
+  {
+   "id": "Creative AI",
+   "class": "CreativeAI",
+   "color": "BLUE",
+   "type": "POWER",
+   "rarity": "RARE",
+   "target": "SELF",
+   "cost": 3,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 1,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "baseCost": 2
+   }
+  },
+  {
+   "id": "Darkness",
+   "class": "Darkness",
+   "color": "BLUE",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 1,
+   "flags": [],
+   "review": [],
+   "upgrade": {}
+  },
+  {
+   "id": "Defend_B",
+   "class": "Defend_Blue",
+   "color": "BLUE",
+   "type": "SKILL",
+   "rarity": "BASIC",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": 5,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "block": 3
+   }
+  },
+  {
+   "id": "Defragment",
+   "class": "Defragment",
+   "color": "BLUE",
+   "type": "POWER",
+   "rarity": "UNCOMMON",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 1,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Doom and Gloom",
+   "class": "DoomAndGloom",
+   "color": "BLUE",
+   "type": "ATTACK",
+   "rarity": "UNCOMMON",
+   "target": "ALL_ENEMY",
+   "cost": 2,
+   "baseDamage": 10,
+   "baseBlock": null,
+   "baseMagicNumber": 1,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 4
+   }
+  },
+  {
+   "id": "Double Energy",
+   "class": "DoubleEnergy",
+   "color": "BLUE",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [
+    "exhaust"
+   ],
+   "review": [],
+   "upgrade": {
+    "baseCost": 0
+   }
+  },
+  {
+   "id": "Dualcast",
+   "class": "Dualcast",
+   "color": "BLUE",
+   "type": "SKILL",
+   "rarity": "BASIC",
+   "target": "NONE",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "baseCost": 0
+   }
+  },
+  {
+   "id": "Echo Form",
+   "class": "EchoForm",
+   "color": "BLUE",
+   "type": "POWER",
+   "rarity": "RARE",
+   "target": "SELF",
+   "cost": 3,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [
+    "ethereal"
+   ],
+   "review": [],
+   "upgrade": {}
+  },
+  {
+   "id": "Electrodynamics",
+   "class": "Electrodynamics",
+   "color": "BLUE",
+   "type": "POWER",
+   "rarity": "RARE",
+   "target": "SELF",
+   "cost": 2,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 2,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Undo",
+   "class": "Equilibrium",
+   "color": "BLUE",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "SELF",
+   "cost": 2,
+   "baseDamage": null,
+   "baseBlock": 13,
+   "baseMagicNumber": 1,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "block": 3
+   }
+  },
+  {
+   "id": "FTL",
+   "class": "FTL",
+   "color": "BLUE",
+   "type": "ATTACK",
+   "rarity": "UNCOMMON",
+   "target": "ENEMY",
+   "cost": 0,
+   "baseDamage": 5,
+   "baseBlock": null,
+   "baseMagicNumber": 3,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 1,
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Fission",
+   "class": "Fission",
+   "color": "BLUE",
+   "type": "SKILL",
+   "rarity": "RARE",
+   "target": "NONE",
+   "cost": 0,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 1,
+   "flags": [
+    "exhaust"
+   ],
+   "review": [],
+   "upgrade": {}
+  },
+  {
+   "id": "Force Field",
+   "class": "ForceField",
+   "color": "BLUE",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "SELF",
+   "cost": 4,
+   "baseDamage": null,
+   "baseBlock": 12,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "block": 4
+   }
+  },
+  {
+   "id": "Fusion",
+   "class": "Fusion",
+   "color": "BLUE",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "SELF",
+   "cost": 2,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 1,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "baseCost": 1
+   }
+  },
+  {
+   "id": "Genetic Algorithm",
+   "class": "GeneticAlgorithm",
+   "color": "BLUE",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 2,
+   "flags": [
+    "exhaust"
+   ],
+   "review": [
+    "baseBlock=this.misc",
+    "baseBlock=this.misc"
+   ],
+   "upgrade": {
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Glacier",
+   "class": "Glacier",
+   "color": "BLUE",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "SELF",
+   "cost": 2,
+   "baseDamage": null,
+   "baseBlock": 7,
+   "baseMagicNumber": 2,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "block": 3
+   }
+  },
+  {
+   "id": "Go for the Eyes",
+   "class": "GoForTheEyes",
+   "color": "BLUE",
+   "type": "ATTACK",
+   "rarity": "COMMON",
+   "target": "ENEMY",
+   "cost": 0,
+   "baseDamage": 3,
+   "baseBlock": null,
+   "baseMagicNumber": 1,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 1,
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Heatsinks",
+   "class": "Heatsinks",
+   "color": "BLUE",
+   "type": "POWER",
+   "rarity": "UNCOMMON",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 1,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Hello World",
+   "class": "HelloWorld",
+   "color": "BLUE",
+   "type": "POWER",
+   "rarity": "UNCOMMON",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [
+    "innate"
+   ],
+   "review": [],
+   "upgrade": {
+    "flags": [
+     "innate"
+    ]
+   }
+  },
+  {
+   "id": "Hologram",
+   "class": "Hologram",
+   "color": "BLUE",
+   "type": "SKILL",
+   "rarity": "COMMON",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": 3,
+   "baseMagicNumber": null,
+   "flags": [
+    "exhaust"
+   ],
+   "review": [],
+   "upgrade": {
+    "block": 2
+   }
+  },
+  {
+   "id": "Hyperbeam",
+   "class": "Hyperbeam",
+   "color": "BLUE",
+   "type": "ATTACK",
+   "rarity": "RARE",
+   "target": "ALL_ENEMY",
+   "cost": 2,
+   "baseDamage": 26,
+   "baseBlock": null,
+   "baseMagicNumber": 3,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 8
+   }
+  },
+  {
+   "id": "Impulse",
+   "class": "Impulse",
+   "color": "BLUE",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [
+    "exhaust"
+   ],
+   "review": [],
+   "upgrade": {}
+  },
+  {
+   "id": "Leap",
+   "class": "Leap",
+   "color": "BLUE",
+   "type": "SKILL",
+   "rarity": "COMMON",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": 9,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "block": 3
+   }
+  },
+  {
+   "id": "Lockon",
+   "class": "LockOn",
+   "color": "BLUE",
+   "type": "ATTACK",
+   "rarity": "UNCOMMON",
+   "target": "ENEMY",
+   "cost": 1,
+   "baseDamage": 8,
+   "baseBlock": null,
+   "baseMagicNumber": 2,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 3,
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Loop",
+   "class": "Loop",
+   "color": "BLUE",
+   "type": "POWER",
+   "rarity": "UNCOMMON",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 1,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Machine Learning",
+   "class": "MachineLearning",
+   "color": "BLUE",
+   "type": "POWER",
+   "rarity": "RARE",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 1,
+   "flags": [
+    "innate"
+   ],
+   "review": [],
+   "upgrade": {
+    "flags": [
+     "innate"
+    ]
+   }
+  },
+  {
+   "id": "Melter",
+   "class": "Melter",
+   "color": "BLUE",
+   "type": "ATTACK",
+   "rarity": "UNCOMMON",
+   "target": "ENEMY",
+   "cost": 1,
+   "baseDamage": 10,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 4
+   }
+  },
+  {
+   "id": "Meteor Strike",
+   "class": "MeteorStrike",
+   "color": "BLUE",
+   "type": "ATTACK",
+   "rarity": "RARE",
+   "target": "ENEMY",
+   "cost": 5,
+   "baseDamage": 24,
+   "baseBlock": null,
+   "baseMagicNumber": 3,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 6
+   }
+  },
+  {
+   "id": "Multi-Cast",
+   "class": "MultiCast",
+   "color": "BLUE",
+   "type": "SKILL",
+   "rarity": "RARE",
+   "target": "NONE",
+   "cost": -1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {}
+  },
+  {
+   "id": "Steam Power",
+   "class": "Overclock",
+   "color": "BLUE",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "SELF",
+   "cost": 0,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 2,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Rainbow",
+   "class": "Rainbow",
+   "color": "BLUE",
+   "type": "SKILL",
+   "rarity": "RARE",
+   "target": "SELF",
+   "cost": 2,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [
+    "exhaust"
+   ],
+   "review": [],
+   "upgrade": {}
+  },
+  {
+   "id": "Reboot",
+   "class": "Reboot",
+   "color": "BLUE",
+   "type": "SKILL",
+   "rarity": "RARE",
+   "target": "SELF",
+   "cost": 0,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 4,
+   "flags": [
+    "exhaust"
+   ],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 2
+   }
+  },
+  {
+   "id": "Rebound",
+   "class": "Rebound",
+   "color": "BLUE",
+   "type": "ATTACK",
+   "rarity": "COMMON",
+   "target": "ENEMY",
+   "cost": 1,
+   "baseDamage": 9,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 3
+   }
+  },
+  {
+   "id": "Redo",
+   "class": "Recursion",
+   "color": "BLUE",
+   "type": "SKILL",
+   "rarity": "COMMON",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "baseCost": 0
+   }
+  },
+  {
+   "id": "Recycle",
+   "class": "Recycle",
+   "color": "BLUE",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "baseCost": 0
+   }
+  },
+  {
+   "id": "Reinforced Body",
+   "class": "ReinforcedBody",
+   "color": "BLUE",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "SELF",
+   "cost": -1,
+   "baseDamage": null,
+   "baseBlock": 7,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "block": 2
+   }
+  },
+  {
+   "id": "Reprogram",
+   "class": "Reprogram",
+   "color": "BLUE",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "NONE",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 1,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Rip and Tear",
+   "class": "RipAndTear",
+   "color": "BLUE",
+   "type": "ATTACK",
+   "rarity": "UNCOMMON",
+   "target": "ALL_ENEMY",
+   "cost": 1,
+   "baseDamage": 7,
+   "baseBlock": null,
+   "baseMagicNumber": 2,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 2
+   }
+  },
+  {
+   "id": "Scrape",
+   "class": "Scrape",
+   "color": "BLUE",
+   "type": "ATTACK",
+   "rarity": "UNCOMMON",
+   "target": "ENEMY",
+   "cost": 1,
+   "baseDamage": 7,
+   "baseBlock": null,
+   "baseMagicNumber": 4,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 3,
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Seek",
+   "class": "Seek",
+   "color": "BLUE",
+   "type": "SKILL",
+   "rarity": "RARE",
+   "target": "NONE",
+   "cost": 0,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 1,
+   "flags": [
+    "exhaust"
+   ],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Self Repair",
+   "class": "SelfRepair",
+   "color": "BLUE",
+   "type": "POWER",
+   "rarity": "UNCOMMON",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 7,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 3
+   }
+  },
+  {
+   "id": "Skim",
+   "class": "Skim",
+   "color": "BLUE",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "NONE",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 3,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Stack",
+   "class": "Stack",
+   "color": "BLUE",
+   "type": "SKILL",
+   "rarity": "COMMON",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": 0,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "block": 3
+   }
+  },
+  {
+   "id": "Static Discharge",
+   "class": "StaticDischarge",
+   "color": "BLUE",
+   "type": "POWER",
+   "rarity": "UNCOMMON",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 1,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Steam",
+   "class": "SteamBarrier",
+   "color": "BLUE",
+   "type": "SKILL",
+   "rarity": "COMMON",
+   "target": "SELF",
+   "cost": 0,
+   "baseDamage": null,
+   "baseBlock": 6,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "block": 2
+   }
+  },
+  {
+   "id": "Storm",
+   "class": "Storm",
+   "color": "BLUE",
+   "type": "POWER",
+   "rarity": "UNCOMMON",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 1,
+   "flags": [
+    "innate"
+   ],
+   "review": [],
+   "upgrade": {
+    "flags": [
+     "innate"
+    ]
+   }
+  },
+  {
+   "id": "Streamline",
+   "class": "Streamline",
+   "color": "BLUE",
+   "type": "ATTACK",
+   "rarity": "COMMON",
+   "target": "ENEMY",
+   "cost": 2,
+   "baseDamage": 15,
+   "baseBlock": null,
+   "baseMagicNumber": 1,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 5
+   }
+  },
+  {
+   "id": "Strike_B",
+   "class": "Strike_Blue",
+   "color": "BLUE",
+   "type": "ATTACK",
+   "rarity": "BASIC",
+   "target": "ENEMY",
+   "cost": 1,
+   "baseDamage": 6,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 3
+   }
+  },
+  {
+   "id": "Sunder",
+   "class": "Sunder",
+   "color": "BLUE",
+   "type": "ATTACK",
+   "rarity": "UNCOMMON",
+   "target": "ENEMY",
+   "cost": 3,
+   "baseDamage": 24,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 8
+   }
+  },
+  {
+   "id": "Sweeping Beam",
+   "class": "SweepingBeam",
+   "color": "BLUE",
+   "type": "ATTACK",
+   "rarity": "COMMON",
+   "target": "ALL_ENEMY",
+   "cost": 1,
+   "baseDamage": 6,
+   "baseBlock": null,
+   "baseMagicNumber": 1,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 3
+   }
+  },
+  {
+   "id": "Tempest",
+   "class": "Tempest",
+   "color": "BLUE",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "SELF",
+   "cost": -1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [
+    "exhaust"
+   ],
+   "review": [],
+   "upgrade": {}
+  },
+  {
+   "id": "Thunder Strike",
+   "class": "ThunderStrike",
+   "color": "BLUE",
+   "type": "ATTACK",
+   "rarity": "RARE",
+   "target": "ALL_ENEMY",
+   "cost": 3,
+   "baseDamage": 7,
+   "baseBlock": null,
+   "baseMagicNumber": 0,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 2
+   }
+  },
+  {
+   "id": "Turbo",
+   "class": "Turbo",
+   "color": "BLUE",
+   "type": "SKILL",
+   "rarity": "COMMON",
+   "target": "SELF",
+   "cost": 0,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 2,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "White Noise",
+   "class": "WhiteNoise",
+   "color": "BLUE",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "NONE",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [
+    "exhaust"
+   ],
+   "review": [],
+   "upgrade": {
+    "baseCost": 0
+   }
+  },
+  {
+   "id": "Zap",
+   "class": "Zap",
+   "color": "BLUE",
+   "type": "SKILL",
+   "rarity": "BASIC",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 1,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "baseCost": 0
+   }
+  },
+  {
+   "id": "Apotheosis",
+   "class": "Apotheosis",
+   "color": "COLORLESS",
+   "type": "SKILL",
+   "rarity": "RARE",
+   "target": "NONE",
+   "cost": 2,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [
+    "exhaust"
+   ],
+   "review": [],
+   "upgrade": {
+    "baseCost": 1
+   }
+  },
+  {
+   "id": "Ghostly",
+   "class": "Apparition",
+   "color": "COLORLESS",
+   "type": "SKILL",
+   "rarity": "SPECIAL",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [
+    "exhaust",
+    "ethereal"
+   ],
+   "review": [],
+   "upgrade": {}
+  },
+  {
+   "id": "Bandage Up",
+   "class": "BandageUp",
+   "color": "COLORLESS",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "SELF",
+   "cost": 0,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 4,
+   "flags": [
+    "exhaust"
+   ],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 2
+   }
+  },
+  {
+   "id": "Bite",
+   "class": "Bite",
+   "color": "COLORLESS",
+   "type": "ATTACK",
+   "rarity": "SPECIAL",
+   "target": "ENEMY",
+   "cost": 1,
+   "baseDamage": 7,
+   "baseBlock": null,
+   "baseMagicNumber": 2,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 1,
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Blind",
+   "class": "Blind",
+   "color": "COLORLESS",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "ENEMY",
+   "cost": 0,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 2,
+   "flags": [],
+   "review": [],
+   "upgrade": {}
+  },
+  {
+   "id": "Chrysalis",
+   "class": "Chrysalis",
+   "color": "COLORLESS",
+   "type": "SKILL",
+   "rarity": "RARE",
+   "target": "NONE",
+   "cost": 2,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 3,
+   "flags": [
+    "exhaust"
+   ],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 2
+   }
+  },
+  {
+   "id": "Dark Shackles",
+   "class": "DarkShackles",
+   "color": "COLORLESS",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "ENEMY",
+   "cost": 0,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 9,
+   "flags": [
+    "exhaust"
+   ],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 6
+   }
+  },
+  {
+   "id": "Deep Breath",
+   "class": "DeepBreath",
+   "color": "COLORLESS",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "SELF",
+   "cost": 0,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 1,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Discovery",
+   "class": "Discovery",
+   "color": "COLORLESS",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [
+    "exhaust"
+   ],
+   "review": [],
+   "upgrade": {}
+  },
+  {
+   "id": "Dramatic Entrance",
+   "class": "DramaticEntrance",
+   "color": "COLORLESS",
+   "type": "ATTACK",
+   "rarity": "UNCOMMON",
+   "target": "ALL_ENEMY",
+   "cost": 0,
+   "baseDamage": 8,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [
+    "exhaust",
+    "innate"
+   ],
+   "review": [],
+   "upgrade": {
+    "damage": 4
+   }
+  },
+  {
+   "id": "Enlightenment",
+   "class": "Enlightenment",
+   "color": "COLORLESS",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "SELF",
+   "cost": 0,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {}
+  },
+  {
+   "id": "Finesse",
+   "class": "Finesse",
+   "color": "COLORLESS",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "SELF",
+   "cost": 0,
+   "baseDamage": null,
+   "baseBlock": 2,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "block": 2
+   }
+  },
+  {
+   "id": "Flash of Steel",
+   "class": "FlashOfSteel",
+   "color": "COLORLESS",
+   "type": "ATTACK",
+   "rarity": "UNCOMMON",
+   "target": "ENEMY",
+   "cost": 0,
+   "baseDamage": 3,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 3
+   }
+  },
+  {
+   "id": "Forethought",
+   "class": "Forethought",
+   "color": "COLORLESS",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "NONE",
+   "cost": 0,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {}
+  },
+  {
+   "id": "Good Instincts",
+   "class": "GoodInstincts",
+   "color": "COLORLESS",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "SELF",
+   "cost": 0,
+   "baseDamage": null,
+   "baseBlock": 6,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "block": 3
+   }
+  },
+  {
+   "id": "HandOfGreed",
+   "class": "HandOfGreed",
+   "color": "COLORLESS",
+   "type": "ATTACK",
+   "rarity": "RARE",
+   "target": "ENEMY",
+   "cost": 2,
+   "baseDamage": 20,
+   "baseBlock": null,
+   "baseMagicNumber": 20,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 5,
+    "magicNumber": 5
+   }
+  },
+  {
+   "id": "Impatience",
+   "class": "Impatience",
+   "color": "COLORLESS",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "NONE",
+   "cost": 0,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 2,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "J.A.X.",
+   "class": "JAX",
+   "color": "COLORLESS",
+   "type": "SKILL",
+   "rarity": "SPECIAL",
+   "target": "SELF",
+   "cost": 0,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 2,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Jack Of All Trades",
+   "class": "JackOfAllTrades",
+   "color": "COLORLESS",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "NONE",
+   "cost": 0,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 1,
+   "flags": [
+    "exhaust"
+   ],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Madness",
+   "class": "Madness",
+   "color": "COLORLESS",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [
+    "exhaust"
+   ],
+   "review": [],
+   "upgrade": {
+    "baseCost": 0
+   }
+  },
+  {
+   "id": "Magnetism",
+   "class": "Magnetism",
+   "color": "COLORLESS",
+   "type": "POWER",
+   "rarity": "RARE",
+   "target": "SELF",
+   "cost": 2,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 1,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "baseCost": 1
+   }
+  },
+  {
+   "id": "Master of Strategy",
+   "class": "MasterOfStrategy",
+   "color": "COLORLESS",
+   "type": "SKILL",
+   "rarity": "RARE",
+   "target": "NONE",
+   "cost": 0,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 3,
+   "flags": [
+    "exhaust"
+   ],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Mayhem",
+   "class": "Mayhem",
+   "color": "COLORLESS",
+   "type": "POWER",
+   "rarity": "RARE",
+   "target": "SELF",
+   "cost": 2,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 1,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "baseCost": 1
+   }
+  },
+  {
+   "id": "Metamorphosis",
+   "class": "Metamorphosis",
+   "color": "COLORLESS",
+   "type": "SKILL",
+   "rarity": "RARE",
+   "target": "NONE",
+   "cost": 2,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 3,
+   "flags": [
+    "exhaust"
+   ],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 2
+   }
+  },
+  {
+   "id": "Mind Blast",
+   "class": "MindBlast",
+   "color": "COLORLESS",
+   "type": "ATTACK",
+   "rarity": "UNCOMMON",
+   "target": "ENEMY",
+   "cost": 2,
+   "baseDamage": 0,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [
+    "innate"
+   ],
+   "review": [],
+   "upgrade": {
+    "baseCost": 1
+   }
+  },
+  {
+   "id": "Panacea",
+   "class": "Panacea",
+   "color": "COLORLESS",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "SELF",
+   "cost": 0,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 1,
+   "flags": [
+    "exhaust"
+   ],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Panache",
+   "class": "Panache",
+   "color": "COLORLESS",
+   "type": "POWER",
+   "rarity": "RARE",
+   "target": "SELF",
+   "cost": 0,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 10,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 4
+   }
+  },
+  {
+   "id": "PanicButton",
+   "class": "PanicButton",
+   "color": "COLORLESS",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "SELF",
+   "cost": 0,
+   "baseDamage": null,
+   "baseBlock": 30,
+   "baseMagicNumber": 2,
+   "flags": [
+    "exhaust"
+   ],
+   "review": [],
+   "upgrade": {
+    "block": 10
+   }
+  },
+  {
+   "id": "Purity",
+   "class": "Purity",
+   "color": "COLORLESS",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "NONE",
+   "cost": 0,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 3,
+   "flags": [
+    "exhaust"
+   ],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 2
+   }
+  },
+  {
+   "id": "RitualDagger",
+   "class": "RitualDagger",
+   "color": "COLORLESS",
+   "type": "ATTACK",
+   "rarity": "SPECIAL",
+   "target": "ENEMY",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 3,
+   "flags": [
+    "exhaust"
+   ],
+   "review": [
+    "baseDamage=this.misc",
+    "baseBlock=this.misc"
+   ],
+   "upgrade": {
+    "magicNumber": 2
+   }
+  },
+  {
+   "id": "Sadistic Nature",
+   "class": "SadisticNature",
+   "color": "COLORLESS",
+   "type": "POWER",
+   "rarity": "RARE",
+   "target": "SELF",
+   "cost": 0,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 5,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 2
+   }
+  },
+  {
+   "id": "Secret Technique",
+   "class": "SecretTechnique",
+   "color": "COLORLESS",
+   "type": "SKILL",
+   "rarity": "RARE",
+   "target": "NONE",
+   "cost": 0,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [
+    "exhaust"
+   ],
+   "review": [],
+   "upgrade": {}
+  },
+  {
+   "id": "Secret Weapon",
+   "class": "SecretWeapon",
+   "color": "COLORLESS",
+   "type": "SKILL",
+   "rarity": "RARE",
+   "target": "NONE",
+   "cost": 0,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [
+    "exhaust"
+   ],
+   "review": [],
+   "upgrade": {}
+  },
+  {
+   "id": "Swift Strike",
+   "class": "SwiftStrike",
+   "color": "COLORLESS",
+   "type": "ATTACK",
+   "rarity": "UNCOMMON",
+   "target": "ENEMY",
+   "cost": 0,
+   "baseDamage": 7,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "damage": 3
+   }
+  },
+  {
+   "id": "The Bomb",
+   "class": "TheBomb",
+   "color": "COLORLESS",
+   "type": "SKILL",
+   "rarity": "RARE",
+   "target": "SELF",
+   "cost": 2,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 40,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 10
+   }
+  },
+  {
+   "id": "Thinking Ahead",
+   "class": "ThinkingAhead",
+   "color": "COLORLESS",
+   "type": "SKILL",
+   "rarity": "RARE",
+   "target": "NONE",
+   "cost": 0,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [
+    "exhaust"
+   ],
+   "review": [],
+   "upgrade": {}
+  },
+  {
+   "id": "Transmutation",
+   "class": "Transmutation",
+   "color": "COLORLESS",
+   "type": "SKILL",
+   "rarity": "RARE",
+   "target": "SELF",
+   "cost": -1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [
+    "exhaust"
+   ],
+   "review": [],
+   "upgrade": {}
+  },
+  {
+   "id": "Trip",
+   "class": "Trip",
+   "color": "COLORLESS",
+   "type": "SKILL",
+   "rarity": "UNCOMMON",
+   "target": "ENEMY",
+   "cost": 0,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 2,
+   "flags": [],
+   "review": [],
+   "upgrade": {}
+  },
+  {
+   "id": "Violence",
+   "class": "Violence",
+   "color": "COLORLESS",
+   "type": "SKILL",
+   "rarity": "RARE",
+   "target": "NONE",
+   "cost": 0,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 3,
+   "flags": [
+    "exhaust"
+   ],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "AscendersBane",
+   "class": "AscendersBane",
+   "color": "CURSE",
+   "type": "CURSE",
+   "rarity": "SPECIAL",
+   "target": "NONE",
+   "cost": -2,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [
+    "ethereal"
+   ],
+   "review": [
+    "no_upgradeName"
+   ],
+   "upgrade": {}
+  },
+  {
+   "id": "Clumsy",
+   "class": "Clumsy",
+   "color": "CURSE",
+   "type": "CURSE",
+   "rarity": "CURSE",
+   "target": "NONE",
+   "cost": -2,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [
+    "ethereal"
+   ],
+   "review": [
+    "no_upgradeName"
+   ],
+   "upgrade": {}
+  },
+  {
+   "id": "CurseOfTheBell",
+   "class": "CurseOfTheBell",
+   "color": "CURSE",
+   "type": "CURSE",
+   "rarity": "SPECIAL",
+   "target": "NONE",
+   "cost": -2,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [
+    "no_upgradeName"
+   ],
+   "upgrade": {}
+  },
+  {
+   "id": "Decay",
+   "class": "Decay",
+   "color": "CURSE",
+   "type": "CURSE",
+   "rarity": "CURSE",
+   "target": "NONE",
+   "cost": -2,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [
+    "no_upgradeName"
+   ],
+   "upgrade": {}
+  },
+  {
+   "id": "Doubt",
+   "class": "Doubt",
+   "color": "CURSE",
+   "type": "CURSE",
+   "rarity": "CURSE",
+   "target": "NONE",
+   "cost": -2,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [
+    "no_upgradeName"
+   ],
+   "upgrade": {}
+  },
+  {
+   "id": "Injury",
+   "class": "Injury",
+   "color": "CURSE",
+   "type": "CURSE",
+   "rarity": "CURSE",
+   "target": "NONE",
+   "cost": -2,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [
+    "no_upgradeName"
+   ],
+   "upgrade": {}
+  },
+  {
+   "id": "Necronomicurse",
+   "class": "Necronomicurse",
+   "color": "CURSE",
+   "type": "CURSE",
+   "rarity": "SPECIAL",
+   "target": "NONE",
+   "cost": -2,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [
+    "no_upgradeName"
+   ],
+   "upgrade": {}
+  },
+  {
+   "id": "Normality",
+   "class": "Normality",
+   "color": "CURSE",
+   "type": "CURSE",
+   "rarity": "CURSE",
+   "target": "NONE",
+   "cost": -2,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [
+    "no_upgradeName"
+   ],
+   "upgrade": {}
+  },
+  {
+   "id": "Pain",
+   "class": "Pain",
+   "color": "CURSE",
+   "type": "CURSE",
+   "rarity": "CURSE",
+   "target": "NONE",
+   "cost": -2,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [
+    "no_upgradeName"
+   ],
+   "upgrade": {}
+  },
+  {
+   "id": "Parasite",
+   "class": "Parasite",
+   "color": "CURSE",
+   "type": "CURSE",
+   "rarity": "CURSE",
+   "target": "NONE",
+   "cost": -2,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [
+    "no_upgradeName"
+   ],
+   "upgrade": {}
+  },
+  {
+   "id": "Pride",
+   "class": "Pride",
+   "color": "CURSE",
+   "type": "CURSE",
+   "rarity": "SPECIAL",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [
+    "exhaust",
+    "innate"
+   ],
+   "review": [
+    "no_upgradeName"
+   ],
+   "upgrade": {}
+  },
+  {
+   "id": "Regret",
+   "class": "Regret",
+   "color": "CURSE",
+   "type": "CURSE",
+   "rarity": "CURSE",
+   "target": "NONE",
+   "cost": -2,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [
+    "baseMagicNumber=AbstractDungeon.player.hand.size()",
+    "no_upgradeName"
+   ],
+   "upgrade": {}
+  },
+  {
+   "id": "Shame",
+   "class": "Shame",
+   "color": "CURSE",
+   "type": "CURSE",
+   "rarity": "CURSE",
+   "target": "NONE",
+   "cost": -2,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [
+    "no_upgradeName"
+   ],
+   "upgrade": {}
+  },
+  {
+   "id": "Writhe",
+   "class": "Writhe",
+   "color": "CURSE",
+   "type": "CURSE",
+   "rarity": "CURSE",
+   "target": "NONE",
+   "cost": -2,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [
+    "innate"
+   ],
+   "review": [
+    "no_upgradeName"
+   ],
+   "upgrade": {}
+  },
+  {
+   "id": "Beta",
+   "class": "Beta",
+   "color": "TEMP",
+   "type": "SKILL",
+   "rarity": "SPECIAL",
+   "target": "NONE",
+   "cost": 2,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [
+    "exhaust"
+   ],
+   "review": [],
+   "upgrade": {
+    "baseCost": 1
+   }
+  },
+  {
+   "id": "Expunger",
+   "class": "Expunger",
+   "color": "TEMP",
+   "type": "ATTACK",
+   "rarity": "SPECIAL",
+   "target": "ENEMY",
+   "cost": 1,
+   "baseDamage": 9,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [
+    "baseMagicNumber=this.magicNumber",
+    "baseMagicNumber== 1 ? Expunger.cardStrings.EXTENDED_DESCRIPTION[1] : Expunger.cardStrings.EXTENDED_DESCRIPTION[0]"
+   ],
+   "upgrade": {
+    "damage": 6
+   }
+  },
+  {
+   "id": "Insight",
+   "class": "Insight",
+   "color": "TEMP",
+   "type": "SKILL",
+   "rarity": "SPECIAL",
+   "target": "SELF",
+   "cost": 0,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 2,
+   "flags": [
+    "exhaust",
+    "selfRetain"
+   ],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Miracle",
+   "class": "Miracle",
+   "color": "TEMP",
+   "type": "SKILL",
+   "rarity": "SPECIAL",
+   "target": "NONE",
+   "cost": 0,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [
+    "exhaust",
+    "selfRetain"
+   ],
+   "review": [],
+   "upgrade": {}
+  },
+  {
+   "id": "Omega",
+   "class": "Omega",
+   "color": "TEMP",
+   "type": "POWER",
+   "rarity": "SPECIAL",
+   "target": "SELF",
+   "cost": 3,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 50,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 10
+   }
+  },
+  {
+   "id": "Safety",
+   "class": "Safety",
+   "color": "TEMP",
+   "type": "SKILL",
+   "rarity": "SPECIAL",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": 12,
+   "baseMagicNumber": null,
+   "flags": [
+    "exhaust",
+    "selfRetain"
+   ],
+   "review": [],
+   "upgrade": {
+    "block": 4
+   }
+  },
+  {
+   "id": "Shiv",
+   "class": "Shiv",
+   "color": "TEMP",
+   "type": "ATTACK",
+   "rarity": "SPECIAL",
+   "target": "ENEMY",
+   "cost": 0,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [
+    "exhaust"
+   ],
+   "review": [
+    "baseDamage=AbstractDungeon.player != null && AbstractDungeon.player.hasPower(\"Accuracy\") ? 4 + AbstractDungeon.player.getPower((String)\"Accuracy\").amount : 4"
+   ],
+   "upgrade": {
+    "damage": 2
+   }
+  },
+  {
+   "id": "Smite",
+   "class": "Smite",
+   "color": "TEMP",
+   "type": "ATTACK",
+   "rarity": "SPECIAL",
+   "target": "ENEMY",
+   "cost": 1,
+   "baseDamage": 12,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [
+    "exhaust",
+    "selfRetain"
+   ],
+   "review": [],
+   "upgrade": {
+    "damage": 4
+   }
+  },
+  {
+   "id": "ThroughViolence",
+   "class": "ThroughViolence",
+   "color": "TEMP",
+   "type": "ATTACK",
+   "rarity": "SPECIAL",
+   "target": "ENEMY",
+   "cost": 0,
+   "baseDamage": 20,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [
+    "exhaust",
+    "selfRetain"
+   ],
+   "review": [],
+   "upgrade": {
+    "damage": 10
+   }
+  },
+  {
+   "id": "Burn",
+   "class": "Burn",
+   "color": "STATUS",
+   "type": "STATUS",
+   "rarity": "COMMON",
+   "target": "NONE",
+   "cost": -2,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 2,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 2
+   }
+  },
+  {
+   "id": "Dazed",
+   "class": "Dazed",
+   "color": "STATUS",
+   "type": "STATUS",
+   "rarity": "COMMON",
+   "target": "NONE",
+   "cost": -2,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [
+    "ethereal"
+   ],
+   "review": [
+    "no_upgradeName"
+   ],
+   "upgrade": {}
+  },
+  {
+   "id": "Slimed",
+   "class": "Slimed",
+   "color": "STATUS",
+   "type": "STATUS",
+   "rarity": "COMMON",
+   "target": "SELF",
+   "cost": 1,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [
+    "exhaust"
+   ],
+   "review": [
+    "no_upgradeName"
+   ],
+   "upgrade": {}
+  },
+  {
+   "id": "Void",
+   "class": "VoidCard",
+   "color": "STATUS",
+   "type": "STATUS",
+   "rarity": "COMMON",
+   "target": "NONE",
+   "cost": -2,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [
+    "ethereal"
+   ],
+   "review": [
+    "no_upgradeName"
+   ],
+   "upgrade": {}
+  },
+  {
+   "id": "Wound",
+   "class": "Wound",
+   "color": "STATUS",
+   "type": "STATUS",
+   "rarity": "COMMON",
+   "target": "NONE",
+   "cost": -2,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [
+    "no_upgradeName"
+   ],
+   "upgrade": {}
+  },
+  {
+   "id": "BecomeAlmighty",
+   "class": "BecomeAlmighty",
+   "color": "OPTION",
+   "type": "POWER",
+   "rarity": "SPECIAL",
+   "target": "NONE",
+   "cost": -2,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 3,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 1
+   }
+  },
+  {
+   "id": "Calm",
+   "class": "ChooseCalm",
+   "color": "OPTION",
+   "type": "STATUS",
+   "rarity": "COMMON",
+   "target": "NONE",
+   "cost": -2,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [
+    "no_upgradeName"
+   ],
+   "upgrade": {}
+  },
+  {
+   "id": "Wrath",
+   "class": "ChooseWrath",
+   "color": "OPTION",
+   "type": "STATUS",
+   "rarity": "COMMON",
+   "target": "NONE",
+   "cost": -2,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": null,
+   "flags": [],
+   "review": [
+    "no_upgradeName"
+   ],
+   "upgrade": {}
+  },
+  {
+   "id": "FameAndFortune",
+   "class": "FameAndFortune",
+   "color": "OPTION",
+   "type": "SKILL",
+   "rarity": "SPECIAL",
+   "target": "NONE",
+   "cost": -2,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 25,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 5
+   }
+  },
+  {
+   "id": "LiveForever",
+   "class": "LiveForever",
+   "color": "OPTION",
+   "type": "POWER",
+   "rarity": "SPECIAL",
+   "target": "NONE",
+   "cost": -2,
+   "baseDamage": null,
+   "baseBlock": null,
+   "baseMagicNumber": 6,
+   "flags": [],
+   "review": [],
+   "upgrade": {
+    "magicNumber": 2
+   }
+  }
+ ]
+}

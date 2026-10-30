@@ -1,0 +1,16 @@
+[package]
+name = "neow-sim"
+description = "Python bindings for neow-sim-core (unified gym protocol)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+name = "neow_sim"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+neow-sim-core = { path = "../core" }
+pyo3 = { version = "0.22", features = ["extension-module"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"

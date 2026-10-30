@@ -1,0 +1,3543 @@
+{
+ "meta": {
+  "generator": "neow-sim/tools/extract_data.py",
+  "source": "desktop-1.0.jar (CFR decompiled)",
+  "date": "2026-10-30",
+  "note": "草稿表：文本挖掘产物，M4 对拍统一校验"
+ },
+ "data": [
+  {
+   "id": "AbstractMonster",
+   "class": "AbstractMonster",
+   "hp": [],
+   "damage_infos": [],
+   "asc_fields": {},
+   "moves": [],
+   "ai_probabilities": [],
+   "get_move_raw": null,
+   "review": []
+  },
+  {
+   "id": "EnemyMoveInfo",
+   "class": "EnemyMoveInfo",
+   "hp": [],
+   "damage_infos": [],
+   "asc_fields": {},
+   "moves": [],
+   "ai_probabilities": [],
+   "get_move_raw": null,
+   "review": []
+  },
+  {
+   "id": "MonsterGroup",
+   "class": "MonsterGroup",
+   "hp": [],
+   "damage_infos": [],
+   "asc_fields": {},
+   "moves": [],
+   "ai_probabilities": [],
+   "get_move_raw": null,
+   "review": []
+  },
+  {
+   "id": "MonsterInfo",
+   "class": "MonsterInfo",
+   "hp": [],
+   "damage_infos": [],
+   "asc_fields": {},
+   "moves": [],
+   "ai_probabilities": [],
+   "get_move_raw": null,
+   "review": []
+  },
+  {
+   "id": "MonsterQueueItem",
+   "class": "MonsterQueueItem",
+   "hp": [],
+   "damage_infos": [],
+   "asc_fields": {},
+   "moves": [],
+   "ai_probabilities": [],
+   "get_move_raw": null,
+   "review": []
+  },
+  {
+   "id": "AwakenedOne",
+   "class": "AwakenedOne",
+   "hp": [
+    {
+     "asc": 9,
+     "min": 320,
+     "max": 320
+    }
+   ],
+   "damage_infos": [
+    20,
+    6,
+    40,
+    18,
+    10
+   ],
+   "asc_fields": {},
+   "moves": [
+    {
+     "byte": 1,
+     "intent": "ATTACK",
+     "base": 20
+    },
+    {
+     "byte": 2,
+     "intent": "ATTACK",
+     "base": "6, 4, true"
+    },
+    {
+     "byte": 5,
+     "intent": "ATTACK",
+     "base": 40
+    },
+    {
+     "byte": 6,
+     "intent": "ATTACK_DEBUFF",
+     "base": 18
+    },
+    {
+     "byte": 8,
+     "intent": "ATTACK",
+     "base": "10, 3, true"
+    },
+    {
+     "byte": 3,
+     "intent": "UNKNOWN"
+    }
+   ],
+   "ai_probabilities": [],
+   "get_move_raw": "if (this.form1) {\n            if (this.firstTurn) {\n                this.setMove((byte)1, AbstractMonster.Intent.ATTACK, 20);\n                this.firstTurn = false;\n                return;\n            }\n            if (num < 25) {\n                if (!this.lastMove((byte)2)) {\n                    this.setMove(SS_NAME, (byte)2, AbstractMonster.Intent.ATTACK, 6, 4, true);\n                } else {\n                    this.setMove((byte)1, AbstractMonster.Intent.ATTACK, 20);\n                }\n            } else if (!this.lastTwoMoves((byte)1)) {\n                this.setMove((byte)1, AbstractMonster.Intent.ATTACK, 20);\n            } else {\n                this.setMove(SS_NAME, (byte)2, AbstractMonster.Intent.ATTACK, 6, 4, true);\n            }\n        } else {\n            if (this.firstTurn) {\n                this.setMove(DARK_ECHO_NAME, (byte)5, AbstractMonster.Intent.ATTACK, 40);\n                return;\n            }\n            if (num < 50) {\n                if (!this.lastTwoMoves((byte)6)) {\n                    this.setMove(SLUDGE_NAME, (byte)6, AbstractMonster.Intent.ATTACK_DEBUFF, 18);\n                } else {\n                    this.setMove((byte)8, AbstractMonster.Intent.ATTACK, 10, 3, true);\n                }\n            } else if (!this.lastTwoMoves((byte)8)) {\n                this.setMove((byte)8, AbstractMonster.Intent.ATTACK, 10, 3, true);\n            } else {\n                this.setMove(SLUDGE_NAME, (byte)6, AbstractMonster.Intent.ATTACK_DEBUFF, 18);\n            }\n        }",
+   "review": [],
+   "take_turn_actions": {
+    "1": [
+     "SFXAction",
+     "ChangeStateAction",
+     "WaitAction",
+     "DamageAction"
+    ],
+    "2": [
+     "DamageAction"
+    ],
+    "3": [
+     "SFXAction",
+     "VFXAction",
+     "ChangeStateAction"
+    ],
+    "5": [
+     "ChangeStateAction",
+     "WaitAction",
+     "SFXAction",
+     "VFXAction",
+     "VFXAction",
+     "DamageAction"
+    ],
+    "6": [
+     "ChangeStateAction",
+     "WaitAction",
+     "DamageAction",
+     "MakeTempCardInDrawPileAction"
+    ],
+    "8": [
+     "SFXAction",
+     "AnimateFastAttackAction",
+     "WaitAction",
+     "DamageAction"
+    ]
+   }
+  },
+  {
+   "id": "Darkling",
+   "class": "Darkling",
+   "hp": [
+    {
+     "asc": 7,
+     "min": 50,
+     "max": 59
+    }
+   ],
+   "damage_infos": [
+    "this.chompDmg",
+    "this.nipDmg"
+   ],
+   "asc_fields": {
+    "2": {
+     "chompDmg": 9
+    }
+   },
+   "moves": [
+    {
+     "byte": 5,
+     "intent": "BUFF"
+    },
+    {
+     "byte": 2,
+     "intent": "DEFEND_BUFF"
+    },
+    {
+     "byte": 2,
+     "intent": "DEFEND"
+    },
+    {
+     "byte": 3,
+     "intent": "ATTACK"
+    },
+    {
+     "byte": 1,
+     "intent": "ATTACK"
+    },
+    {
+     "byte": 4,
+     "intent": "UNKNOWN"
+    }
+   ],
+   "ai_probabilities": [],
+   "get_move_raw": "if (this.halfDead) {\n            this.setMove((byte)5, AbstractMonster.Intent.BUFF);\n            return;\n        }\n        if (this.firstMove) {\n            if (num < 50) {\n                if (AbstractDungeon.ascensionLevel >= 17) {\n                    this.setMove((byte)2, AbstractMonster.Intent.DEFEND_BUFF);\n                } else {\n                    this.setMove((byte)2, AbstractMonster.Intent.DEFEND);\n                }\n            } else {\n                this.setMove((byte)3, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)1)).base);\n            }\n            this.firstMove = false;\n            return;\n        }\n        if (num < 40) {\n            if (!this.lastMove((byte)1) && AbstractDungeon.getMonsters().monsters.lastIndexOf(this) % 2 == 0) {\n                this.setMove((byte)1, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)0)).base, 2, true);\n            } else {\n                this.getMove(AbstractDungeon.aiRng.random(40, 99));\n            }\n        } else if (num < 70) {\n            if (!this.lastMove((byte)2)) {\n                if (AbstractDungeon.ascensionLevel >= 17) {\n                    this.setMove((byte)2, AbstractMonster.Intent.DEFEND_BUFF);\n                } else {\n                    this.setMove((byte)2, AbstractMonster.Intent.DEFEND);\n                }\n            } else {\n                this.setMove((byte)3, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)1)).base);\n            }\n        } else if (!this.lastTwoMoves((byte)3)) {\n            this.setMove((byte)3, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)1)).base);\n        } else {\n            this.getMove(AbstractDungeon.aiRng.random(0, 99));\n        }",
+   "review": [],
+   "take_turn_actions": {
+    "1": [
+     "ChangeStateAction",
+     "WaitAction",
+     "DamageAction",
+     "DamageAction"
+    ],
+    "2": [
+     "GainBlockAction"
+    ],
+    "3": [
+     "AnimateFastAttackAction",
+     "DamageAction"
+    ],
+    "4": [
+     "TextAboveCreatureAction"
+    ],
+    "5": [
+     "SFXAction",
+     "SFXAction",
+     "HealAction",
+     "ChangeStateAction",
+     "ApplyPowerAction"
+    ]
+   }
+  },
+  {
+   "id": "Deca",
+   "class": "Deca",
+   "hp": [
+    {
+     "asc": 9,
+     "min": 265,
+     "max": 265
+    }
+   ],
+   "damage_infos": [
+    "this.beamDmg"
+   ],
+   "asc_fields": {},
+   "moves": [
+    {
+     "byte": 0,
+     "intent": "ATTACK_DEBUFF"
+    },
+    {
+     "byte": 2,
+     "intent": "DEFEND_BUFF"
+    },
+    {
+     "byte": 2,
+     "intent": "DEFEND"
+    }
+   ],
+   "ai_probabilities": [],
+   "get_move_raw": "if (this.isAttacking) {\n            this.setMove((byte)0, AbstractMonster.Intent.ATTACK_DEBUFF, ((DamageInfo)this.damage.get((int)0)).base, 2, true);\n        } else if (AbstractDungeon.ascensionLevel >= 19) {\n            this.setMove((byte)2, AbstractMonster.Intent.DEFEND_BUFF);\n        } else {\n            this.setMove((byte)2, AbstractMonster.Intent.DEFEND);\n        }",
+   "review": [],
+   "take_turn_actions": {
+    "0": [
+     "ChangeStateAction",
+     "WaitAction",
+     "DamageAction",
+     "MakeTempCardInDiscardAction"
+    ]
+   }
+  },
+  {
+   "id": "Donu",
+   "class": "Donu",
+   "hp": [
+    {
+     "asc": 9,
+     "min": 265,
+     "max": 265
+    }
+   ],
+   "damage_infos": [
+    "this.beamDmg"
+   ],
+   "asc_fields": {},
+   "moves": [
+    {
+     "byte": 0,
+     "intent": "ATTACK"
+    },
+    {
+     "byte": 2,
+     "intent": "BUFF"
+    }
+   ],
+   "ai_probabilities": [],
+   "get_move_raw": "if (this.isAttacking) {\n            this.setMove((byte)0, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)0)).base, 2, true);\n        } else {\n            this.setMove(CIRCLE_NAME, (byte)2, AbstractMonster.Intent.BUFF);\n        }",
+   "review": [],
+   "take_turn_actions": {
+    "0": [
+     "ChangeStateAction",
+     "WaitAction",
+     "DamageAction"
+    ]
+   }
+  },
+  {
+   "id": "Exploder",
+   "class": "Exploder",
+   "hp": [
+    {
+     "asc": 7,
+     "min": 30,
+     "max": 35
+    }
+   ],
+   "damage_infos": [
+    "this.attackDmg"
+   ],
+   "asc_fields": {},
+   "moves": [
+    {
+     "byte": 1,
+     "intent": "ATTACK"
+    },
+    {
+     "byte": 2,
+     "intent": "UNKNOWN"
+    }
+   ],
+   "ai_probabilities": [],
+   "get_move_raw": "if (this.turnCount < 2) {\n            this.setMove((byte)1, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)0)).base);\n        } else {\n            this.setMove((byte)2, AbstractMonster.Intent.UNKNOWN);\n        }",
+   "review": [],
+   "take_turn_actions": {
+    "1": [
+     "AnimateSlowAttackAction",
+     "DamageAction"
+    ],
+    "2": []
+   }
+  },
+  {
+   "id": "GiantHead",
+   "class": "GiantHead",
+   "hp": [
+    {
+     "asc": 8,
+     "min": 520,
+     "max": 520
+    }
+   ],
+   "damage_infos": [
+    13,
+    "this.startingDeathDmg",
+    "this.startingDeathDmg + 5",
+    "this.startingDeathDmg + 10",
+    "this.startingDeathDmg + 15",
+    "this.startingDeathDmg + 20",
+    "this.startingDeathDmg + 25",
+    "this.startingDeathDmg + 30"
+   ],
+   "asc_fields": {},
+   "moves": [
+    {
+     "byte": 2,
+     "intent": "ATTACK",
+     "base": "this.startingDeathDmg - this.count * 5"
+    },
+    {
+     "byte": 1,
+     "intent": "DEBUFF"
+    },
+    {
+     "byte": 3,
+     "intent": "ATTACK",
+     "base": 13
+    }
+   ],
+   "ai_probabilities": [],
+   "get_move_raw": "if (this.count <= 1) {\n            if (this.count > -6) {\n                --this.count;\n            }\n            this.setMove((byte)2, AbstractMonster.Intent.ATTACK, this.startingDeathDmg - this.count * 5);\n            return;\n        }\n        --this.count;\n        if (num < 50) {\n            if (!this.lastTwoMoves((byte)1)) {\n                this.setMove((byte)1, AbstractMonster.Intent.DEBUFF);\n            } else {\n                this.setMove((byte)3, AbstractMonster.Intent.ATTACK, 13);\n            }\n        } else if (!this.lastTwoMoves((byte)3)) {\n            this.setMove((byte)3, AbstractMonster.Intent.ATTACK, 13);\n        } else {\n            this.setMove((byte)1, AbstractMonster.Intent.DEBUFF);\n        }",
+   "review": [],
+   "take_turn_actions": {
+    "1": [
+     "ShoutAction",
+     "ApplyPowerAction"
+    ],
+    "3": [
+     "ShoutAction",
+     "DamageAction"
+    ]
+   }
+  },
+  {
+   "id": "Maw",
+   "class": "Maw",
+   "hp": [],
+   "damage_infos": [
+    "this.slamDmg",
+    "this.nomDmg"
+   ],
+   "asc_fields": {
+    "2": {
+     "slamDmg": 30,
+     "nomDmg": 5
+    }
+   },
+   "moves": [
+    {
+     "byte": 2,
+     "intent": "STRONG_DEBUFF"
+    },
+    {
+     "byte": 5,
+     "intent": "ATTACK"
+    },
+    {
+     "byte": 4,
+     "intent": "BUFF"
+    },
+    {
+     "byte": 3,
+     "intent": "ATTACK"
+    }
+   ],
+   "ai_probabilities": [],
+   "get_move_raw": "++this.turnCount;\n        if (!this.roared) {\n            this.setMove((byte)2, AbstractMonster.Intent.STRONG_DEBUFF);\n            return;\n        }\n        if (num < 50 && !this.lastMove((byte)5)) {\n            if (this.turnCount / 2 <= 1) {\n                this.setMove((byte)5, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)1)).base);\n            } else {\n                this.setMove((byte)5, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)1)).base, this.turnCount / 2, true);\n            }\n            return;\n        }\n        if (this.lastMove((byte)3) || this.lastMove((byte)5)) {\n            this.setMove((byte)4, AbstractMonster.Intent.BUFF);\n            return;\n        }\n        this.setMove((byte)3, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)0)).base);",
+   "review": [],
+   "take_turn_actions": {
+    "2": [
+     "SFXAction",
+     "ShoutAction",
+     "ApplyPowerAction",
+     "ApplyPowerAction"
+    ],
+    "3": [
+     "AnimateSlowAttackAction",
+     "DamageAction"
+    ],
+    "4": [
+     "ApplyPowerAction"
+    ],
+    "5": [
+     "AnimateSlowAttackAction",
+     "VFXAction",
+     "DamageAction"
+    ]
+   }
+  },
+  {
+   "id": "Nemesis",
+   "class": "Nemesis",
+   "hp": [
+    {
+     "asc": 8,
+     "min": 200,
+     "max": 200
+    }
+   ],
+   "damage_infos": [
+    45,
+    "this.fireDmg"
+   ],
+   "asc_fields": {},
+   "moves": [
+    {
+     "byte": 2,
+     "intent": "ATTACK",
+     "base": "this.fireDmg, 3, true"
+    },
+    {
+     "byte": 4,
+     "intent": "DEBUFF"
+    },
+    {
+     "byte": 3,
+     "intent": "ATTACK",
+     "base": 45
+    }
+   ],
+   "ai_probabilities": [],
+   "get_move_raw": "--this.scytheCooldown;\n        if (this.firstMove) {\n            this.firstMove = false;\n            if (num < 50) {\n                this.setMove((byte)2, AbstractMonster.Intent.ATTACK, this.fireDmg, 3, true);\n            } else {\n                this.setMove((byte)4, AbstractMonster.Intent.DEBUFF);\n            }\n            return;\n        }\n        if (num < 30) {\n            if (!this.lastMove((byte)3) && this.scytheCooldown <= 0) {\n                this.setMove((byte)3, AbstractMonster.Intent.ATTACK, 45);\n                this.scytheCooldown = 2;\n            } else if (AbstractDungeon.aiRng.randomBoolean()) {\n                if (!this.lastTwoMoves((byte)2)) {\n                    this.setMove((byte)2, AbstractMonster.Intent.ATTACK, this.fireDmg, 3, true);\n                } else {\n                    this.setMove((byte)4, AbstractMonster.Intent.DEBUFF);\n                }\n            } else if (!this.lastMove((byte)4)) {\n                this.setMove((byte)4, AbstractMonster.Intent.DEBUFF);\n            } else {\n                this.setMove((byte)2, AbstractMonster.Intent.ATTACK, this.fireDmg, 3, true);\n            }\n        } else if (num < 65) {\n            if (!this.lastTwoMoves((byte)2)) {\n                this.setMove((byte)2, AbstractMonster.Intent.ATTACK, this.fireDmg, 3, true);\n            } else if (AbstractDungeon.aiRng.randomBoolean()) {\n                if (this.scytheCooldown > 0) {\n                    this.setMove((byte)4, AbstractMonster.Intent.DEBUFF);\n                } else {\n                    this.setMove((byte)3, AbstractMonster.Intent.ATTACK, 45);\n                    this.scytheCooldown = 2;\n                }\n            } else {\n                this.setMove((byte)4, AbstractMonster.Intent.DEBUFF);\n            }\n        } else if (!this.lastMove((byte)4)) {\n            this.setMove((byte)4, AbstractMonster.Intent.DEBUFF);\n        } else if (AbstractDungeon.aiRng.randomBoolean() && this.scytheCooldown <= 0) {\n            this.setMove((byte)3, Abstrac",
+   "review": [],
+   "take_turn_actions": {
+    "3": [
+     "ChangeStateAction",
+     "WaitAction",
+     "DamageAction"
+    ],
+    "2": [
+     "DamageAction"
+    ],
+    "4": [
+     "SFXAction",
+     "VFXAction",
+     "MakeTempCardInDiscardAction"
+    ]
+   }
+  },
+  {
+   "id": "Orb Walker",
+   "class": "OrbWalker",
+   "hp": [
+    {
+     "asc": 7,
+     "min": 92,
+     "max": 102
+    }
+   ],
+   "damage_infos": [
+    "this.laserDmg",
+    "this.clawDmg"
+   ],
+   "asc_fields": {
+    "2": {
+     "clawDmg": 16,
+     "laserDmg": 11
+    }
+   },
+   "moves": [
+    {
+     "byte": 2,
+     "intent": "ATTACK"
+    },
+    {
+     "byte": 1,
+     "intent": "ATTACK_DEBUFF"
+    }
+   ],
+   "ai_probabilities": [],
+   "get_move_raw": "if (num < 40) {\n            if (!this.lastTwoMoves((byte)2)) {\n                this.setMove((byte)2, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)1)).base);\n            } else {\n                this.setMove((byte)1, AbstractMonster.Intent.ATTACK_DEBUFF, ((DamageInfo)this.damage.get((int)0)).base);\n            }\n        } else if (!this.lastTwoMoves((byte)1)) {\n            this.setMove((byte)1, AbstractMonster.Intent.ATTACK_DEBUFF, ((DamageInfo)this.damage.get((int)0)).base);\n        } else {\n            this.setMove((byte)2, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)1)).base);\n        }",
+   "review": [],
+   "take_turn_actions": {
+    "2": [
+     "AnimateSlowAttackAction",
+     "DamageAction"
+    ]
+   }
+  },
+  {
+   "id": "Reptomancer",
+   "class": "Reptomancer",
+   "hp": [
+    {
+     "asc": 8,
+     "min": 190,
+     "max": 200
+    }
+   ],
+   "damage_infos": [
+    16,
+    34,
+    13,
+    30
+   ],
+   "asc_fields": {},
+   "moves": [
+    {
+     "byte": 2,
+     "intent": "UNKNOWN"
+    },
+    {
+     "byte": 1,
+     "intent": "ATTACK_DEBUFF"
+    },
+    {
+     "byte": 3,
+     "intent": "ATTACK"
+    }
+   ],
+   "ai_probabilities": [],
+   "get_move_raw": "if (this.firstMove) {\n            this.firstMove = false;\n            this.setMove((byte)2, AbstractMonster.Intent.UNKNOWN);\n            return;\n        }\n        if (num < 33) {\n            if (!this.lastMove((byte)1)) {\n                this.setMove((byte)1, AbstractMonster.Intent.ATTACK_DEBUFF, ((DamageInfo)this.damage.get((int)0)).base, 2, true);\n            } else {\n                this.getMove(AbstractDungeon.aiRng.random(33, 99));\n            }\n        } else if (num < 66) {\n            if (!this.lastTwoMoves((byte)2)) {\n                if (this.canSpawn()) {\n                    this.setMove((byte)2, AbstractMonster.Intent.UNKNOWN);\n                } else {\n                    this.setMove((byte)1, AbstractMonster.Intent.ATTACK_DEBUFF, ((DamageInfo)this.damage.get((int)0)).base, 2, true);\n                }\n            } else {\n                this.setMove((byte)1, AbstractMonster.Intent.ATTACK_DEBUFF, ((DamageInfo)this.damage.get((int)0)).base, 2, true);\n            }\n        } else if (!this.lastMove((byte)3)) {\n            this.setMove((byte)3, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)1)).base);\n        } else {\n            this.getMove(AbstractDungeon.aiRng.random(65));\n        }",
+   "review": [],
+   "take_turn_actions": {
+    "1": [
+     "ChangeStateAction",
+     "WaitAction",
+     "VFXAction",
+     "DamageAction",
+     "VFXAction",
+     "DamageAction",
+     "ApplyPowerAction"
+    ],
+    "2": [
+     "ChangeStateAction",
+     "WaitAction",
+     "SpawnMonsterAction"
+    ]
+   }
+  },
+  {
+   "id": "Repulsor",
+   "class": "Repulsor",
+   "hp": [
+    {
+     "asc": 7,
+     "min": 31,
+     "max": 38
+    }
+   ],
+   "damage_infos": [
+    "this.attackDmg"
+   ],
+   "asc_fields": {},
+   "moves": [
+    {
+     "byte": 2,
+     "intent": "ATTACK"
+    },
+    {
+     "byte": 1,
+     "intent": "DEBUFF"
+    }
+   ],
+   "ai_probabilities": [],
+   "get_move_raw": "if (num < 20 && !this.lastMove((byte)2)) {\n            this.setMove((byte)2, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)0)).base);\n            return;\n        }\n        this.setMove((byte)1, AbstractMonster.Intent.DEBUFF);",
+   "review": [],
+   "take_turn_actions": {
+    "2": [
+     "AnimateSlowAttackAction",
+     "DamageAction"
+    ],
+    "1": [
+     "MakeTempCardInDrawPileAction"
+    ]
+   }
+  },
+  {
+   "id": "Dagger",
+   "class": "SnakeDagger",
+   "hp": [],
+   "damage_infos": [
+    9,
+    25,
+    25
+   ],
+   "asc_fields": {},
+   "moves": [
+    {
+     "byte": 1,
+     "intent": "ATTACK_DEBUFF",
+     "base": 9
+    },
+    {
+     "byte": 2,
+     "intent": "ATTACK",
+     "base": 25
+    }
+   ],
+   "ai_probabilities": [],
+   "get_move_raw": "if (this.firstMove) {\n            this.firstMove = false;\n            this.setMove((byte)1, AbstractMonster.Intent.ATTACK_DEBUFF, 9);\n            return;\n        }\n        this.setMove((byte)2, AbstractMonster.Intent.ATTACK, 25);",
+   "review": [],
+   "take_turn_actions": {
+    "1": [
+     "ChangeStateAction",
+     "WaitAction",
+     "DamageAction",
+     "MakeTempCardInDiscardAction"
+    ]
+   }
+  },
+  {
+   "id": "Spiker",
+   "class": "Spiker",
+   "hp": [
+    {
+     "asc": 7,
+     "min": 44,
+     "max": 60
+    }
+   ],
+   "damage_infos": [
+    "this.attackDmg"
+   ],
+   "asc_fields": {
+    "2": {
+     "startingThorns": 4,
+     "attackDmg": 9
+    }
+   },
+   "moves": [
+    {
+     "byte": 1,
+     "intent": "ATTACK"
+    },
+    {
+     "byte": 2,
+     "intent": "BUFF"
+    }
+   ],
+   "ai_probabilities": [],
+   "get_move_raw": "if (this.thornsCount > 5) {\n            this.setMove((byte)1, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)0)).base);\n            return;\n        }\n        if (num < 50 && !this.lastMove((byte)1)) {\n            this.setMove((byte)1, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)0)).base);\n            return;\n        }\n        this.setMove((byte)2, AbstractMonster.Intent.BUFF);",
+   "review": [],
+   "take_turn_actions": {
+    "1": [
+     "AnimateSlowAttackAction",
+     "DamageAction"
+    ]
+   }
+  },
+  {
+   "id": "Serpent",
+   "class": "SpireGrowth",
+   "hp": [
+    {
+     "asc": 7,
+     "min": 190,
+     "max": 190
+    }
+   ],
+   "damage_infos": [
+    "this.tackleDmgActual",
+    "this.smashDmgActual"
+   ],
+   "asc_fields": {},
+   "moves": [
+    {
+     "byte": 2,
+     "intent": "STRONG_DEBUFF"
+    },
+    {
+     "byte": 1,
+     "intent": "ATTACK"
+    },
+    {
+     "byte": 3,
+     "intent": "ATTACK"
+    }
+   ],
+   "ai_probabilities": [],
+   "get_move_raw": "if (AbstractDungeon.ascensionLevel >= 17 && !AbstractDungeon.player.hasPower(\"Constricted\") && !this.lastMove((byte)2)) {\n            this.setMove((byte)2, AbstractMonster.Intent.STRONG_DEBUFF);\n            return;\n        }\n        if (num < 50 && !this.lastTwoMoves((byte)1)) {\n            this.setMove((byte)1, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)0)).base);\n            return;\n        }\n        if (!AbstractDungeon.player.hasPower(\"Constricted\") && !this.lastMove((byte)2)) {\n            this.setMove((byte)2, AbstractMonster.Intent.STRONG_DEBUFF);\n            return;\n        }\n        if (!this.lastTwoMoves((byte)3)) {\n            this.setMove((byte)3, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)1)).base);\n            return;\n        }\n        this.setMove((byte)1, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)0)).base);",
+   "review": [],
+   "take_turn_actions": {
+    "1": [
+     "AnimateFastAttackAction",
+     "DamageAction"
+    ],
+    "2": [
+     "AnimateSlowAttackAction",
+     "ApplyPowerAction"
+    ]
+   }
+  },
+  {
+   "id": "TimeEater",
+   "class": "TimeEater",
+   "hp": [
+    {
+     "asc": 9,
+     "min": 480,
+     "max": 480
+    }
+   ],
+   "damage_infos": [
+    "this.reverbDmg",
+    "this.headSlamDmg"
+   ],
+   "asc_fields": {
+    "4": {
+     "reverbDmg": 8,
+     "headSlamDmg": 32
+    }
+   },
+   "moves": [
+    {
+     "byte": 5,
+     "intent": "BUFF"
+    },
+    {
+     "byte": 2,
+     "intent": "ATTACK"
+    },
+    {
+     "byte": 4,
+     "intent": "ATTACK_DEBUFF"
+    },
+    {
+     "byte": 3,
+     "intent": "DEFEND_DEBUFF"
+    }
+   ],
+   "ai_probabilities": [
+    "0.66"
+   ],
+   "get_move_raw": "if (this.currentHealth < this.maxHealth / 2 && !this.usedHaste) {\n            this.usedHaste = true;\n            this.setMove((byte)5, AbstractMonster.Intent.BUFF);\n            return;\n        }\n        if (num < 45) {\n            if (!this.lastTwoMoves((byte)2)) {\n                this.setMove((byte)2, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)0)).base, 3, true);\n                return;\n            }\n            this.getMove(AbstractDungeon.aiRng.random(50, 99));\n            return;\n        }\n        if (num < 80) {\n            if (!this.lastMove((byte)4)) {\n                this.setMove((byte)4, AbstractMonster.Intent.ATTACK_DEBUFF, ((DamageInfo)this.damage.get((int)1)).base);\n                return;\n            }\n            if (AbstractDungeon.aiRng.randomBoolean(0.66f)) {\n                this.setMove((byte)2, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)0)).base, 3, true);\n                return;\n            }\n            this.setMove((byte)3, AbstractMonster.Intent.DEFEND_DEBUFF);\n            return;\n        }\n        if (!this.lastMove((byte)3)) {\n            this.setMove((byte)3, AbstractMonster.Intent.DEFEND_DEBUFF);\n            return;\n        }\n        this.getMove(AbstractDungeon.aiRng.random(74));",
+   "review": [],
+   "take_turn_actions": {
+    "2": [
+     "VFXAction",
+     "DamageAction"
+    ],
+    "3": [
+     "GainBlockAction",
+     "ApplyPowerAction",
+     "ApplyPowerAction"
+    ],
+    "4": [
+     "ChangeStateAction",
+     "WaitAction",
+     "DamageAction",
+     "ApplyPowerAction"
+    ],
+    "5": [
+     "ShoutAction",
+     "RemoveDebuffsAction",
+     "RemoveSpecificPowerAction",
+     "HealAction"
+    ]
+   }
+  },
+  {
+   "id": "Transient",
+   "class": "Transient",
+   "hp": [],
+   "damage_infos": [
+    "this.startingDeathDmg",
+    "this.startingDeathDmg + 10",
+    "this.startingDeathDmg + 20",
+    "this.startingDeathDmg + 30",
+    "this.startingDeathDmg + 40",
+    "this.startingDeathDmg + 50",
+    "this.startingDeathDmg + 60"
+   ],
+   "asc_fields": {},
+   "moves": [
+    {
+     "byte": 1,
+     "intent": "ATTACK",
+     "base": "this.startingDeathDmg + this.count * 10"
+    }
+   ],
+   "ai_probabilities": [],
+   "get_move_raw": "this.setMove((byte)1, AbstractMonster.Intent.ATTACK, this.startingDeathDmg + this.count * 10);",
+   "review": [],
+   "take_turn_actions": {}
+  },
+  {
+   "id": "WrithingMass",
+   "class": "WrithingMass",
+   "hp": [
+    {
+     "asc": 7,
+     "min": 175,
+     "max": 175
+    }
+   ],
+   "damage_infos": [
+    38,
+    9,
+    16,
+    12,
+    32,
+    7,
+    15,
+    10
+   ],
+   "asc_fields": {
+    "2": {
+     "normalDebuffAmt": 2
+    }
+   },
+   "moves": [
+    {
+     "byte": 1,
+     "intent": "ATTACK"
+    },
+    {
+     "byte": 2,
+     "intent": "ATTACK_DEFEND"
+    },
+    {
+     "byte": 3,
+     "intent": "ATTACK_DEBUFF"
+    },
+    {
+     "byte": 0,
+     "intent": "ATTACK"
+    },
+    {
+     "byte": 4,
+     "intent": "STRONG_DEBUFF"
+    }
+   ],
+   "ai_probabilities": [
+    "0.1",
+    "0.4",
+    "0.3"
+   ],
+   "get_move_raw": "if (this.firstMove) {\n            this.firstMove = false;\n            if (num < 33) {\n                this.setMove((byte)1, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)1)).base, 3, true);\n            } else if (num < 66) {\n                this.setMove((byte)2, AbstractMonster.Intent.ATTACK_DEFEND, ((DamageInfo)this.damage.get((int)2)).base);\n            } else {\n                this.setMove((byte)3, AbstractMonster.Intent.ATTACK_DEBUFF, ((DamageInfo)this.damage.get((int)3)).base);\n            }\n            return;\n        }\n        if (num < 10) {\n            if (!this.lastMove((byte)0)) {\n                this.setMove((byte)0, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)0)).base);\n            } else {\n                this.getMove(AbstractDungeon.aiRng.random(10, 99));\n            }\n        } else if (num < 20) {\n            if (!this.usedMegaDebuff && !this.lastMove((byte)4)) {\n                this.setMove((byte)4, AbstractMonster.Intent.STRONG_DEBUFF);\n            } else if (AbstractDungeon.aiRng.randomBoolean(0.1f)) {\n                this.setMove((byte)0, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)0)).base);\n            } else {\n                this.getMove(AbstractDungeon.aiRng.random(20, 99));\n            }\n        } else if (num < 40) {\n            if (!this.lastMove((byte)3)) {\n                this.setMove((byte)3, AbstractMonster.Intent.ATTACK_DEBUFF, ((DamageInfo)this.damage.get((int)3)).base);\n            } else if (AbstractDungeon.aiRng.randomBoolean(0.4f)) {\n                this.getMove(AbstractDungeon.aiRng.random(19));\n            } else {\n                this.getMove(AbstractDungeon.aiRng.random(40, 99));\n            }\n        } else if (num < 70) {\n            if (!this.lastMove((byte)1)) {\n                this.setMove((byte)1, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)1)).base, 3, true);\n            } else if (AbstractDungeon.aiRng.randomBoolean(0.3f)) {\n          ",
+   "review": [],
+   "take_turn_actions": {
+    "0": [
+     "ChangeStateAction",
+     "WaitAction",
+     "DamageAction"
+    ],
+    "1": [
+     "AnimateSlowAttackAction",
+     "DamageAction"
+    ],
+    "2": [
+     "AnimateFastAttackAction",
+     "DamageAction",
+     "GainBlockAction"
+    ],
+    "3": [
+     "DamageAction",
+     "ApplyPowerAction",
+     "ApplyPowerAction",
+     "AnimateFastAttackAction"
+    ],
+    "4": [
+     "FastShakeAction",
+     "AddCardToDeckAction"
+    ]
+   }
+  },
+  {
+   "id": "BanditBear",
+   "class": "BanditBear",
+   "hp": [
+    {
+     "asc": 7,
+     "min": 40,
+     "max": 44
+    }
+   ],
+   "damage_infos": [
+    "this.maulDmg",
+    "this.lungeDmg"
+   ],
+   "asc_fields": {
+    "2": {
+     "maulDmg": 20,
+     "lungeDmg": 10
+    }
+   },
+   "moves": [
+    {
+     "byte": 2,
+     "intent": "STRONG_DEBUFF"
+    }
+   ],
+   "ai_probabilities": [],
+   "get_move_raw": "this.setMove((byte)2, AbstractMonster.Intent.STRONG_DEBUFF);",
+   "review": [],
+   "take_turn_actions": {
+    "2": [
+     "AnimateSlowAttackAction",
+     "ApplyPowerAction",
+     "SetMoveAction"
+    ],
+    "1": [
+     "ChangeStateAction",
+     "WaitAction",
+     "DamageAction",
+     "SetMoveAction"
+    ],
+    "3": [
+     "AnimateSlowAttackAction",
+     "DamageAction",
+     "GainBlockAction",
+     "SetMoveAction"
+    ]
+   }
+  },
+  {
+   "id": "BanditLeader",
+   "class": "BanditLeader",
+   "hp": [
+    {
+     "asc": 7,
+     "min": 37,
+     "max": 41
+    }
+   ],
+   "damage_infos": [
+    "this.slashDmg",
+    "this.agonizeDmg"
+   ],
+   "asc_fields": {
+    "2": {
+     "slashDmg": 17,
+     "agonizeDmg": 12
+    }
+   },
+   "moves": [
+    {
+     "byte": 2,
+     "intent": "UNKNOWN"
+    }
+   ],
+   "ai_probabilities": [],
+   "get_move_raw": "this.setMove((byte)2, AbstractMonster.Intent.UNKNOWN);",
+   "review": [],
+   "take_turn_actions": {
+    "2": [],
+    "3": [
+     "ChangeStateAction",
+     "WaitAction",
+     "DamageAction",
+     "ApplyPowerAction",
+     "SetMoveAction"
+    ],
+    "1": [
+     "ChangeStateAction",
+     "WaitAction",
+     "DamageAction",
+     "SetMoveAction"
+    ]
+   }
+  },
+  {
+   "id": "BanditChild",
+   "class": "BanditPointy",
+   "hp": [
+    {
+     "asc": 7,
+     "min": 34,
+     "max": 34
+    }
+   ],
+   "damage_infos": [
+    "this.attackDmg"
+   ],
+   "asc_fields": {},
+   "moves": [
+    {
+     "byte": 1,
+     "intent": "ATTACK"
+    }
+   ],
+   "ai_probabilities": [],
+   "get_move_raw": "this.setMove((byte)1, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)0)).base, 2, true);",
+   "review": [],
+   "take_turn_actions": {}
+  },
+  {
+   "id": "BookOfStabbing",
+   "class": "BookOfStabbing",
+   "hp": [
+    {
+     "asc": 8,
+     "min": 168,
+     "max": 172
+    }
+   ],
+   "damage_infos": [
+    "this.stabDmg",
+    "this.bigStabDmg"
+   ],
+   "asc_fields": {
+    "3": {
+     "stabDmg": 7,
+     "bigStabDmg": 24
+    }
+   },
+   "moves": [
+    {
+     "byte": 1,
+     "intent": "ATTACK"
+    },
+    {
+     "byte": 2,
+     "intent": "ATTACK"
+    }
+   ],
+   "ai_probabilities": [],
+   "get_move_raw": "if (num < 15) {\n            if (this.lastMove((byte)2)) {\n                ++this.stabCount;\n                this.setMove((byte)1, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)0)).base, this.stabCount, true);\n            } else {\n                this.setMove((byte)2, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)1)).base);\n                if (AbstractDungeon.ascensionLevel >= 18) {\n                    ++this.stabCount;\n                }\n            }\n        } else if (this.lastTwoMoves((byte)1)) {\n            this.setMove((byte)2, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)1)).base);\n            if (AbstractDungeon.ascensionLevel >= 18) {\n                ++this.stabCount;\n            }\n        } else {\n            ++this.stabCount;\n            this.setMove((byte)1, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)0)).base, this.stabCount, true);\n        }",
+   "review": [],
+   "take_turn_actions": {
+    "1": [
+     "ChangeStateAction",
+     "WaitAction",
+     "SFXAction",
+     "DamageAction"
+    ],
+    "2": [
+     "ChangeStateAction",
+     "WaitAction",
+     "DamageAction"
+    ]
+   }
+  },
+  {
+   "id": "BronzeAutomaton",
+   "class": "BronzeAutomaton",
+   "hp": [
+    {
+     "asc": 9,
+     "min": 320,
+     "max": 320
+    }
+   ],
+   "damage_infos": [
+    "this.flailDmg",
+    "this.beamDmg"
+   ],
+   "asc_fields": {
+    "9": {
+     "blockAmt": 12
+    },
+    "4": {
+     "flailDmg": 8,
+     "beamDmg": 50,
+     "strAmt": 4
+    }
+   },
+   "moves": [
+    {
+     "byte": 4,
+     "intent": "UNKNOWN"
+    },
+    {
+     "byte": 2,
+     "intent": "ATTACK"
+    },
+    {
+     "byte": 5,
+     "intent": "DEFEND_BUFF"
+    },
+    {
+     "byte": 3,
+     "intent": "STUN"
+    },
+    {
+     "byte": 1,
+     "intent": "ATTACK"
+    }
+   ],
+   "ai_probabilities": [],
+   "get_move_raw": "if (this.firstTurn) {\n            this.setMove((byte)4, AbstractMonster.Intent.UNKNOWN);\n            this.firstTurn = false;\n            return;\n        }\n        if (this.numTurns == 4) {\n            this.setMove(BEAM_NAME, (byte)2, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)1)).base);\n            this.numTurns = 0;\n            return;\n        }\n        if (this.lastMove((byte)2)) {\n            if (AbstractDungeon.ascensionLevel >= 19) {\n                this.setMove((byte)5, AbstractMonster.Intent.DEFEND_BUFF);\n                return;\n            }\n            this.setMove((byte)3, AbstractMonster.Intent.STUN);\n            return;\n        }\n        if (this.lastMove((byte)3) || this.lastMove((byte)5) || this.lastMove((byte)4)) {\n            this.setMove((byte)1, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)0)).base, 2, true);\n        } else {\n            this.setMove((byte)5, AbstractMonster.Intent.DEFEND_BUFF);\n        }\n        ++this.numTurns;",
+   "review": [],
+   "take_turn_actions": {
+    "4": [
+     "SFXAction",
+     "SFXAction",
+     "SpawnMonsterAction",
+     "SFXAction",
+     "SFXAction",
+     "SpawnMonsterAction"
+    ],
+    "1": [
+     "AnimateFastAttackAction",
+     "DamageAction",
+     "DamageAction"
+    ],
+    "5": [
+     "GainBlockAction",
+     "ApplyPowerAction"
+    ],
+    "2": [
+     "VFXAction",
+     "DamageAction"
+    ]
+   }
+  },
+  {
+   "id": "BronzeOrb",
+   "class": "BronzeOrb",
+   "hp": [
+    {
+     "asc": 9,
+     "min": 54,
+     "max": 60
+    }
+   ],
+   "damage_infos": [
+    8
+   ],
+   "asc_fields": {},
+   "moves": [
+    {
+     "byte": 3,
+     "intent": "STRONG_DEBUFF"
+    },
+    {
+     "byte": 2,
+     "intent": "DEFEND"
+    },
+    {
+     "byte": 1,
+     "intent": "ATTACK",
+     "base": 8
+    }
+   ],
+   "ai_probabilities": [],
+   "get_move_raw": "if (!this.usedStasis && num >= 25) {\n            this.setMove((byte)3, AbstractMonster.Intent.STRONG_DEBUFF);\n            this.usedStasis = true;\n            return;\n        }\n        if (num >= 70 && !this.lastTwoMoves((byte)2)) {\n            this.setMove((byte)2, AbstractMonster.Intent.DEFEND);\n            return;\n        }\n        if (!this.lastTwoMoves((byte)1)) {\n            this.setMove((byte)1, AbstractMonster.Intent.ATTACK, 8);\n            return;\n        }\n        this.setMove((byte)2, AbstractMonster.Intent.DEFEND);",
+   "review": [],
+   "take_turn_actions": {
+    "1": [
+     "SFXAction",
+     "VFXAction",
+     "VFXAction",
+     "DamageAction"
+    ],
+    "2": [
+     "GainBlockAction"
+    ]
+   }
+  },
+  {
+   "id": "Byrd",
+   "class": "Byrd",
+   "hp": [
+    {
+     "asc": 7,
+     "min": 26,
+     "max": 33
+    }
+   ],
+   "damage_infos": [
+    "this.peckDmg",
+    "this.swoopDmg",
+    3
+   ],
+   "asc_fields": {
+    "2": {
+     "peckDmg": 1,
+     "peckCount": 6,
+     "swoopDmg": 14
+    }
+   },
+   "moves": [
+    {
+     "byte": 2,
+     "intent": "UNKNOWN"
+    },
+    {
+     "byte": 4,
+     "intent": "STUN"
+    },
+    {
+     "byte": 6,
+     "intent": "BUFF"
+    },
+    {
+     "byte": 1,
+     "intent": "ATTACK"
+    },
+    {
+     "byte": 3,
+     "intent": "ATTACK"
+    },
+    {
+     "byte": 5,
+     "intent": "ATTACK"
+    }
+   ],
+   "ai_probabilities": [
+    "0.375",
+    "0.4",
+    "0.375",
+    "0.2857"
+   ],
+   "get_move_raw": "if (this.firstMove) {\n            this.firstMove = false;\n            if (AbstractDungeon.aiRng.randomBoolean(0.375f)) {\n                this.setMove((byte)6, AbstractMonster.Intent.BUFF);\n            } else {\n                this.setMove((byte)1, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)0)).base, this.peckCount, true);\n            }\n            return;\n        }\n        if (this.isFlying) {\n            if (num < 50) {\n                if (this.lastTwoMoves((byte)1)) {\n                    if (AbstractDungeon.aiRng.randomBoolean(0.4f)) {\n                        this.setMove((byte)3, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)1)).base);\n                    } else {\n                        this.setMove((byte)6, AbstractMonster.Intent.BUFF);\n                    }\n                } else {\n                    this.setMove((byte)1, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)0)).base, this.peckCount, true);\n                }\n            } else if (num < 70) {\n                if (this.lastMove((byte)3)) {\n                    if (AbstractDungeon.aiRng.randomBoolean(0.375f)) {\n                        this.setMove((byte)6, AbstractMonster.Intent.BUFF);\n                    } else {\n                        this.setMove((byte)1, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)0)).base, this.peckCount, true);\n                    }\n                } else {\n                    this.setMove((byte)3, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)1)).base);\n                }\n            } else if (this.lastMove((byte)6)) {\n                if (AbstractDungeon.aiRng.randomBoolean(0.2857f)) {\n                    this.setMove((byte)3, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)1)).base);\n                } else {\n                    this.setMove((byte)1, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)0)).base, this.peckCount, true);\n                }\n",
+   "review": [],
+   "take_turn_actions": {
+    "1": [
+     "AnimateFastAttackAction",
+     "DamageAction"
+    ],
+    "5": [
+     "AnimateSlowAttackAction",
+     "DamageAction",
+     "ChangeStateAction",
+     "ApplyPowerAction"
+    ],
+    "6": [
+     "SFXAction",
+     "TalkAction",
+     "ApplyPowerAction"
+    ],
+    "3": [
+     "AnimateSlowAttackAction",
+     "DamageAction"
+    ]
+   }
+  },
+  {
+   "id": "Centurion",
+   "class": "Centurion",
+   "hp": [
+    {
+     "asc": 7,
+     "min": 78,
+     "max": 83
+    }
+   ],
+   "damage_infos": [
+    "this.slashDmg",
+    "this.furyDmg"
+   ],
+   "asc_fields": {
+    "2": {
+     "slashDmg": 14,
+     "furyDmg": 7,
+     "furyHits": 3
+    }
+   },
+   "moves": [
+    {
+     "byte": 2,
+     "intent": "DEFEND"
+    },
+    {
+     "byte": 3,
+     "intent": "ATTACK"
+    },
+    {
+     "byte": 1,
+     "intent": "ATTACK"
+    }
+   ],
+   "ai_probabilities": [],
+   "get_move_raw": "if (num >= 65 && !this.lastTwoMoves((byte)2) && !this.lastTwoMoves((byte)3)) {\n            int aliveCount = 0;\n            for (AbstractMonster m : AbstractDungeon.getMonsters().monsters) {\n                if (m.isDying || m.isEscaping) continue;\n                ++aliveCount;\n            }\n            if (aliveCount > 1) {\n                this.setMove((byte)2, AbstractMonster.Intent.DEFEND);\n                return;\n            }\n            this.setMove((byte)3, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)1)).base, this.furyHits, true);\n            return;\n        }\n        if (!this.lastTwoMoves((byte)1)) {\n            this.setMove((byte)1, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)0)).base);\n            return;\n        }\n        int aliveCount = 0;\n        for (AbstractMonster m : AbstractDungeon.getMonsters().monsters) {\n            if (m.isDying || m.isEscaping) continue;\n            ++aliveCount;\n        }\n        if (aliveCount > 1) {\n            this.setMove((byte)2, AbstractMonster.Intent.DEFEND);\n            return;\n        }\n        this.setMove((byte)3, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)1)).base, this.furyHits, true);",
+   "review": [],
+   "take_turn_actions": {
+    "1": [
+     "ChangeStateAction",
+     "WaitAction",
+     "DamageAction"
+    ],
+    "2": [
+     "WaitAction",
+     "GainBlockRandomMonsterAction"
+    ],
+    "3": [
+     "ChangeStateAction",
+     "WaitAction",
+     "DamageAction"
+    ]
+   }
+  },
+  {
+   "id": "Champ",
+   "class": "Champ",
+   "hp": [
+    {
+     "asc": 9,
+     "min": 440,
+     "max": 440
+    }
+   ],
+   "damage_infos": [
+    "this.slashDmg",
+    "this.executeDmg",
+    "this.slapDmg"
+   ],
+   "asc_fields": {
+    "19": {
+     "slashDmg": 18,
+     "executeDmg": 10,
+     "slapDmg": 14,
+     "strAmt": 4,
+     "forgeAmt": 7,
+     "blockAmt": 20
+    },
+    "9": {
+     "slashDmg": 18,
+     "executeDmg": 10,
+     "slapDmg": 14,
+     "strAmt": 3,
+     "forgeAmt": 6,
+     "blockAmt": 18
+    },
+    "4": {
+     "slashDmg": 18,
+     "executeDmg": 10,
+     "slapDmg": 14,
+     "strAmt": 3,
+     "forgeAmt": 5,
+     "blockAmt": 15
+    }
+   },
+   "moves": [
+    {
+     "byte": 7,
+     "intent": "BUFF"
+    },
+    {
+     "byte": 3,
+     "intent": "ATTACK"
+    },
+    {
+     "byte": 6,
+     "intent": "DEBUFF"
+    },
+    {
+     "byte": 2,
+     "intent": "DEFEND_BUFF"
+    },
+    {
+     "byte": 5,
+     "intent": "BUFF"
+    },
+    {
+     "byte": 4,
+     "intent": "ATTACK_DEBUFF"
+    },
+    {
+     "byte": 1,
+     "intent": "ATTACK"
+    }
+   ],
+   "ai_probabilities": [],
+   "get_move_raw": "++this.numTurns;\n        if (this.currentHealth < this.maxHealth / 2 && !this.thresholdReached) {\n            this.thresholdReached = true;\n            this.setMove((byte)7, AbstractMonster.Intent.BUFF);\n            return;\n        }\n        if (!this.lastMove((byte)3) && !this.lastMoveBefore((byte)3) && this.thresholdReached) {\n            AbstractDungeon.actionManager.addToTop(new TalkAction(this, this.getDeathQuote(), 2.0f, 2.0f));\n            this.setMove(EXECUTE_NAME, (byte)3, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)1)).base, 2, true);\n            return;\n        }\n        if (this.numTurns == 4 && !this.thresholdReached) {\n            this.setMove((byte)6, AbstractMonster.Intent.DEBUFF);\n            this.numTurns = 0;\n            return;\n        }\n        if (AbstractDungeon.ascensionLevel >= 19) {\n            if (!this.lastMove((byte)2) && this.forgeTimes < this.forgeThreshold && num <= 30) {\n                ++this.forgeTimes;\n                this.setMove(STANCE_NAME, (byte)2, AbstractMonster.Intent.DEFEND_BUFF);\n                return;\n            }\n        } else if (!this.lastMove((byte)2) && this.forgeTimes < this.forgeThreshold && num <= 15) {\n            ++this.forgeTimes;\n            this.setMove(STANCE_NAME, (byte)2, AbstractMonster.Intent.DEFEND_BUFF);\n            return;\n        }\n        if (!this.lastMove((byte)5) && !this.lastMove((byte)2) && num <= 30) {\n            this.setMove((byte)5, AbstractMonster.Intent.BUFF);\n            return;\n        }\n        if (!this.lastMove((byte)4) && num <= 55) {\n            this.setMove(SLAP_NAME, (byte)4, AbstractMonster.Intent.ATTACK_DEBUFF, ((DamageInfo)this.damage.get((int)2)).base);\n            return;\n        }\n        if (!this.lastMove((byte)1)) {\n            this.setMove((byte)1, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)0)).base);\n        } else {\n            this.setMove(SLAP_NAME, (byte)4, AbstractMonster.Intent.ATTACK_DEBUFF, ((DamageInfo)this.damage",
+   "review": [],
+   "take_turn_actions": {
+    "7": [
+     "SFXAction",
+     "ShoutAction",
+     "VFXAction",
+     "VFXAction",
+     "VFXAction",
+     "RemoveDebuffsAction",
+     "RemoveSpecificPowerAction",
+     "ApplyPowerAction"
+    ],
+    "1": [
+     "ChangeStateAction",
+     "WaitAction",
+     "VFXAction",
+     "DamageAction"
+    ],
+    "2": [
+     "GainBlockAction",
+     "ApplyPowerAction"
+    ],
+    "3": [
+     "AnimateJumpAction",
+     "WaitAction",
+     "VFXAction",
+     "DamageAction",
+     "VFXAction",
+     "DamageAction"
+    ],
+    "4": [
+     "SFXAction",
+     "AnimateFastAttackAction",
+     "DamageAction",
+     "ApplyPowerAction",
+     "ApplyPowerAction"
+    ],
+    "5": [
+     "ApplyPowerAction"
+    ]
+   }
+  },
+  {
+   "id": "Chosen",
+   "class": "Chosen",
+   "hp": [
+    {
+     "asc": 7,
+     "min": 98,
+     "max": 103
+    }
+   ],
+   "damage_infos": [
+    "this.zapDmg",
+    "this.debilitateDmg",
+    "this.pokeDmg"
+   ],
+   "asc_fields": {
+    "2": {
+     "zapDmg": 21,
+     "debilitateDmg": 12,
+     "pokeDmg": 6
+    }
+   },
+   "moves": [
+    {
+     "byte": 4,
+     "intent": "STRONG_DEBUFF"
+    },
+    {
+     "byte": 3,
+     "intent": "ATTACK_DEBUFF"
+    },
+    {
+     "byte": 2,
+     "intent": "DEBUFF"
+    },
+    {
+     "byte": 1,
+     "intent": "ATTACK"
+    },
+    {
+     "byte": 5,
+     "intent": "ATTACK"
+    }
+   ],
+   "ai_probabilities": [],
+   "get_move_raw": "if (AbstractDungeon.ascensionLevel >= 17) {\n            if (!this.usedHex) {\n                this.usedHex = true;\n                this.setMove((byte)4, AbstractMonster.Intent.STRONG_DEBUFF);\n                return;\n            }\n            if (!this.lastMove((byte)3) && !this.lastMove((byte)2)) {\n                if (num < 50) {\n                    this.setMove((byte)3, AbstractMonster.Intent.ATTACK_DEBUFF, ((DamageInfo)this.damage.get((int)1)).base);\n                    return;\n                }\n                this.setMove((byte)2, AbstractMonster.Intent.DEBUFF);\n                return;\n            }\n            if (num < 40) {\n                this.setMove((byte)1, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)0)).base);\n                return;\n            }\n            this.setMove((byte)5, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)2)).base, 2, true);\n            return;\n        }\n        if (this.firstTurn) {\n            this.firstTurn = false;\n            this.setMove((byte)5, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)2)).base, 2, true);\n            return;\n        }\n        if (!this.usedHex) {\n            this.usedHex = true;\n            this.setMove((byte)4, AbstractMonster.Intent.STRONG_DEBUFF);\n            return;\n        }\n        if (!this.lastMove((byte)3) && !this.lastMove((byte)2)) {\n            if (num < 50) {\n                this.setMove((byte)3, AbstractMonster.Intent.ATTACK_DEBUFF, ((DamageInfo)this.damage.get((int)1)).base);\n                return;\n            }\n            this.setMove((byte)2, AbstractMonster.Intent.DEBUFF);\n            return;\n        }\n        if (num < 40) {\n            this.setMove((byte)1, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)0)).base);\n            return;\n        }\n        this.setMove((byte)5, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)2)).base, 2, true);",
+   "review": [],
+   "take_turn_actions": {
+    "5": [
+     "AnimateSlowAttackAction",
+     "DamageAction",
+     "DamageAction"
+    ],
+    "1": [
+     "FastShakeAction",
+     "DamageAction"
+    ],
+    "2": [
+     "ApplyPowerAction",
+     "ApplyPowerAction"
+    ],
+    "3": [
+     "AnimateSlowAttackAction",
+     "DamageAction",
+     "ApplyPowerAction"
+    ]
+   }
+  },
+  {
+   "id": "GremlinLeader",
+   "class": "GremlinLeader",
+   "hp": [
+    {
+     "asc": 8,
+     "min": 145,
+     "max": 155
+    }
+   ],
+   "damage_infos": [
+    "this.STAB_DMG"
+   ],
+   "asc_fields": {
+    "18": {
+     "strAmt": 5,
+     "blockAmt": 10
+    },
+    "3": {
+     "strAmt": 4,
+     "blockAmt": 6
+    }
+   },
+   "moves": [
+    {
+     "byte": 2,
+     "intent": "UNKNOWN"
+    },
+    {
+     "byte": 4,
+     "intent": "ATTACK",
+     "base": "this.STAB_DMG, this.STAB_AMT, true"
+    },
+    {
+     "byte": 3,
+     "intent": "DEFEND_BUFF"
+    }
+   ],
+   "ai_probabilities": [],
+   "get_move_raw": "if (this.numAliveGremlins() == 0) {\n            if (num < 75) {\n                if (!this.lastMove((byte)2)) {\n                    this.setMove(RALLY_NAME, (byte)2, AbstractMonster.Intent.UNKNOWN);\n                } else {\n                    this.setMove((byte)4, AbstractMonster.Intent.ATTACK, this.STAB_DMG, this.STAB_AMT, true);\n                }\n            } else if (!this.lastMove((byte)4)) {\n                this.setMove((byte)4, AbstractMonster.Intent.ATTACK, this.STAB_DMG, this.STAB_AMT, true);\n            } else {\n                this.setMove(RALLY_NAME, (byte)2, AbstractMonster.Intent.UNKNOWN);\n            }\n        } else if (this.numAliveGremlins() < 2) {\n            if (num < 50) {\n                if (!this.lastMove((byte)2)) {\n                    this.setMove(RALLY_NAME, (byte)2, AbstractMonster.Intent.UNKNOWN);\n                } else {\n                    this.getMove(AbstractDungeon.aiRng.random(50, 99));\n                }\n            } else if (num < 80) {\n                if (!this.lastMove((byte)3)) {\n                    this.setMove((byte)3, AbstractMonster.Intent.DEFEND_BUFF);\n                } else {\n                    this.setMove((byte)4, AbstractMonster.Intent.ATTACK, this.STAB_DMG, this.STAB_AMT, true);\n                }\n            } else if (!this.lastMove((byte)4)) {\n                this.setMove((byte)4, AbstractMonster.Intent.ATTACK, this.STAB_DMG, this.STAB_AMT, true);\n            } else {\n                this.getMove(AbstractDungeon.aiRng.random(0, 80));\n            }\n        } else if (this.numAliveGremlins() > 1) {\n            if (num < 66) {\n                if (!this.lastMove((byte)3)) {\n                    this.setMove((byte)3, AbstractMonster.Intent.DEFEND_BUFF);\n                } else {\n                    this.setMove((byte)4, AbstractMonster.Intent.ATTACK, this.STAB_DMG, this.STAB_AMT, true);\n                }\n            } else if (!this.lastMove((byte)4)) {\n                this.setMove((byte)4, AbstractMonster.Intent.ATTACK, ",
+   "review": [],
+   "take_turn_actions": {
+    "2": [
+     "ChangeStateAction",
+     "SummonGremlinAction",
+     "SummonGremlinAction"
+    ],
+    "3": [
+     "ShoutAction",
+     "ApplyPowerAction",
+     "ApplyPowerAction",
+     "GainBlockAction"
+    ]
+   }
+  },
+  {
+   "id": "Healer",
+   "class": "Healer",
+   "hp": [
+    {
+     "asc": 7,
+     "min": 50,
+     "max": 58
+    }
+   ],
+   "damage_infos": [
+    "this.magicDmg"
+   ],
+   "asc_fields": {
+    "17": {
+     "magicDmg": 9,
+     "strAmt": 4,
+     "healAmt": 20
+    },
+    "2": {
+     "magicDmg": 9,
+     "strAmt": 3,
+     "healAmt": 16
+    }
+   },
+   "moves": [
+    {
+     "byte": 2,
+     "intent": "BUFF"
+    },
+    {
+     "byte": 1,
+     "intent": "ATTACK_DEBUFF"
+    },
+    {
+     "byte": 3,
+     "intent": "BUFF"
+    }
+   ],
+   "ai_probabilities": [],
+   "get_move_raw": "int needToHeal = 0;\n        for (AbstractMonster m : AbstractDungeon.getMonsters().monsters) {\n            if (m.isDying || m.isEscaping) continue;\n            needToHeal += m.maxHealth - m.currentHealth;\n        }\n        if (AbstractDungeon.ascensionLevel >= 17) {\n            if (needToHeal > 20 && !this.lastTwoMoves((byte)2)) {\n                this.setMove((byte)2, AbstractMonster.Intent.BUFF);\n                return;\n            }\n        } else if (needToHeal > 15 && !this.lastTwoMoves((byte)2)) {\n            this.setMove((byte)2, AbstractMonster.Intent.BUFF);\n            return;\n        }\n        if (AbstractDungeon.ascensionLevel >= 17) {\n            if (num >= 40 && !this.lastMove((byte)1)) {\n                this.setMove((byte)1, AbstractMonster.Intent.ATTACK_DEBUFF, ((DamageInfo)this.damage.get((int)0)).base);\n                return;\n            }\n        } else if (num >= 40 && !this.lastTwoMoves((byte)1)) {\n            this.setMove((byte)1, AbstractMonster.Intent.ATTACK_DEBUFF, ((DamageInfo)this.damage.get((int)0)).base);\n            return;\n        }\n        if (!this.lastTwoMoves((byte)3)) {\n            this.setMove((byte)3, AbstractMonster.Intent.BUFF);\n            return;\n        }\n        this.setMove((byte)1, AbstractMonster.Intent.ATTACK_DEBUFF, ((DamageInfo)this.damage.get((int)0)).base);",
+   "review": [],
+   "take_turn_actions": {
+    "1": [
+     "AnimateSlowAttackAction",
+     "DamageAction",
+     "ApplyPowerAction"
+    ],
+    "2": [
+     "ChangeStateAction",
+     "WaitAction",
+     "HealAction"
+    ],
+    "3": [
+     "ChangeStateAction",
+     "WaitAction",
+     "ApplyPowerAction"
+    ]
+   }
+  },
+  {
+   "id": "Mugger",
+   "class": "Mugger",
+   "hp": [
+    {
+     "asc": 7,
+     "min": 50,
+     "max": 54
+    }
+   ],
+   "damage_infos": [
+    "this.swipeDmg",
+    "this.bigSwipeDmg"
+   ],
+   "asc_fields": {
+    "2": {
+     "swipeDmg": 11,
+     "bigSwipeDmg": 18
+    }
+   },
+   "moves": [
+    {
+     "byte": 2,
+     "intent": "DEFEND"
+    },
+    {
+     "byte": 1,
+     "intent": "ATTACK"
+    }
+   ],
+   "ai_probabilities": [],
+   "get_move_raw": "this.setMove((byte)1, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)0)).base);",
+   "review": [],
+   "take_turn_actions": {
+    "1": [
+     "TalkAction",
+     "AnimateSlowAttackAction",
+     "AbstractGameAction",
+     "DamageAction"
+    ],
+    "4": [
+     "AnimateSlowAttackAction",
+     "AbstractGameAction",
+     "DamageAction"
+    ],
+    "2": [
+     "GainBlockAction",
+     "GainBlockAction",
+     "SetMoveAction"
+    ],
+    "3": [
+     "TalkAction",
+     "VFXAction",
+     "EscapeAction",
+     "SetMoveAction"
+    ]
+   }
+  },
+  {
+   "id": "Shelled Parasite",
+   "class": "ShelledParasite",
+   "hp": [
+    {
+     "asc": 7,
+     "min": 70,
+     "max": 75
+    }
+   ],
+   "damage_infos": [
+    "this.doubleStrikeDmg",
+    "this.fellDmg",
+    "this.suckDmg"
+   ],
+   "asc_fields": {
+    "2": {
+     "doubleStrikeDmg": 7,
+     "fellDmg": 21,
+     "suckDmg": 12
+    }
+   },
+   "moves": [
+    {
+     "byte": 1,
+     "intent": "ATTACK_DEBUFF"
+    },
+    {
+     "byte": 4,
+     "intent": "STUN"
+    },
+    {
+     "byte": 2,
+     "intent": "ATTACK"
+    },
+    {
+     "byte": 3,
+     "intent": "ATTACK_BUFF"
+    }
+   ],
+   "ai_probabilities": [],
+   "get_move_raw": "if (this.firstMove) {\n            this.firstMove = false;\n            if (AbstractDungeon.ascensionLevel >= 17) {\n                this.setMove((byte)1, AbstractMonster.Intent.ATTACK_DEBUFF, ((DamageInfo)this.damage.get((int)1)).base);\n                return;\n            }\n            if (AbstractDungeon.aiRng.randomBoolean()) {\n                this.setMove((byte)2, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)0)).base, 2, true);\n            } else {\n                this.setMove((byte)3, AbstractMonster.Intent.ATTACK_BUFF, ((DamageInfo)this.damage.get((int)2)).base);\n            }\n            return;\n        }\n        if (num < 20) {\n            if (!this.lastMove((byte)1)) {\n                this.setMove((byte)1, AbstractMonster.Intent.ATTACK_DEBUFF, ((DamageInfo)this.damage.get((int)1)).base);\n            } else {\n                this.getMove(AbstractDungeon.aiRng.random(20, 99));\n            }\n        } else if (num < 60) {\n            if (!this.lastTwoMoves((byte)2)) {\n                this.setMove((byte)2, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)0)).base, 2, true);\n            } else {\n                this.setMove((byte)3, AbstractMonster.Intent.ATTACK_BUFF, ((DamageInfo)this.damage.get((int)2)).base);\n            }\n        } else if (!this.lastTwoMoves((byte)3)) {\n            this.setMove((byte)3, AbstractMonster.Intent.ATTACK_BUFF, ((DamageInfo)this.damage.get((int)2)).base);\n        } else {\n            this.setMove((byte)2, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)0)).base, 2, true);\n        }",
+   "review": [],
+   "take_turn_actions": {
+    "1": [
+     "AnimateSlowAttackAction",
+     "WaitAction",
+     "DamageAction",
+     "ApplyPowerAction"
+    ],
+    "2": [
+     "AnimateHopAction",
+     "WaitAction",
+     "DamageAction"
+    ],
+    "3": [
+     "ChangeStateAction",
+     "WaitAction",
+     "VFXAction",
+     "VampireDamageAction"
+    ]
+   }
+  },
+  {
+   "id": "SnakePlant",
+   "class": "SnakePlant",
+   "hp": [
+    {
+     "asc": 7,
+     "min": 78,
+     "max": 82
+    }
+   ],
+   "damage_infos": [
+    "this.rainBlowsDmg"
+   ],
+   "asc_fields": {},
+   "moves": [
+    {
+     "byte": 2,
+     "intent": "STRONG_DEBUFF"
+    },
+    {
+     "byte": 1,
+     "intent": "ATTACK"
+    }
+   ],
+   "ai_probabilities": [],
+   "get_move_raw": "if (AbstractDungeon.ascensionLevel >= 17) {\n            if (num < 65) {\n                if (this.lastTwoMoves((byte)1)) {\n                    this.setMove(MOVES[0], (byte)2, AbstractMonster.Intent.STRONG_DEBUFF);\n                } else {\n                    this.setMove((byte)1, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)0)).base, 3, true);\n                }\n            } else if (this.lastMove((byte)2) || this.lastMoveBefore((byte)2)) {\n                this.setMove((byte)1, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)0)).base, 3, true);\n            } else {\n                this.setMove(MOVES[0], (byte)2, AbstractMonster.Intent.STRONG_DEBUFF);\n            }\n        } else if (num < 65) {\n            if (this.lastTwoMoves((byte)1)) {\n                this.setMove(MOVES[0], (byte)2, AbstractMonster.Intent.STRONG_DEBUFF);\n            } else {\n                this.setMove((byte)1, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)0)).base, 3, true);\n            }\n        } else if (this.lastMove((byte)2)) {\n            this.setMove((byte)1, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)0)).base, 3, true);\n        } else {\n            this.setMove(MOVES[0], (byte)2, AbstractMonster.Intent.STRONG_DEBUFF);\n        }",
+   "review": [],
+   "take_turn_actions": {
+    "1": [
+     "ChangeStateAction",
+     "WaitAction",
+     "VFXAction",
+     "DamageAction"
+    ],
+    "2": [
+     "ApplyPowerAction",
+     "ApplyPowerAction"
+    ]
+   }
+  },
+  {
+   "id": "Snecko",
+   "class": "Snecko",
+   "hp": [
+    {
+     "asc": 7,
+     "min": 120,
+     "max": 125
+    }
+   ],
+   "damage_infos": [
+    "this.biteDmg",
+    "this.tailDmg"
+   ],
+   "asc_fields": {
+    "2": {
+     "biteDmg": 18,
+     "tailDmg": 10
+    }
+   },
+   "moves": [
+    {
+     "byte": 1,
+     "intent": "STRONG_DEBUFF"
+    },
+    {
+     "byte": 3,
+     "intent": "ATTACK_DEBUFF"
+    },
+    {
+     "byte": 2,
+     "intent": "ATTACK"
+    }
+   ],
+   "ai_probabilities": [],
+   "get_move_raw": "if (this.firstTurn) {\n            this.firstTurn = false;\n            this.setMove(MOVES[0], (byte)1, AbstractMonster.Intent.STRONG_DEBUFF);\n            return;\n        }\n        if (num < 40) {\n            this.setMove(MOVES[1], (byte)3, AbstractMonster.Intent.ATTACK_DEBUFF, ((DamageInfo)this.damage.get((int)1)).base);\n            return;\n        }\n        if (this.lastTwoMoves((byte)2)) {\n            this.setMove(MOVES[1], (byte)3, AbstractMonster.Intent.ATTACK_DEBUFF, ((DamageInfo)this.damage.get((int)1)).base);\n        } else {\n            this.setMove(MOVES[2], (byte)2, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)0)).base);\n        }",
+   "review": [],
+   "take_turn_actions": {
+    "1": [
+     "ChangeStateAction",
+     "SFXAction",
+     "VFXAction",
+     "FastShakeAction",
+     "ApplyPowerAction"
+    ],
+    "2": [
+     "ChangeStateAction",
+     "WaitAction",
+     "VFXAction",
+     "DamageAction"
+    ],
+    "3": [
+     "AnimateFastAttackAction",
+     "DamageAction",
+     "ApplyPowerAction",
+     "ApplyPowerAction"
+    ]
+   }
+  },
+  {
+   "id": "SphericGuardian",
+   "class": "SphericGuardian",
+   "hp": [],
+   "damage_infos": [
+    "this.dmg"
+   ],
+   "asc_fields": {},
+   "moves": [
+    {
+     "byte": 2,
+     "intent": "DEFEND"
+    },
+    {
+     "byte": 4,
+     "intent": "ATTACK_DEBUFF"
+    },
+    {
+     "byte": 3,
+     "intent": "ATTACK_DEFEND"
+    },
+    {
+     "byte": 1,
+     "intent": "ATTACK"
+    }
+   ],
+   "ai_probabilities": [],
+   "get_move_raw": "if (this.firstMove) {\n            this.firstMove = false;\n            this.setMove((byte)2, AbstractMonster.Intent.DEFEND);\n            return;\n        }\n        if (this.secondMove) {\n            this.secondMove = false;\n            this.setMove((byte)4, AbstractMonster.Intent.ATTACK_DEBUFF, ((DamageInfo)this.damage.get((int)0)).base);\n            return;\n        }\n        if (this.lastMove((byte)1)) {\n            this.setMove((byte)3, AbstractMonster.Intent.ATTACK_DEFEND, ((DamageInfo)this.damage.get((int)0)).base);\n        } else {\n            this.setMove((byte)1, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)0)).base, 2, true);\n        }",
+   "review": [],
+   "take_turn_actions": {
+    "1": [
+     "ChangeStateAction",
+     "WaitAction",
+     "DamageAction",
+     "DamageAction"
+    ],
+    "2": [
+     "GainBlockAction",
+     "GainBlockAction",
+     "WaitAction",
+     "SFXAction"
+    ],
+    "3": [
+     "GainBlockAction",
+     "AnimateFastAttackAction",
+     "DamageAction"
+    ]
+   }
+  },
+  {
+   "id": "SlaverBoss",
+   "class": "Taskmaster",
+   "hp": [
+    {
+     "asc": 8,
+     "min": 57,
+     "max": 64
+    }
+   ],
+   "damage_infos": [
+    4,
+    7
+   ],
+   "asc_fields": {},
+   "moves": [
+    {
+     "byte": 2,
+     "intent": "ATTACK_DEBUFF",
+     "base": 7
+    }
+   ],
+   "ai_probabilities": [],
+   "get_move_raw": "this.setMove((byte)2, AbstractMonster.Intent.ATTACK_DEBUFF, 7);",
+   "review": [],
+   "take_turn_actions": {
+    "2": [
+     "AnimateSlowAttackAction",
+     "DamageAction",
+     "MakeTempCardInDiscardAction"
+    ]
+   }
+  },
+  {
+   "id": "TheCollector",
+   "class": "TheCollector",
+   "hp": [
+    {
+     "asc": 9,
+     "min": 300,
+     "max": 300
+    }
+   ],
+   "damage_infos": [
+    "this.rakeDmg"
+   ],
+   "asc_fields": {
+    "9": {
+     "blockAmt": 18
+    },
+    "19": {
+     "rakeDmg": 21,
+     "strAmt": 5,
+     "megaDebuffAmt": 5
+    },
+    "4": {
+     "rakeDmg": 21,
+     "strAmt": 4,
+     "megaDebuffAmt": 3
+    }
+   },
+   "moves": [
+    {
+     "byte": 1,
+     "intent": "UNKNOWN"
+    },
+    {
+     "byte": 4,
+     "intent": "STRONG_DEBUFF"
+    },
+    {
+     "byte": 5,
+     "intent": "UNKNOWN"
+    },
+    {
+     "byte": 2,
+     "intent": "ATTACK"
+    },
+    {
+     "byte": 3,
+     "intent": "DEFEND_BUFF"
+    }
+   ],
+   "ai_probabilities": [],
+   "get_move_raw": "if (this.initialSpawn) {\n            this.setMove((byte)1, AbstractMonster.Intent.UNKNOWN);\n            return;\n        }\n        if (this.turnsTaken >= 3 && !this.ultUsed) {\n            this.setMove((byte)4, AbstractMonster.Intent.STRONG_DEBUFF);\n            return;\n        }\n        if (num <= 25 && this.isMinionDead() && !this.lastMove((byte)5)) {\n            this.setMove((byte)5, AbstractMonster.Intent.UNKNOWN);\n            return;\n        }\n        if (num <= 70 && !this.lastTwoMoves((byte)2)) {\n            this.setMove((byte)2, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)0)).base);\n            return;\n        }\n        if (!this.lastMove((byte)3)) {\n            this.setMove((byte)3, AbstractMonster.Intent.DEFEND_BUFF);\n        } else {\n            this.setMove((byte)2, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)0)).base);\n        }",
+   "review": [],
+   "take_turn_actions": {
+    "1": [
+     "SFXAction",
+     "SpawnMonsterAction"
+    ],
+    "2": [
+     "DamageAction"
+    ],
+    "3": [
+     "GainBlockAction",
+     "GainBlockAction",
+     "ApplyPowerAction"
+    ],
+    "4": [
+     "TalkAction",
+     "SFXAction",
+     "VFXAction",
+     "ApplyPowerAction",
+     "ApplyPowerAction",
+     "ApplyPowerAction"
+    ],
+    "5": [
+     "SpawnMonsterAction"
+    ]
+   }
+  },
+  {
+   "id": "TorchHead",
+   "class": "TorchHead",
+   "hp": [
+    {
+     "asc": 9,
+     "min": 40,
+     "max": 45
+    }
+   ],
+   "damage_infos": [
+    7
+   ],
+   "asc_fields": {},
+   "moves": [
+    {
+     "byte": 1,
+     "intent": "ATTACK",
+     "base": 7
+    }
+   ],
+   "ai_probabilities": [],
+   "get_move_raw": "this.setMove((byte)1, AbstractMonster.Intent.ATTACK, 7);",
+   "review": [],
+   "take_turn_actions": {}
+  },
+  {
+   "id": "CorruptHeart",
+   "class": "CorruptHeart",
+   "hp": [
+    {
+     "asc": 9,
+     "min": 800,
+     "max": 800
+    }
+   ],
+   "damage_infos": [
+    45,
+    2,
+    40,
+    2
+   ],
+   "asc_fields": {
+    "4": {
+     "bloodHitCount": 15
+    }
+   },
+   "moves": [
+    {
+     "byte": 3,
+     "intent": "STRONG_DEBUFF"
+    },
+    {
+     "byte": 1,
+     "intent": "ATTACK"
+    },
+    {
+     "byte": 2,
+     "intent": "ATTACK"
+    },
+    {
+     "byte": 4,
+     "intent": "BUFF"
+    }
+   ],
+   "ai_probabilities": [],
+   "get_move_raw": "if (this.isFirstMove) {\n            this.setMove((byte)3, AbstractMonster.Intent.STRONG_DEBUFF);\n            this.isFirstMove = false;\n            return;\n        }\n        switch (this.moveCount % 3) {\n            case 0: {\n                if (AbstractDungeon.aiRng.randomBoolean()) {\n                    this.setMove((byte)1, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)1)).base, this.bloodHitCount, true);\n                    break;\n                }\n                this.setMove((byte)2, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)0)).base);\n                break;\n            }\n            case 1: {\n                if (!this.lastMove((byte)2)) {\n                    this.setMove((byte)2, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)0)).base);\n                    break;\n                }\n                this.setMove((byte)1, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)1)).base, this.bloodHitCount, true);\n                break;\n            }\n            default: {\n                this.setMove((byte)4, AbstractMonster.Intent.BUFF);\n            }\n        }\n        ++this.moveCount;",
+   "review": [],
+   "take_turn_actions": {
+    "3": [
+     "ApplyPowerAction"
+    ],
+    "4": [
+     "VFXAction",
+     "VFXAction",
+     "ApplyPowerAction",
+     "ApplyPowerAction"
+    ],
+    "1": [
+     "VFXAction",
+     "VFXAction",
+     "DamageAction"
+    ],
+    "2": [
+     "ApplyPowerAction"
+    ]
+   }
+  },
+  {
+   "id": "SpireShield",
+   "class": "SpireShield",
+   "hp": [
+    {
+     "asc": 8,
+     "min": 125,
+     "max": 125
+    }
+   ],
+   "damage_infos": [
+    14,
+    38,
+    12,
+    34
+   ],
+   "asc_fields": {},
+   "moves": [
+    {
+     "byte": 2,
+     "intent": "DEFEND"
+    },
+    {
+     "byte": 1,
+     "intent": "ATTACK_DEBUFF"
+    },
+    {
+     "byte": 3,
+     "intent": "ATTACK_DEFEND"
+    }
+   ],
+   "ai_probabilities": [],
+   "get_move_raw": "switch (this.moveCount % 3) {\n            case 0: {\n                if (AbstractDungeon.aiRng.randomBoolean()) {\n                    this.setMove((byte)2, AbstractMonster.Intent.DEFEND);\n                    break;\n                }\n                this.setMove((byte)1, AbstractMonster.Intent.ATTACK_DEBUFF, ((DamageInfo)this.damage.get((int)0)).base);\n                break;\n            }\n            case 1: {\n                if (!this.lastMove((byte)1)) {\n                    this.setMove((byte)1, AbstractMonster.Intent.ATTACK_DEBUFF, ((DamageInfo)this.damage.get((int)0)).base);\n                    break;\n                }\n                this.setMove((byte)2, AbstractMonster.Intent.DEFEND);\n                break;\n            }\n            default: {\n                this.setMove((byte)3, AbstractMonster.Intent.ATTACK_DEFEND, ((DamageInfo)this.damage.get((int)1)).base);\n            }\n        }\n        ++this.moveCount;",
+   "review": [],
+   "take_turn_actions": {
+    "1": [
+     "ChangeStateAction",
+     "WaitAction",
+     "DamageAction",
+     "ApplyPowerAction"
+    ],
+    "2": [
+     "GainBlockAction"
+    ],
+    "3": [
+     "ChangeStateAction",
+     "WaitAction",
+     "DamageAction",
+     "GainBlockAction"
+    ]
+   }
+  },
+  {
+   "id": "SpireSpear",
+   "class": "SpireSpear",
+   "hp": [
+    {
+     "asc": 8,
+     "min": 180,
+     "max": 180
+    }
+   ],
+   "damage_infos": [
+    6,
+    10,
+    5,
+    10
+   ],
+   "asc_fields": {
+    "3": {
+     "skewerCount": 4
+    }
+   },
+   "moves": [
+    {
+     "byte": 1,
+     "intent": "ATTACK_DEBUFF"
+    },
+    {
+     "byte": 2,
+     "intent": "BUFF"
+    },
+    {
+     "byte": 3,
+     "intent": "ATTACK"
+    }
+   ],
+   "ai_probabilities": [],
+   "get_move_raw": "switch (this.moveCount % 3) {\n            case 0: {\n                if (!this.lastMove((byte)1)) {\n                    this.setMove((byte)1, AbstractMonster.Intent.ATTACK_DEBUFF, ((DamageInfo)this.damage.get((int)0)).base, 2, true);\n                    break;\n                }\n                this.setMove((byte)2, AbstractMonster.Intent.BUFF);\n                break;\n            }\n            case 1: {\n                this.setMove((byte)3, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)1)).base, this.skewerCount, true);\n                break;\n            }\n            default: {\n                if (AbstractDungeon.aiRng.randomBoolean()) {\n                    this.setMove((byte)2, AbstractMonster.Intent.BUFF);\n                    break;\n                }\n                this.setMove((byte)1, AbstractMonster.Intent.ATTACK_DEBUFF, ((DamageInfo)this.damage.get((int)0)).base, 2, true);\n            }\n        }\n        ++this.moveCount;",
+   "review": [],
+   "take_turn_actions": {
+    "1": [
+     "ChangeStateAction",
+     "WaitAction",
+     "DamageAction",
+     "MakeTempCardInDrawPileAction"
+    ],
+    "2": [
+     "ApplyPowerAction"
+    ],
+    "3": [
+     "ChangeStateAction",
+     "WaitAction",
+     "DamageAction"
+    ]
+   }
+  },
+  {
+   "id": "AcidSlime_L",
+   "class": "AcidSlime_L",
+   "hp": [
+    {
+     "asc": 7,
+     "min": 68,
+     "max": 72
+    }
+   ],
+   "damage_infos": [
+    12,
+    18,
+    11,
+    16
+   ],
+   "asc_fields": {},
+   "moves": [
+    {
+     "byte": 3,
+     "intent": "UNKNOWN"
+    },
+    {
+     "byte": 2,
+     "intent": "ATTACK"
+    },
+    {
+     "byte": 4,
+     "intent": "DEBUFF"
+    },
+    {
+     "byte": 1,
+     "intent": "ATTACK_DEBUFF"
+    }
+   ],
+   "ai_probabilities": [
+    "0.6",
+    "0.6",
+    "0.4",
+    "0.4",
+    "0.4"
+   ],
+   "get_move_raw": "if (AbstractDungeon.ascensionLevel >= 17) {\n            if (num < 40) {\n                if (this.lastTwoMoves((byte)1)) {\n                    if (AbstractDungeon.aiRng.randomBoolean(0.6f)) {\n                        this.setMove((byte)2, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)1)).base);\n                    } else {\n                        this.setMove(WEAK_NAME, (byte)4, AbstractMonster.Intent.DEBUFF);\n                    }\n                } else {\n                    this.setMove(WOUND_NAME, (byte)1, AbstractMonster.Intent.ATTACK_DEBUFF, ((DamageInfo)this.damage.get((int)0)).base);\n                }\n            } else if (num < 70) {\n                if (this.lastTwoMoves((byte)2)) {\n                    if (AbstractDungeon.aiRng.randomBoolean(0.6f)) {\n                        this.setMove(WOUND_NAME, (byte)1, AbstractMonster.Intent.ATTACK_DEBUFF, ((DamageInfo)this.damage.get((int)0)).base);\n                    } else {\n                        this.setMove(WEAK_NAME, (byte)4, AbstractMonster.Intent.DEBUFF);\n                    }\n                } else {\n                    this.setMove((byte)2, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)1)).base);\n                }\n            } else if (this.lastMove((byte)4)) {\n                if (AbstractDungeon.aiRng.randomBoolean(0.4f)) {\n                    this.setMove(WOUND_NAME, (byte)1, AbstractMonster.Intent.ATTACK_DEBUFF, ((DamageInfo)this.damage.get((int)0)).base);\n                } else {\n                    this.setMove((byte)2, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)1)).base);\n                }\n            } else {\n                this.setMove(WEAK_NAME, (byte)4, AbstractMonster.Intent.DEBUFF);\n            }\n        } else if (num < 30) {\n            if (this.lastTwoMoves((byte)1)) {\n                if (AbstractDungeon.aiRng.randomBoolean()) {\n                    this.setMove((byte)2, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((in",
+   "review": [],
+   "take_turn_actions": {
+    "4": [
+     "AnimateSlowAttackAction",
+     "ApplyPowerAction",
+     "RollMoveAction"
+    ],
+    "1": [
+     "AnimateSlowAttackAction",
+     "SFXAction",
+     "DamageAction",
+     "MakeTempCardInDiscardAction",
+     "RollMoveAction"
+    ],
+    "2": [
+     "AnimateSlowAttackAction",
+     "DamageAction",
+     "RollMoveAction"
+    ]
+   }
+  },
+  {
+   "id": "AcidSlime_M",
+   "class": "AcidSlime_M",
+   "hp": [
+    {
+     "asc": 7,
+     "min": 29,
+     "max": 34
+    }
+   ],
+   "damage_infos": [
+    8,
+    12,
+    7,
+    10
+   ],
+   "asc_fields": {},
+   "moves": [
+    {
+     "byte": 2,
+     "intent": "ATTACK"
+    },
+    {
+     "byte": 4,
+     "intent": "DEBUFF"
+    },
+    {
+     "byte": 1,
+     "intent": "ATTACK_DEBUFF"
+    }
+   ],
+   "ai_probabilities": [
+    "0.5",
+    "0.4",
+    "0.4",
+    "0.4"
+   ],
+   "get_move_raw": "if (AbstractDungeon.ascensionLevel >= 17) {\n            if (num < 40) {\n                if (this.lastTwoMoves((byte)1)) {\n                    if (AbstractDungeon.aiRng.randomBoolean()) {\n                        this.setMove((byte)2, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)1)).base);\n                    } else {\n                        this.setMove(WEAK_NAME, (byte)4, AbstractMonster.Intent.DEBUFF);\n                    }\n                } else {\n                    this.setMove(WOUND_NAME, (byte)1, AbstractMonster.Intent.ATTACK_DEBUFF, ((DamageInfo)this.damage.get((int)0)).base);\n                }\n            } else if (num < 80) {\n                if (this.lastTwoMoves((byte)2)) {\n                    if (AbstractDungeon.aiRng.randomBoolean(0.5f)) {\n                        this.setMove(WOUND_NAME, (byte)1, AbstractMonster.Intent.ATTACK_DEBUFF, ((DamageInfo)this.damage.get((int)0)).base);\n                    } else {\n                        this.setMove(WEAK_NAME, (byte)4, AbstractMonster.Intent.DEBUFF);\n                    }\n                } else {\n                    this.setMove((byte)2, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)1)).base);\n                }\n            } else if (this.lastMove((byte)4)) {\n                if (AbstractDungeon.aiRng.randomBoolean(0.4f)) {\n                    this.setMove(WOUND_NAME, (byte)1, AbstractMonster.Intent.ATTACK_DEBUFF, ((DamageInfo)this.damage.get((int)0)).base);\n                } else {\n                    this.setMove((byte)2, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)1)).base);\n                }\n            } else {\n                this.setMove(WEAK_NAME, (byte)4, AbstractMonster.Intent.DEBUFF);\n            }\n        } else if (num < 30) {\n            if (this.lastTwoMoves((byte)1)) {\n                if (AbstractDungeon.aiRng.randomBoolean()) {\n                    this.setMove((byte)2, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)1)",
+   "review": [],
+   "take_turn_actions": {
+    "4": [
+     "AnimateSlowAttackAction",
+     "ApplyPowerAction",
+     "RollMoveAction"
+    ],
+    "1": [
+     "AnimateSlowAttackAction",
+     "DamageAction",
+     "MakeTempCardInDiscardAction",
+     "RollMoveAction"
+    ]
+   }
+  },
+  {
+   "id": "AcidSlime_S",
+   "class": "AcidSlime_S",
+   "hp": [
+    {
+     "asc": 7,
+     "min": 9,
+     "max": 13
+    }
+   ],
+   "damage_infos": [
+    4,
+    3
+   ],
+   "asc_fields": {},
+   "moves": [
+    {
+     "byte": 2,
+     "intent": "DEBUFF"
+    },
+    {
+     "byte": 1,
+     "intent": "ATTACK"
+    }
+   ],
+   "ai_probabilities": [],
+   "get_move_raw": "if (AbstractDungeon.ascensionLevel >= 17) {\n            if (this.lastTwoMoves((byte)1)) {\n                this.setMove((byte)1, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)0)).base);\n            } else {\n                this.setMove((byte)2, AbstractMonster.Intent.DEBUFF);\n            }\n        } else if (AbstractDungeon.aiRng.randomBoolean()) {\n            this.setMove((byte)1, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)0)).base);\n        } else {\n            this.setMove((byte)2, AbstractMonster.Intent.DEBUFF);\n        }",
+   "review": [],
+   "take_turn_actions": {
+    "1": [
+     "AnimateSlowAttackAction",
+     "DamageAction"
+    ]
+   }
+  },
+  {
+   "id": "Apology Slime",
+   "class": "ApologySlime",
+   "hp": [],
+   "damage_infos": [
+    3
+   ],
+   "asc_fields": {},
+   "moves": [
+    {
+     "byte": 2,
+     "intent": "DEBUFF"
+    },
+    {
+     "byte": 1,
+     "intent": "ATTACK"
+    }
+   ],
+   "ai_probabilities": [],
+   "get_move_raw": "if (AbstractDungeon.aiRng.randomBoolean()) {\n            this.setMove((byte)1, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)0)).base);\n        } else {\n            this.setMove((byte)2, AbstractMonster.Intent.DEBUFF);\n        }",
+   "review": [],
+   "take_turn_actions": {
+    "1": [
+     "AnimateSlowAttackAction",
+     "DamageAction"
+    ]
+   }
+  },
+  {
+   "id": "Cultist",
+   "class": "Cultist",
+   "hp": [
+    {
+     "asc": 7,
+     "min": 50,
+     "max": 56
+    }
+   ],
+   "damage_infos": [
+    6
+   ],
+   "asc_fields": {},
+   "moves": [
+    {
+     "byte": 3,
+     "intent": "BUFF"
+    },
+    {
+     "byte": 1,
+     "intent": "ATTACK"
+    }
+   ],
+   "ai_probabilities": [],
+   "get_move_raw": "if (this.firstMove) {\n            this.firstMove = false;\n            this.setMove(INCANTATION_NAME, (byte)3, AbstractMonster.Intent.BUFF);\n            return;\n        }\n        this.setMove((byte)1, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)0)).base);",
+   "review": [],
+   "take_turn_actions": {
+    "3": [
+     "TalkAction",
+     "TalkAction",
+     "ApplyPowerAction"
+    ],
+    "1": [
+     "AnimateSlowAttackAction",
+     "DamageAction"
+    ]
+   }
+  },
+  {
+   "id": "FungiBeast",
+   "class": "FungiBeast",
+   "hp": [
+    {
+     "asc": 7,
+     "min": 24,
+     "max": 28
+    }
+   ],
+   "damage_infos": [
+    "this.biteDamage"
+   ],
+   "asc_fields": {
+    "2": {
+     "strAmt": 4,
+     "biteDamage": 6
+    }
+   },
+   "moves": [
+    {
+     "byte": 2,
+     "intent": "BUFF"
+    },
+    {
+     "byte": 1,
+     "intent": "ATTACK"
+    }
+   ],
+   "ai_probabilities": [],
+   "get_move_raw": "if (num < 60) {\n            if (this.lastTwoMoves((byte)1)) {\n                this.setMove(MOVES[0], (byte)2, AbstractMonster.Intent.BUFF);\n            } else {\n                this.setMove((byte)1, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)0)).base);\n            }\n        } else if (this.lastMove((byte)2)) {\n            this.setMove((byte)1, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)0)).base);\n        } else {\n            this.setMove(MOVES[0], (byte)2, AbstractMonster.Intent.BUFF);\n        }",
+   "review": [],
+   "take_turn_actions": {
+    "1": [
+     "ChangeStateAction",
+     "WaitAction",
+     "DamageAction"
+    ],
+    "2": [
+     "ApplyPowerAction"
+    ]
+   }
+  },
+  {
+   "id": "GremlinFat",
+   "class": "GremlinFat",
+   "hp": [
+    {
+     "asc": 7,
+     "min": 14,
+     "max": 18
+    }
+   ],
+   "damage_infos": [
+    5,
+    4
+   ],
+   "asc_fields": {},
+   "moves": [
+    {
+     "byte": 2,
+     "intent": "ATTACK_DEBUFF"
+    },
+    {
+     "byte": 99,
+     "intent": "ESCAPE"
+    }
+   ],
+   "ai_probabilities": [],
+   "get_move_raw": "this.setMove(MOVES[0], (byte)2, AbstractMonster.Intent.ATTACK_DEBUFF, ((DamageInfo)this.damage.get((int)0)).base);",
+   "review": [],
+   "take_turn_actions": {
+    "2": [
+     "AnimateSlowAttackAction",
+     "DamageAction",
+     "ApplyPowerAction",
+     "ApplyPowerAction",
+     "SetMoveAction"
+    ],
+    "99": [
+     "EscapeAction",
+     "SetMoveAction"
+    ]
+   }
+  },
+  {
+   "id": "GremlinNob",
+   "class": "GremlinNob",
+   "hp": [
+    {
+     "asc": 8,
+     "min": 85,
+     "max": 90
+    }
+   ],
+   "damage_infos": [
+    "this.rushDmg",
+    "this.bashDmg"
+   ],
+   "asc_fields": {
+    "3": {
+     "bashDmg": 8,
+     "rushDmg": 16
+    }
+   },
+   "moves": [
+    {
+     "byte": 3,
+     "intent": "BUFF"
+    },
+    {
+     "byte": 2,
+     "intent": "ATTACK_DEBUFF"
+    },
+    {
+     "byte": 2,
+     "intent": "ATTACK"
+    },
+    {
+     "byte": 1,
+     "intent": "ATTACK"
+    }
+   ],
+   "ai_probabilities": [],
+   "get_move_raw": "if (!this.usedBellow) {\n            this.usedBellow = true;\n            this.setMove((byte)3, AbstractMonster.Intent.BUFF);\n            return;\n        }\n        if (AbstractDungeon.ascensionLevel >= 18) {\n            if (!this.lastMove((byte)2) && !this.lastMoveBefore((byte)2)) {\n                if (this.canVuln) {\n                    this.setMove(MOVES[0], (byte)2, AbstractMonster.Intent.ATTACK_DEBUFF, ((DamageInfo)this.damage.get((int)1)).base);\n                } else {\n                    this.setMove((byte)2, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)1)).base);\n                }\n                return;\n            }\n            if (this.lastTwoMoves((byte)1)) {\n                if (this.canVuln) {\n                    this.setMove(MOVES[0], (byte)2, AbstractMonster.Intent.ATTACK_DEBUFF, ((DamageInfo)this.damage.get((int)1)).base);\n                } else {\n                    this.setMove((byte)2, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)1)).base);\n                }\n            } else {\n                this.setMove((byte)1, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)0)).base);\n            }\n        } else {\n            if (num < 33) {\n                if (this.canVuln) {\n                    this.setMove(MOVES[0], (byte)2, AbstractMonster.Intent.ATTACK_DEBUFF, ((DamageInfo)this.damage.get((int)1)).base);\n                } else {\n                    this.setMove((byte)2, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)1)).base);\n                }\n                return;\n            }\n            if (this.lastTwoMoves((byte)1)) {\n                if (this.canVuln) {\n                    this.setMove(MOVES[0], (byte)2, AbstractMonster.Intent.ATTACK_DEBUFF, ((DamageInfo)this.damage.get((int)1)).base);\n                } else {\n                    this.setMove((byte)2, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)1)).base);\n                }\n            } else {\n       ",
+   "review": [],
+   "take_turn_actions": {
+    "3": [
+     "TalkAction",
+     "ApplyPowerAction"
+    ],
+    "2": [
+     "AnimateSlowAttackAction",
+     "DamageAction"
+    ],
+    "1": [
+     "AnimateSlowAttackAction",
+     "DamageAction"
+    ]
+   }
+  },
+  {
+   "id": "GremlinThief",
+   "class": "GremlinThief",
+   "hp": [
+    {
+     "asc": 7,
+     "min": 11,
+     "max": 15
+    }
+   ],
+   "damage_infos": [
+    "this.thiefDamage"
+   ],
+   "asc_fields": {},
+   "moves": [
+    {
+     "byte": 1,
+     "intent": "ATTACK"
+    },
+    {
+     "byte": 99,
+     "intent": "ESCAPE"
+    }
+   ],
+   "ai_probabilities": [],
+   "get_move_raw": "this.setMove((byte)1, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)0)).base);",
+   "review": [],
+   "take_turn_actions": {
+    "1": [
+     "AnimateSlowAttackAction",
+     "DamageAction",
+     "SetMoveAction"
+    ],
+    "99": [
+     "EscapeAction",
+     "SetMoveAction"
+    ]
+   }
+  },
+  {
+   "id": "GremlinTsundere",
+   "class": "GremlinTsundere",
+   "hp": [
+    {
+     "asc": 17,
+     "min": 13,
+     "max": 17
+    },
+    {
+     "asc": 7,
+     "min": 13,
+     "max": 17
+    }
+   ],
+   "damage_infos": [
+    "this.bashDmg"
+   ],
+   "asc_fields": {
+    "17": {
+     "blockAmt": 11
+    },
+    "7": {
+     "blockAmt": 8
+    }
+   },
+   "moves": [
+    {
+     "byte": 1,
+     "intent": "DEFEND"
+    },
+    {
+     "byte": 2,
+     "intent": "ATTACK"
+    },
+    {
+     "byte": 99,
+     "intent": "ESCAPE"
+    }
+   ],
+   "ai_probabilities": [],
+   "get_move_raw": "this.setMove(MOVES[0], (byte)1, AbstractMonster.Intent.DEFEND);",
+   "review": [],
+   "take_turn_actions": {
+    "1": [
+     "GainBlockRandomMonsterAction",
+     "SetMoveAction"
+    ],
+    "2": [
+     "AnimateSlowAttackAction",
+     "DamageAction",
+     "SetMoveAction"
+    ],
+    "99": [
+     "EscapeAction",
+     "SetMoveAction"
+    ]
+   }
+  },
+  {
+   "id": "GremlinWarrior",
+   "class": "GremlinWarrior",
+   "hp": [
+    {
+     "asc": 7,
+     "min": 21,
+     "max": 25
+    }
+   ],
+   "damage_infos": [
+    5,
+    4
+   ],
+   "asc_fields": {},
+   "moves": [
+    {
+     "byte": 1,
+     "intent": "ATTACK"
+    },
+    {
+     "byte": 99,
+     "intent": "ESCAPE"
+    }
+   ],
+   "ai_probabilities": [],
+   "get_move_raw": "this.setMove((byte)1, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)0)).base);",
+   "review": [],
+   "take_turn_actions": {
+    "1": [
+     "AnimateSlowAttackAction",
+     "DamageAction",
+     "SetMoveAction"
+    ],
+    "99": [
+     "EscapeAction",
+     "SetMoveAction"
+    ]
+   }
+  },
+  {
+   "id": "GremlinWizard",
+   "class": "GremlinWizard",
+   "hp": [
+    {
+     "asc": 7,
+     "min": 22,
+     "max": 26
+    }
+   ],
+   "damage_infos": [
+    30,
+    25
+   ],
+   "asc_fields": {},
+   "moves": [
+    {
+     "byte": 2,
+     "intent": "UNKNOWN"
+    },
+    {
+     "byte": 1,
+     "intent": "ATTACK"
+    },
+    {
+     "byte": 99,
+     "intent": "ESCAPE"
+    }
+   ],
+   "ai_probabilities": [],
+   "get_move_raw": "this.setMove(MOVES[0], (byte)2, AbstractMonster.Intent.UNKNOWN);",
+   "review": [],
+   "take_turn_actions": {
+    "2": [
+     "TextAboveCreatureAction",
+     "SetMoveAction"
+    ],
+    "1": [
+     "DamageAction",
+     "SetMoveAction"
+    ],
+    "99": [
+     "EscapeAction",
+     "SetMoveAction"
+    ]
+   }
+  },
+  {
+   "id": "Hexaghost",
+   "class": "Hexaghost",
+   "hp": [
+    {
+     "asc": 9,
+     "min": 264,
+     "max": 264
+    }
+   ],
+   "damage_infos": [
+    "this.fireTackleDmg",
+    "this.searDmg",
+    -1,
+    "this.infernoDmg"
+   ],
+   "asc_fields": {
+    "19": {
+     "strAmount": 3,
+     "searBurnCount": 2,
+     "fireTackleDmg": 6,
+     "infernoDmg": 3
+    },
+    "4": {
+     "strAmount": 2,
+     "searBurnCount": 1,
+     "fireTackleDmg": 6,
+     "infernoDmg": 3
+    }
+   },
+   "moves": [
+    {
+     "byte": 1,
+     "intent": "ATTACK"
+    },
+    {
+     "byte": 5,
+     "intent": "UNKNOWN"
+    },
+    {
+     "byte": 4,
+     "intent": "ATTACK_DEBUFF"
+    },
+    {
+     "byte": 2,
+     "intent": "ATTACK"
+    },
+    {
+     "byte": 3,
+     "intent": "DEFEND_BUFF"
+    },
+    {
+     "byte": 6,
+     "intent": "ATTACK_DEBUFF"
+    }
+   ],
+   "ai_probabilities": [],
+   "get_move_raw": "if (!this.activated) {\n            this.activated = true;\n            this.setMove((byte)5, AbstractMonster.Intent.UNKNOWN);\n        } else {\n            switch (this.orbActiveCount) {\n                case 0: {\n                    this.setMove(SEAR_NAME, (byte)4, AbstractMonster.Intent.ATTACK_DEBUFF, ((DamageInfo)this.damage.get((int)1)).base);\n                    break;\n                }\n                case 1: {\n                    this.setMove((byte)2, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)0)).base, this.fireTackleCount, true);\n                    break;\n                }\n                case 2: {\n                    this.setMove(SEAR_NAME, (byte)4, AbstractMonster.Intent.ATTACK_DEBUFF, ((DamageInfo)this.damage.get((int)1)).base);\n                    break;\n                }\n                case 3: {\n                    this.setMove(STRENGTHEN_NAME, (byte)3, AbstractMonster.Intent.DEFEND_BUFF);\n                    break;\n                }\n                case 4: {\n                    this.setMove((byte)2, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)0)).base, this.fireTackleCount, true);\n                    break;\n                }\n                case 5: {\n                    this.setMove(SEAR_NAME, (byte)4, AbstractMonster.Intent.ATTACK_DEBUFF, ((DamageInfo)this.damage.get((int)1)).base);\n                    break;\n                }\n                case 6: {\n                    this.setMove(BURN_NAME, (byte)6, AbstractMonster.Intent.ATTACK_DEBUFF, ((DamageInfo)this.damage.get((int)3)).base, this.infernoHits, true);\n                }\n            }\n        }",
+   "review": [],
+   "take_turn_actions": {
+    "5": [
+     "ChangeStateAction"
+    ],
+    "1": [
+     "VFXAction",
+     "SFXAction",
+     "SFXAction",
+     "DamageAction",
+     "ChangeStateAction",
+     "RollMoveAction"
+    ],
+    "2": [
+     "VFXAction",
+     "AnimateSlowAttackAction",
+     "DamageAction",
+     "DamageAction",
+     "ChangeStateAction",
+     "RollMoveAction"
+    ],
+    "4": [
+     "VFXAction",
+     "DamageAction",
+     "MakeTempCardInDiscardAction",
+     "ChangeStateAction",
+     "RollMoveAction"
+    ],
+    "3": [
+     "VFXAction",
+     "GainBlockAction",
+     "ApplyPowerAction",
+     "ChangeStateAction",
+     "RollMoveAction"
+    ],
+    "6": [
+     "VFXAction",
+     "DamageAction",
+     "BurnIncreaseAction",
+     "ChangeStateAction",
+     "RollMoveAction"
+    ]
+   }
+  },
+  {
+   "id": "HexaghostBody",
+   "class": "HexaghostBody",
+   "hp": [],
+   "damage_infos": [],
+   "asc_fields": {},
+   "moves": [],
+   "ai_probabilities": [],
+   "get_move_raw": null,
+   "review": []
+  },
+  {
+   "id": "HexaghostOrb",
+   "class": "HexaghostOrb",
+   "hp": [],
+   "damage_infos": [],
+   "asc_fields": {},
+   "moves": [],
+   "ai_probabilities": [],
+   "get_move_raw": null,
+   "review": []
+  },
+  {
+   "id": "JawWorm",
+   "class": "JawWorm",
+   "hp": [
+    {
+     "asc": 7,
+     "min": 42,
+     "max": 46
+    }
+   ],
+   "damage_infos": [
+    "this.chompDmg",
+    "this.thrashDmg"
+   ],
+   "asc_fields": {
+    "17": {
+     "bellowStr": 5,
+     "bellowBlock": 9,
+     "chompDmg": 12,
+     "thrashDmg": 7,
+     "thrashBlock": 5
+    },
+    "2": {
+     "bellowStr": 4,
+     "bellowBlock": 6,
+     "chompDmg": 12,
+     "thrashDmg": 7,
+     "thrashBlock": 5
+    }
+   },
+   "moves": [
+    {
+     "byte": 1,
+     "intent": "ATTACK"
+    },
+    {
+     "byte": 2,
+     "intent": "DEFEND_BUFF"
+    },
+    {
+     "byte": 3,
+     "intent": "ATTACK_DEFEND"
+    }
+   ],
+   "ai_probabilities": [
+    "0.5625",
+    "0.357",
+    "0.416"
+   ],
+   "get_move_raw": "if (this.firstMove) {\n            this.firstMove = false;\n            this.setMove((byte)1, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)0)).base);\n            return;\n        }\n        if (num < 25) {\n            if (this.lastMove((byte)1)) {\n                if (AbstractDungeon.aiRng.randomBoolean(0.5625f)) {\n                    this.setMove(MOVES[0], (byte)2, AbstractMonster.Intent.DEFEND_BUFF);\n                } else {\n                    this.setMove((byte)3, AbstractMonster.Intent.ATTACK_DEFEND, ((DamageInfo)this.damage.get((int)1)).base);\n                }\n            } else {\n                this.setMove((byte)1, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)0)).base);\n            }\n        } else if (num < 55) {\n            if (this.lastTwoMoves((byte)3)) {\n                if (AbstractDungeon.aiRng.randomBoolean(0.357f)) {\n                    this.setMove((byte)1, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)0)).base);\n                } else {\n                    this.setMove(MOVES[0], (byte)2, AbstractMonster.Intent.DEFEND_BUFF);\n                }\n            } else {\n                this.setMove((byte)3, AbstractMonster.Intent.ATTACK_DEFEND, ((DamageInfo)this.damage.get((int)1)).base);\n            }\n        } else if (this.lastMove((byte)2)) {\n            if (AbstractDungeon.aiRng.randomBoolean(0.416f)) {\n                this.setMove((byte)1, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)0)).base);\n            } else {\n                this.setMove((byte)3, AbstractMonster.Intent.ATTACK_DEFEND, ((DamageInfo)this.damage.get((int)1)).base);\n            }\n        } else {\n            this.setMove(MOVES[0], (byte)2, AbstractMonster.Intent.DEFEND_BUFF);\n        }",
+   "review": [],
+   "take_turn_actions": {
+    "1": [
+     "SetAnimationAction",
+     "VFXAction",
+     "DamageAction"
+    ],
+    "2": [
+     "SFXAction",
+     "ShakeScreenAction",
+     "WaitAction",
+     "ApplyPowerAction",
+     "GainBlockAction"
+    ]
+   }
+  },
+  {
+   "id": "Lagavulin",
+   "class": "Lagavulin",
+   "hp": [
+    {
+     "asc": 8,
+     "min": 112,
+     "max": 115
+    }
+   ],
+   "damage_infos": [
+    "this.attackDmg"
+   ],
+   "asc_fields": {},
+   "moves": [
+    {
+     "byte": 1,
+     "intent": "STRONG_DEBUFF"
+    },
+    {
+     "byte": 5,
+     "intent": "SLEEP"
+    },
+    {
+     "byte": 3,
+     "intent": "ATTACK"
+    },
+    {
+     "byte": 4,
+     "intent": "STUN"
+    }
+   ],
+   "ai_probabilities": [],
+   "get_move_raw": "if (this.isOut) {\n            if (this.debuffTurnCount < 2) {\n                if (this.lastTwoMoves((byte)3)) {\n                    this.setMove(DEBUFF_NAME, (byte)1, AbstractMonster.Intent.STRONG_DEBUFF);\n                } else {\n                    this.setMove((byte)3, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)0)).base);\n                }\n            } else {\n                this.setMove(DEBUFF_NAME, (byte)1, AbstractMonster.Intent.STRONG_DEBUFF);\n            }\n        } else {\n            this.setMove((byte)5, AbstractMonster.Intent.SLEEP);\n        }",
+   "review": [],
+   "take_turn_actions": {
+    "1": [
+     "ChangeStateAction",
+     "WaitAction",
+     "ApplyPowerAction",
+     "ApplyPowerAction",
+     "RollMoveAction"
+    ],
+    "3": [
+     "ChangeStateAction",
+     "WaitAction",
+     "DamageAction",
+     "RollMoveAction"
+    ],
+    "5": [
+     "ChangeStateAction",
+     "SetMoveAction",
+     "TalkAction",
+     "RollMoveAction",
+     "TalkAction",
+     "RollMoveAction"
+    ],
+    "4": [
+     "TextAboveCreatureAction",
+     "RollMoveAction"
+    ],
+    "6": [
+     "ChangeStateAction",
+     "RollMoveAction"
+    ]
+   }
+  },
+  {
+   "id": "Looter",
+   "class": "Looter",
+   "hp": [
+    {
+     "asc": 7,
+     "min": 46,
+     "max": 50
+    }
+   ],
+   "damage_infos": [
+    "this.swipeDmg",
+    "this.lungeDmg"
+   ],
+   "asc_fields": {
+    "2": {
+     "swipeDmg": 11,
+     "lungeDmg": 14
+    }
+   },
+   "moves": [
+    {
+     "byte": 2,
+     "intent": "DEFEND"
+    },
+    {
+     "byte": 1,
+     "intent": "ATTACK"
+    }
+   ],
+   "ai_probabilities": [],
+   "get_move_raw": "this.setMove((byte)1, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)0)).base);",
+   "review": [],
+   "take_turn_actions": {
+    "1": [
+     "TalkAction",
+     "AnimateSlowAttackAction",
+     "AbstractGameAction",
+     "DamageAction"
+    ],
+    "4": [
+     "AnimateSlowAttackAction",
+     "AbstractGameAction",
+     "DamageAction"
+    ],
+    "2": [
+     "TalkAction",
+     "GainBlockAction",
+     "SetMoveAction"
+    ],
+    "3": [
+     "TalkAction",
+     "VFXAction",
+     "EscapeAction",
+     "SetMoveAction"
+    ]
+   }
+  },
+  {
+   "id": "FuzzyLouseDefensive",
+   "class": "LouseDefensive",
+   "hp": [
+    {
+     "asc": 7,
+     "min": 12,
+     "max": 18
+    }
+   ],
+   "damage_infos": [
+    "this.biteDamage"
+   ],
+   "asc_fields": {},
+   "moves": [
+    {
+     "byte": 3,
+     "intent": "ATTACK"
+    },
+    {
+     "byte": 4,
+     "intent": "DEBUFF"
+    }
+   ],
+   "ai_probabilities": [],
+   "get_move_raw": "if (AbstractDungeon.ascensionLevel >= 17) {\n            if (num < 25) {\n                if (this.lastMove((byte)4)) {\n                    this.setMove((byte)3, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)0)).base);\n                } else {\n                    this.setMove(MOVES[0], (byte)4, AbstractMonster.Intent.DEBUFF);\n                }\n            } else if (this.lastTwoMoves((byte)3)) {\n                this.setMove(MOVES[0], (byte)4, AbstractMonster.Intent.DEBUFF);\n            } else {\n                this.setMove((byte)3, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)0)).base);\n            }\n        } else if (num < 25) {\n            if (this.lastTwoMoves((byte)4)) {\n                this.setMove((byte)3, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)0)).base);\n            } else {\n                this.setMove(MOVES[0], (byte)4, AbstractMonster.Intent.DEBUFF);\n            }\n        } else if (this.lastTwoMoves((byte)3)) {\n            this.setMove(MOVES[0], (byte)4, AbstractMonster.Intent.DEBUFF);\n        } else {\n            this.setMove((byte)3, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)0)).base);\n        }",
+   "review": [],
+   "take_turn_actions": {
+    "3": [
+     "ChangeStateAction",
+     "WaitAction",
+     "AnimateSlowAttackAction",
+     "DamageAction"
+    ],
+    "4": [
+     "ChangeStateAction",
+     "WaitAction",
+     "SFXAction",
+     "VFXAction",
+     "ChangeStateAction",
+     "WaitAction",
+     "SFXAction",
+     "VFXAction",
+     "ApplyPowerAction"
+    ]
+   }
+  },
+  {
+   "id": "FuzzyLouseNormal",
+   "class": "LouseNormal",
+   "hp": [
+    {
+     "asc": 7,
+     "min": 11,
+     "max": 16
+    }
+   ],
+   "damage_infos": [
+    "this.biteDamage"
+   ],
+   "asc_fields": {},
+   "moves": [
+    {
+     "byte": 3,
+     "intent": "ATTACK"
+    },
+    {
+     "byte": 4,
+     "intent": "BUFF"
+    }
+   ],
+   "ai_probabilities": [],
+   "get_move_raw": "if (AbstractDungeon.ascensionLevel >= 17) {\n            if (num < 25) {\n                if (this.lastMove((byte)4)) {\n                    this.setMove((byte)3, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)0)).base);\n                } else {\n                    this.setMove(MOVES[0], (byte)4, AbstractMonster.Intent.BUFF);\n                }\n            } else if (this.lastTwoMoves((byte)3)) {\n                this.setMove(MOVES[0], (byte)4, AbstractMonster.Intent.BUFF);\n            } else {\n                this.setMove((byte)3, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)0)).base);\n            }\n        } else if (num < 25) {\n            if (this.lastTwoMoves((byte)4)) {\n                this.setMove((byte)3, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)0)).base);\n            } else {\n                this.setMove(MOVES[0], (byte)4, AbstractMonster.Intent.BUFF);\n            }\n        } else if (this.lastTwoMoves((byte)3)) {\n            this.setMove(MOVES[0], (byte)4, AbstractMonster.Intent.BUFF);\n        } else {\n            this.setMove((byte)3, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)0)).base);\n        }",
+   "review": [],
+   "take_turn_actions": {
+    "3": [
+     "ChangeStateAction",
+     "WaitAction",
+     "AnimateSlowAttackAction",
+     "DamageAction"
+    ],
+    "4": [
+     "ChangeStateAction",
+     "WaitAction",
+     "ChangeStateAction",
+     "WaitAction",
+     "ApplyPowerAction"
+    ]
+   }
+  },
+  {
+   "id": "Sentry",
+   "class": "Sentry",
+   "hp": [
+    {
+     "asc": 8,
+     "min": 39,
+     "max": 45
+    }
+   ],
+   "damage_infos": [
+    "this.beamDmg"
+   ],
+   "asc_fields": {},
+   "moves": [
+    {
+     "byte": 3,
+     "intent": "DEBUFF"
+    },
+    {
+     "byte": 4,
+     "intent": "ATTACK"
+    }
+   ],
+   "ai_probabilities": [],
+   "get_move_raw": "if (this.firstMove) {\n            if (AbstractDungeon.getMonsters().monsters.lastIndexOf(this) % 2 == 0) {\n                this.setMove((byte)3, AbstractMonster.Intent.DEBUFF);\n            } else {\n                this.setMove((byte)4, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)0)).base);\n            }\n            this.firstMove = false;\n            return;\n        }\n        if (this.lastMove((byte)4)) {\n            this.setMove((byte)3, AbstractMonster.Intent.DEBUFF);\n        } else {\n            this.setMove((byte)4, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)0)).base);\n        }",
+   "review": [],
+   "take_turn_actions": {
+    "3": [
+     "SFXAction",
+     "VFXAction",
+     "FastShakeAction",
+     "VFXAction",
+     "FastShakeAction",
+     "MakeTempCardInDiscardAction"
+    ],
+    "4": [
+     "ChangeStateAction",
+     "SFXAction",
+     "VFXAction",
+     "VFXAction",
+     "VFXAction",
+     "DamageAction"
+    ]
+   }
+  },
+  {
+   "id": "SlaverBlue",
+   "class": "SlaverBlue",
+   "hp": [
+    {
+     "asc": 7,
+     "min": 48,
+     "max": 52
+    }
+   ],
+   "damage_infos": [
+    "this.stabDmg",
+    "this.rakeDmg"
+   ],
+   "asc_fields": {
+    "2": {
+     "stabDmg": 13,
+     "rakeDmg": 8
+    }
+   },
+   "moves": [
+    {
+     "byte": 1,
+     "intent": "ATTACK"
+    },
+    {
+     "byte": 4,
+     "intent": "ATTACK_DEBUFF"
+    }
+   ],
+   "ai_probabilities": [],
+   "get_move_raw": "if (num >= 40 && !this.lastTwoMoves((byte)1)) {\n            this.setMove((byte)1, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)0)).base);\n            return;\n        }\n        if (AbstractDungeon.ascensionLevel >= 17) {\n            if (!this.lastMove((byte)4)) {\n                this.setMove(MOVES[0], (byte)4, AbstractMonster.Intent.ATTACK_DEBUFF, ((DamageInfo)this.damage.get((int)1)).base);\n                return;\n            }\n            this.setMove((byte)1, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)0)).base);\n            return;\n        }\n        if (!this.lastTwoMoves((byte)4)) {\n            this.setMove(MOVES[0], (byte)4, AbstractMonster.Intent.ATTACK_DEBUFF, ((DamageInfo)this.damage.get((int)1)).base);\n            return;\n        }\n        this.setMove((byte)1, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)0)).base);",
+   "review": [],
+   "take_turn_actions": {
+    "1": [
+     "AnimateSlowAttackAction",
+     "DamageAction"
+    ],
+    "4": [
+     "AnimateSlowAttackAction",
+     "DamageAction",
+     "ApplyPowerAction"
+    ]
+   }
+  },
+  {
+   "id": "SlaverRed",
+   "class": "SlaverRed",
+   "hp": [
+    {
+     "asc": 7,
+     "min": 48,
+     "max": 52
+    }
+   ],
+   "damage_infos": [
+    "this.stabDmg",
+    "this.scrapeDmg"
+   ],
+   "asc_fields": {
+    "2": {
+     "stabDmg": 14,
+     "scrapeDmg": 9
+    }
+   },
+   "moves": [
+    {
+     "byte": 1,
+     "intent": "ATTACK",
+     "base": "this.stabDmg"
+    },
+    {
+     "byte": 2,
+     "intent": "STRONG_DEBUFF"
+    },
+    {
+     "byte": 3,
+     "intent": "ATTACK_DEBUFF"
+    }
+   ],
+   "ai_probabilities": [],
+   "get_move_raw": "if (this.firstTurn) {\n            this.firstTurn = false;\n            this.setMove((byte)1, AbstractMonster.Intent.ATTACK, this.stabDmg);\n            return;\n        }\n        if (num >= 75 && !this.usedEntangle) {\n            this.setMove(ENTANGLE_NAME, (byte)2, AbstractMonster.Intent.STRONG_DEBUFF);\n            return;\n        }\n        if (num >= 55 && this.usedEntangle && !this.lastTwoMoves((byte)1)) {\n            this.setMove((byte)1, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)0)).base);\n            return;\n        }\n        if (AbstractDungeon.ascensionLevel >= 17) {\n            if (!this.lastMove((byte)3)) {\n                this.setMove(SCRAPE_NAME, (byte)3, AbstractMonster.Intent.ATTACK_DEBUFF, ((DamageInfo)this.damage.get((int)1)).base);\n                return;\n            }\n            this.setMove((byte)1, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)0)).base);\n            return;\n        }\n        if (!this.lastTwoMoves((byte)3)) {\n            this.setMove(SCRAPE_NAME, (byte)3, AbstractMonster.Intent.ATTACK_DEBUFF, ((DamageInfo)this.damage.get((int)1)).base);\n            return;\n        }\n        this.setMove((byte)1, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)0)).base);",
+   "review": [],
+   "take_turn_actions": {
+    "2": [
+     "ChangeStateAction",
+     "VFXAction",
+     "ApplyPowerAction"
+    ],
+    "1": [
+     "AnimateSlowAttackAction",
+     "DamageAction"
+    ],
+    "3": [
+     "AnimateSlowAttackAction",
+     "DamageAction",
+     "ApplyPowerAction"
+    ]
+   }
+  },
+  {
+   "id": "SlimeBoss",
+   "class": "SlimeBoss",
+   "hp": [
+    {
+     "asc": 9,
+     "min": 150,
+     "max": 150
+    }
+   ],
+   "damage_infos": [
+    "this.tackleDmg",
+    "this.slamDmg"
+   ],
+   "asc_fields": {
+    "4": {
+     "tackleDmg": 10,
+     "slamDmg": 38
+    }
+   },
+   "moves": [
+    {
+     "byte": 2,
+     "intent": "UNKNOWN"
+    },
+    {
+     "byte": 1,
+     "intent": "ATTACK"
+    },
+    {
+     "byte": 4,
+     "intent": "STRONG_DEBUFF"
+    },
+    {
+     "byte": 3,
+     "intent": "UNKNOWN"
+    }
+   ],
+   "ai_probabilities": [],
+   "get_move_raw": "if (this.firstTurn) {\n            this.firstTurn = false;\n            this.setMove(STICKY_NAME, (byte)4, AbstractMonster.Intent.STRONG_DEBUFF);\n            return;\n        }",
+   "review": [],
+   "take_turn_actions": {
+    "4": [
+     "AnimateSlowAttackAction",
+     "SFXAction",
+     "MakeTempCardInDiscardAction",
+     "MakeTempCardInDiscardAction"
+    ],
+    "2": [
+     "ShoutAction",
+     "ShakeScreenAction"
+    ],
+    "1": [
+     "AnimateJumpAction",
+     "VFXAction",
+     "WaitAction",
+     "DamageAction"
+    ]
+   }
+  },
+  {
+   "id": "SpikeSlime_L",
+   "class": "SpikeSlime_L",
+   "hp": [
+    {
+     "asc": 7,
+     "min": 67,
+     "max": 73
+    }
+   ],
+   "damage_infos": [
+    18,
+    16
+   ],
+   "asc_fields": {},
+   "moves": [
+    {
+     "byte": 3,
+     "intent": "UNKNOWN"
+    },
+    {
+     "byte": 4,
+     "intent": "DEBUFF"
+    },
+    {
+     "byte": 1,
+     "intent": "ATTACK_DEBUFF"
+    }
+   ],
+   "ai_probabilities": [],
+   "get_move_raw": "if (AbstractDungeon.ascensionLevel >= 17) {\n            if (num < 30) {\n                if (this.lastTwoMoves((byte)1)) {\n                    this.setMove(FRAIL_NAME, (byte)4, AbstractMonster.Intent.DEBUFF);\n                } else {\n                    this.setMove((byte)1, AbstractMonster.Intent.ATTACK_DEBUFF, ((DamageInfo)this.damage.get((int)0)).base);\n                }\n            } else if (this.lastMove((byte)4)) {\n                this.setMove((byte)1, AbstractMonster.Intent.ATTACK_DEBUFF, ((DamageInfo)this.damage.get((int)0)).base);\n            } else {\n                this.setMove(FRAIL_NAME, (byte)4, AbstractMonster.Intent.DEBUFF);\n            }\n        } else if (num < 30) {\n            if (this.lastTwoMoves((byte)1)) {\n                this.setMove(FRAIL_NAME, (byte)4, AbstractMonster.Intent.DEBUFF);\n            } else {\n                this.setMove((byte)1, AbstractMonster.Intent.ATTACK_DEBUFF, ((DamageInfo)this.damage.get((int)0)).base);\n            }\n        } else if (this.lastTwoMoves((byte)4)) {\n            this.setMove((byte)1, AbstractMonster.Intent.ATTACK_DEBUFF, ((DamageInfo)this.damage.get((int)0)).base);\n        } else {\n            this.setMove(FRAIL_NAME, (byte)4, AbstractMonster.Intent.DEBUFF);\n        }",
+   "review": [],
+   "take_turn_actions": {
+    "4": [
+     "AnimateSlowAttackAction",
+     "ApplyPowerAction"
+    ],
+    "1": [
+     "AnimateSlowAttackAction",
+     "DamageAction",
+     "MakeTempCardInDiscardAction"
+    ]
+   }
+  },
+  {
+   "id": "SpikeSlime_M",
+   "class": "SpikeSlime_M",
+   "hp": [
+    {
+     "asc": 7,
+     "min": 29,
+     "max": 34
+    }
+   ],
+   "damage_infos": [
+    10,
+    8
+   ],
+   "asc_fields": {},
+   "moves": [
+    {
+     "byte": 4,
+     "intent": "DEBUFF"
+    },
+    {
+     "byte": 1,
+     "intent": "ATTACK_DEBUFF"
+    }
+   ],
+   "ai_probabilities": [],
+   "get_move_raw": "if (AbstractDungeon.ascensionLevel >= 17) {\n            if (num < 30) {\n                if (this.lastTwoMoves((byte)1)) {\n                    this.setMove(FRAIL_NAME, (byte)4, AbstractMonster.Intent.DEBUFF);\n                } else {\n                    this.setMove((byte)1, AbstractMonster.Intent.ATTACK_DEBUFF, ((DamageInfo)this.damage.get((int)0)).base);\n                }\n            } else if (this.lastMove((byte)4)) {\n                this.setMove((byte)1, AbstractMonster.Intent.ATTACK_DEBUFF, ((DamageInfo)this.damage.get((int)0)).base);\n            } else {\n                this.setMove(FRAIL_NAME, (byte)4, AbstractMonster.Intent.DEBUFF);\n            }\n        } else if (num < 30) {\n            if (this.lastTwoMoves((byte)1)) {\n                this.setMove(FRAIL_NAME, (byte)4, AbstractMonster.Intent.DEBUFF);\n            } else {\n                this.setMove((byte)1, AbstractMonster.Intent.ATTACK_DEBUFF, ((DamageInfo)this.damage.get((int)0)).base);\n            }\n        } else if (this.lastTwoMoves((byte)4)) {\n            this.setMove((byte)1, AbstractMonster.Intent.ATTACK_DEBUFF, ((DamageInfo)this.damage.get((int)0)).base);\n        } else {\n            this.setMove(FRAIL_NAME, (byte)4, AbstractMonster.Intent.DEBUFF);\n        }",
+   "review": [],
+   "take_turn_actions": {
+    "4": [
+     "AnimateSlowAttackAction",
+     "ApplyPowerAction"
+    ]
+   }
+  },
+  {
+   "id": "SpikeSlime_S",
+   "class": "SpikeSlime_S",
+   "hp": [
+    {
+     "asc": 7,
+     "min": 11,
+     "max": 15
+    }
+   ],
+   "damage_infos": [
+    6,
+    5
+   ],
+   "asc_fields": {},
+   "moves": [
+    {
+     "byte": 1,
+     "intent": "ATTACK"
+    }
+   ],
+   "ai_probabilities": [],
+   "get_move_raw": "this.setMove((byte)1, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)0)).base);",
+   "review": [],
+   "take_turn_actions": {}
+  },
+  {
+   "id": "TheGuardian",
+   "class": "TheGuardian",
+   "hp": [
+    {
+     "asc": 19,
+     "min": 250,
+     "max": 250
+    },
+    {
+     "asc": 9,
+     "min": 250,
+     "max": 250
+    }
+   ],
+   "damage_infos": [
+    "this.fierceBashDamage",
+    "this.rollDamage",
+    "this.whirlwindDamage",
+    "this.twinSlamDamage"
+   ],
+   "asc_fields": {
+    "19": {
+     "dmgThreshold": 40
+    },
+    "9": {
+     "dmgThreshold": 35
+    },
+    "4": {
+     "fierceBashDamage": 36,
+     "rollDamage": 10
+    }
+   },
+   "moves": [
+    {
+     "byte": 7,
+     "intent": "STRONG_DEBUFF"
+    },
+    {
+     "byte": 5,
+     "intent": "ATTACK",
+     "base": "this.whirlwindDamage, this.whirlwindCoun"
+    },
+    {
+     "byte": 3,
+     "intent": "ATTACK"
+    },
+    {
+     "byte": 4,
+     "intent": "ATTACK_BUFF",
+     "base": "this.twinSlamDamage, 2, true"
+    },
+    {
+     "byte": 6,
+     "intent": "DEFEND"
+    },
+    {
+     "byte": 2,
+     "intent": "ATTACK"
+    },
+    {
+     "byte": 1,
+     "intent": "BUFF"
+    }
+   ],
+   "ai_probabilities": [],
+   "get_move_raw": "if (this.isOpen) {\n            this.setMove(CHARGEUP_NAME, (byte)6, AbstractMonster.Intent.DEFEND);\n        } else {\n            this.setMove((byte)3, AbstractMonster.Intent.ATTACK, ((DamageInfo)this.damage.get((int)1)).base);\n        }",
+   "review": [],
+   "take_turn_actions": {
+    "1": [],
+    "2": [],
+    "7": [],
+    "3": [],
+    "4": [],
+    "5": [],
+    "6": []
+   }
+  }
+ ]
+}

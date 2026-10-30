@@ -1,0 +1,1312 @@
+{
+ "meta": {
+  "generator": "neow-sim/tools/extract_data.py",
+  "source": "desktop-1.0.jar (CFR decompiled)",
+  "date": "2026-10-30",
+  "note": "草稿表：文本挖掘产物，M4 对拍统一校验"
+ },
+ "data": [
+  {
+   "id": "TheAbacus",
+   "class": "Abacus",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Akabeko",
+   "class": "Akabeko",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Anchor",
+   "class": "Anchor",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Ancient Tea Set",
+   "class": "AncientTeaSet",
+   "tier": null,
+   "counter": "-1",
+   "price": null
+  },
+  {
+   "id": "Art of War",
+   "class": "ArtOfWar",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Astrolabe",
+   "class": "Astrolabe",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Bag of Marbles",
+   "class": "BagOfMarbles",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Bag of Preparation",
+   "class": "BagOfPreparation",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Bird Faced Urn",
+   "class": "BirdFacedUrn",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Black Blood",
+   "class": "BlackBlood",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Black Star",
+   "class": "BlackStar",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Blood Vial",
+   "class": "BloodVial",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Bloody Idol",
+   "class": "BloodyIdol",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Blue Candle",
+   "class": "BlueCandle",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Boot",
+   "class": "Boot",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Bottled Flame",
+   "class": "BottledFlame",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Bottled Lightning",
+   "class": "BottledLightning",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Bottled Tornado",
+   "class": "BottledTornado",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Brimstone",
+   "class": "Brimstone",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Bronze Scales",
+   "class": "BronzeScales",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Burning Blood",
+   "class": "BurningBlood",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Busted Crown",
+   "class": "BustedCrown",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Calipers",
+   "class": "Calipers",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Calling Bell",
+   "class": "CallingBell",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "CaptainsWheel",
+   "class": "CaptainsWheel",
+   "tier": null,
+   "counter": "0",
+   "price": null
+  },
+  {
+   "id": "Cauldron",
+   "class": "Cauldron",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Centennial Puzzle",
+   "class": "CentennialPuzzle",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "CeramicFish",
+   "class": "CeramicFish",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Champion Belt",
+   "class": "ChampionsBelt",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Charon's Ashes",
+   "class": "CharonsAshes",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Chemical X",
+   "class": "ChemicalX",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Circlet",
+   "class": "Circlet",
+   "tier": null,
+   "counter": "1",
+   "price": null
+  },
+  {
+   "id": "CloakClasp",
+   "class": "CloakClasp",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "ClockworkSouvenir",
+   "class": "ClockworkSouvenir",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Coffee Dripper",
+   "class": "CoffeeDripper",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "The Courier",
+   "class": "Courier",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Cracked Core",
+   "class": "CrackedCore",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "CultistMask",
+   "class": "CultistMask",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Cursed Key",
+   "class": "CursedKey",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Damaru",
+   "class": "Damaru",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Darkstone Periapt",
+   "class": "DarkstonePeriapt",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "DataDisk",
+   "class": "DataDisk",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Dead Branch",
+   "class": "DeadBranch",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Discerning Monocle",
+   "class": "DiscerningMonocle",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "DollysMirror",
+   "class": "DollysMirror",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Dream Catcher",
+   "class": "DreamCatcher",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Du-Vu Doll",
+   "class": "DuVuDoll",
+   "tier": null,
+   "counter": "0",
+   "price": null
+  },
+  {
+   "id": "Yang",
+   "class": "Duality",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Ectoplasm",
+   "class": "Ectoplasm",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Emotion Chip",
+   "class": "EmotionChip",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Empty Cage",
+   "class": "EmptyCage",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Enchiridion",
+   "class": "Enchiridion",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Eternal Feather",
+   "class": "EternalFeather",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "FaceOfCleric",
+   "class": "FaceOfCleric",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "FossilizedHelix",
+   "class": "FossilizedHelix",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "FrozenCore",
+   "class": "FrozenCore",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Frozen Egg 2",
+   "class": "FrozenEgg2",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Frozen Eye",
+   "class": "FrozenEye",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Fusion Hammer",
+   "class": "FusionHammer",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Gambling Chip",
+   "class": "GamblingChip",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Ginger",
+   "class": "Ginger",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Girya",
+   "class": "Girya",
+   "tier": null,
+   "counter": "0",
+   "price": null
+  },
+  {
+   "id": "Cables",
+   "class": "GoldPlatedCables",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "GoldenEye",
+   "class": "GoldenEye",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Golden Idol",
+   "class": "GoldenIdol",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Gremlin Horn",
+   "class": "GremlinHorn",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "GremlinMask",
+   "class": "GremlinMask",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "HandDrill",
+   "class": "HandDrill",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Happy Flower",
+   "class": "HappyFlower",
+   "tier": null,
+   "counter": "0",
+   "price": null
+  },
+  {
+   "id": "HolyWater",
+   "class": "HolyWater",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "HornCleat",
+   "class": "HornCleat",
+   "tier": null,
+   "counter": "0",
+   "price": null
+  },
+  {
+   "id": "HoveringKite",
+   "class": "HoveringKite",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Ice Cream",
+   "class": "IceCream",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Incense Burner",
+   "class": "IncenseBurner",
+   "tier": null,
+   "counter": "0",
+   "price": null
+  },
+  {
+   "id": "InkBottle",
+   "class": "InkBottle",
+   "tier": null,
+   "counter": "0",
+   "price": null
+  },
+  {
+   "id": "Inserter",
+   "class": "Inserter",
+   "tier": null,
+   "counter": "0",
+   "price": null
+  },
+  {
+   "id": "Juzu Bracelet",
+   "class": "JuzuBracelet",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Kunai",
+   "class": "Kunai",
+   "tier": null,
+   "counter": "0",
+   "price": null
+  },
+  {
+   "id": "Lantern",
+   "class": "Lantern",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Letter Opener",
+   "class": "LetterOpener",
+   "tier": null,
+   "counter": "0",
+   "price": null
+  },
+  {
+   "id": "Lizard Tail",
+   "class": "LizardTail",
+   "tier": null,
+   "counter": "-2",
+   "price": null
+  },
+  {
+   "id": "Magic Flower",
+   "class": "MagicFlower",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Mango",
+   "class": "Mango",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Mark of Pain",
+   "class": "MarkOfPain",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Mark of the Bloom",
+   "class": "MarkOfTheBloom",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Matryoshka",
+   "class": "Matryoshka",
+   "tier": null,
+   "counter": "2",
+   "price": null
+  },
+  {
+   "id": "MawBank",
+   "class": "MawBank",
+   "tier": null,
+   "counter": "-2",
+   "price": null
+  },
+  {
+   "id": "MealTicket",
+   "class": "MealTicket",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Meat on the Bone",
+   "class": "MeatOnTheBone",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Medical Kit",
+   "class": "MedicalKit",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Melange",
+   "class": "Melange",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Membership Card",
+   "class": "MembershipCard",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Mercury Hourglass",
+   "class": "MercuryHourglass",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Molten Egg 2",
+   "class": "MoltenEgg2",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Mummified Hand",
+   "class": "MummifiedHand",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "MutagenicStrength",
+   "class": "MutagenicStrength",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Necronomicon",
+   "class": "Necronomicon",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "NeowsBlessing",
+   "class": "NeowsLament",
+   "tier": null,
+   "counter": "3",
+   "price": null
+  },
+  {
+   "id": "Nilry's Codex",
+   "class": "NilrysCodex",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Ninja Scroll",
+   "class": "NinjaScroll",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Nloth's Gift",
+   "class": "NlothsGift",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "NlothsMask",
+   "class": "NlothsMask",
+   "tier": null,
+   "counter": "1",
+   "price": null
+  },
+  {
+   "id": "Nuclear Battery",
+   "class": "NuclearBattery",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Nunchaku",
+   "class": "Nunchaku",
+   "tier": null,
+   "counter": "0",
+   "price": null
+  },
+  {
+   "id": "Odd Mushroom",
+   "class": "OddMushroom",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Oddly Smooth Stone",
+   "class": "OddlySmoothStone",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Old Coin",
+   "class": "OldCoin",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Omamori",
+   "class": "Omamori",
+   "tier": null,
+   "counter": "2",
+   "price": null
+  },
+  {
+   "id": "OrangePellets",
+   "class": "OrangePellets",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Orichalcum",
+   "class": "Orichalcum",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Ornamental Fan",
+   "class": "OrnamentalFan",
+   "tier": null,
+   "counter": "0",
+   "price": null
+  },
+  {
+   "id": "Orrery",
+   "class": "Orrery",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Pandora's Box",
+   "class": "PandorasBox",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Pantograph",
+   "class": "Pantograph",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Paper Crane",
+   "class": "PaperCrane",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Paper Frog",
+   "class": "PaperFrog",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Peace Pipe",
+   "class": "PeacePipe",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Pear",
+   "class": "Pear",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Pen Nib",
+   "class": "PenNib",
+   "tier": null,
+   "counter": "0",
+   "price": null
+  },
+  {
+   "id": "Philosopher's Stone",
+   "class": "PhilosopherStone",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Pocketwatch",
+   "class": "Pocketwatch",
+   "tier": null,
+   "counter": "0",
+   "price": null
+  },
+  {
+   "id": "Potion Belt",
+   "class": "PotionBelt",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Prayer Wheel",
+   "class": "PrayerWheel",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "PreservedInsect",
+   "class": "PreservedInsect",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "PrismaticShard",
+   "class": "PrismaticShard",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "PureWater",
+   "class": "PureWater",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Question Card",
+   "class": "QuestionCard",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Red Circlet",
+   "class": "RedCirclet",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Red Mask",
+   "class": "RedMask",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Red Skull",
+   "class": "RedSkull",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Regal Pillow",
+   "class": "RegalPillow",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Ring of the Serpent",
+   "class": "RingOfTheSerpent",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Runic Capacitor",
+   "class": "RunicCapacitor",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Runic Cube",
+   "class": "RunicCube",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Runic Dome",
+   "class": "RunicDome",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Runic Pyramid",
+   "class": "RunicPyramid",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "SacredBark",
+   "class": "SacredBark",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Self Forming Clay",
+   "class": "SelfFormingClay",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Shovel",
+   "class": "Shovel",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Shuriken",
+   "class": "Shuriken",
+   "tier": null,
+   "counter": "0",
+   "price": null
+  },
+  {
+   "id": "Singing Bowl",
+   "class": "SingingBowl",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "SlaversCollar",
+   "class": "SlaversCollar",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Sling",
+   "class": "Sling",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Smiling Mask",
+   "class": "SmilingMask",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Ring of the Snake",
+   "class": "SnakeRing",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Snecko Eye",
+   "class": "SneckoEye",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Snake Skull",
+   "class": "SneckoSkull",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Sozu",
+   "class": "Sozu",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Spirit Poop",
+   "class": "SpiritPoop",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "SsserpentHead",
+   "class": "SsserpentHead",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "StoneCalendar",
+   "class": "StoneCalendar",
+   "tier": null,
+   "counter": "0",
+   "price": null
+  },
+  {
+   "id": "Strange Spoon",
+   "class": "StrangeSpoon",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Strawberry",
+   "class": "Strawberry",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "StrikeDummy",
+   "class": "StrikeDummy",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Sundial",
+   "class": "Sundial",
+   "tier": null,
+   "counter": "0",
+   "price": null
+  },
+  {
+   "id": "Symbiotic Virus",
+   "class": "SymbioticVirus",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "TeardropLocket",
+   "class": "TeardropLocket",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Test 1",
+   "class": "Test1",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Test 3",
+   "class": "Test3",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Test 4",
+   "class": "Test4",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Test 5",
+   "class": "Test5",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Test 6",
+   "class": "Test6",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "The Specimen",
+   "class": "TheSpecimen",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Thread and Needle",
+   "class": "ThreadAndNeedle",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Tingsha",
+   "class": "Tingsha",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Tiny Chest",
+   "class": "TinyChest",
+   "tier": null,
+   "counter": "-1",
+   "price": null
+  },
+  {
+   "id": "Tiny House",
+   "class": "TinyHouse",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Toolbox",
+   "class": "Toolbox",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Torii",
+   "class": "Torii",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Tough Bandages",
+   "class": "ToughBandages",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Toxic Egg 2",
+   "class": "ToxicEgg2",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Toy Ornithopter",
+   "class": "ToyOrnithopter",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "TungstenRod",
+   "class": "TungstenRod",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Turnip",
+   "class": "Turnip",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "TwistedFunnel",
+   "class": "TwistedFunnel",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Unceasing Top",
+   "class": "UnceasingTop",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Vajra",
+   "class": "Vajra",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Velvet Choker",
+   "class": "VelvetChoker",
+   "tier": null,
+   "counter": "0",
+   "price": null
+  },
+  {
+   "id": "VioletLotus",
+   "class": "VioletLotus",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Lee's Waffle",
+   "class": "Waffle",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "War Paint",
+   "class": "WarPaint",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "WarpedTongs",
+   "class": "WarpedTongs",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "Whetstone",
+   "class": "Whetstone",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "White Beast Statue",
+   "class": "WhiteBeast",
+   "tier": null,
+   "counter": null,
+   "price": null
+  },
+  {
+   "id": "WingedGreaves",
+   "class": "WingBoots",
+   "tier": null,
+   "counter": "3",
+   "price": null
+  },
+  {
+   "id": "WristBlade",
+   "class": "WristBlade",
+   "tier": null,
+   "counter": null,
+   "price": null
+  }
+ ]
+}
