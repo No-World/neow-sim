@@ -85,6 +85,11 @@ pub enum PowerKind {
     /// 混乱（Confusion：每次抽牌时费用在 0..3 重掣（永改，
     /// cardRandomRng.random(3)，仅 cost>=0，ConfusionPower.onCardDraw）
     Confusion,
+    /// 愤怒（Angry：受方每次非 THORNS/HP_LOSS 伤害 → 力量 +amount，
+    /// AngryPower.onAttacked；战鬼战前 1 层）
+    Angry,
+    /// 静滞（Stasis：铜球吸走的一张玩家卡的标记；死亡时归还手牌）
+    Stasis,
 }
 
 impl PowerKind {
@@ -178,6 +183,8 @@ impl Power {
             PowerKind::Malleable => "Malleable",
             PowerKind::Hex => "Hex",
             PowerKind::Confusion => "Confusion",
+            PowerKind::Angry => "Angry",
+            PowerKind::Stasis => "Stasis",
         }
     }
 

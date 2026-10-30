@@ -224,6 +224,20 @@ pub enum MonsterKind {
     Snecko,
     Centurion,
     Healer,
+    // —— Act 2 精英/Boss 及召唤物 ——
+    GremlinWarrior,
+    GremlinThief,
+    GremlinFat,
+    GremlinTsundere,
+    GremlinWizard,
+    GremlinLeader,
+    BookOfStabbing,
+    Taskmaster,
+    BronzeOrb,
+    BronzeAutomaton,
+    TorchHead,
+    TheCollector,
+    Champ,
 }
 
 /// 通用怪物状态（M2 覆盖：大颚虫、邪教徒；M3 走数据驱动定义表）
@@ -243,10 +257,13 @@ pub struct MonsterState {
     // 邪教徒
     pub dark_strike_dmg: i32,
     pub ritual_amt: i32,
-    /// 通用计数器：Hexaghost=灼伤升级标志 / Mugger=已偷金币
+    /// 通用计数器：Hexaghost=灼伤升级 / Mugger=已偷金币 / BookOfStabbing=连击数 /
+    /// Wizard=已充能 / Automaton=回合计数 等
     pub burn_upgraded: i32,
     /// Mugger/Looter 逃离（不计死亡，不触发亡语；全员逃离=战斗结束）
     pub escaped: bool,
+    /// 铜球静滞：吸走的那张玩家卡（死亡时归还手牌）
+    pub stasis_card: Option<CardInst>,
 }
 
 impl MonsterState {
@@ -528,6 +545,149 @@ impl MonsterState {
                     ),
                 )
             }
+            // ════════ Act 2 精英/Boss 及召唤物 ════════
+            // 战鬼：chomp=抓击(4/5)；战前 Angry 1(2 A17)
+            MonsterKind::GremlinWarrior => {
+                let (lo, hi) = if ascension >= 7 { (21, 25) } else { (20, 24) };
+                (
+                    hp_rng.random_start_end(lo, hi),
+                    (if ascension >= 2 { 5 } else { 4 }, 0, 0, 0, 0, 0, 0),
+                )
+            }
+            // 暴徒：chomp=穿刺(9/10)
+            MonsterKind::GremlinThief => {
+                let (lo, hi) = if ascension >= 7 { (11, 15) } else { (10, 14) };
+                (
+                    hp_rng.random_start_end(lo, hi),
+                    (if ascension >= 2 { 10 } else { 9 }, 0, 0, 0, 0, 0, 0),
+                )
+            }
+            // 胖鬼：chomp=钝击(4/5)+弱1(A17 再+脆1)：thrash=弱1 thrash_block=脆1
+            MonsterKind::GremlinFat => {
+                let (lo, hi) = if ascension >= 7 { (14, 18) } else { (13, 17) };
+                (
+                    hp_rng.random_start_end(lo, hi),
+                    (if ascension >= 2 { 5 } else { 4 }, 1, 1, 0, 0, 0, 0),
+                )
+            }
+            // 傲鬼：chomp=痛击(6/8) thrash=保护格挡(7/8/11 A17)
+            MonsterKind::GremlinTsundere => {
+                let (lo, hi) = if ascension >= 7 { (13, 17) } else { (12, 15) };
+                let block = if ascension >= 17 {
+                    11
+                } else if ascension >= 7 {
+                    8
+                } else {
+                    7
+                };
+                (
+                    hp_rng.random_start_end(lo, hi),
+                    (if ascension >= 2 { 8 } else { 6 }, block, 0, 0, 0, 0, 0),
+                )
+            }
+            // 巫鬼：chomp=魔法(25/30)；counter=currentCharge 起 1
+            MonsterKind::GremlinWizard => {
+                let (lo, hi) = if ascension >= 7 { (22, 26) } else { (21, 25) };
+                (
+                    hp_rng.random_start_end(lo, hi),
+                    (if ascension >= 2 { 30 } else { 25 }, 0, 0, 0, 0, 0, 0),
+                )
+            }
+            // 小鬼首领：chomp=刺击6×3(bellow_str=段数3) thrash=激励力量(3/4/5)
+            // thrash_block=激励格挡(6/6/10)
+            MonsterKind::GremlinLeader => {
+                let (lo, hi) = if ascension >= 7 {
+                    (145, 155)
+                } else {
+                    (140, 148)
+                };
+                let (str_amt, block_amt) = if ascension >= 17 {
+                    (5, 10)
+                } else if ascension >= 2 {
+                    (4, 6)
+                } else {
+                    (3, 6)
+                };
+                (
+                    hp_rng.random_start_end(lo, hi),
+                    (6, str_amt, block_amt, 3, 0, 0, 0),
+                )
+            }
+            // 连击之书：chomp=刺(6/7) thrash=重刺(21/24)；counter=stabCount 起 1
+            MonsterKind::BookOfStabbing => {
+                let (lo, hi) = if ascension >= 8 {
+                    (168, 172)
+                } else {
+                    (160, 164)
+                };
+                let (stab, big) = if ascension >= 3 { (7, 24) } else { (6, 21) };
+                (hp_rng.random_start_end(lo, hi), (stab, big, 0, 0, 0, 0, 0))
+            }
+            // 监工：chomp=鞭笞7 + thrash=伤口数(1/2 A3/3 A18)（A18 再自+1 力量）
+            MonsterKind::Taskmaster => {
+                let (lo, hi) = if ascension >= 8 { (57, 64) } else { (54, 60) };
+                let wounds = if ascension >= 18 {
+                    3
+                } else if ascension >= 3 {
+                    2
+                } else {
+                    1
+                };
+                (hp_rng.random_start_end(lo, hi), (7, wounds, 0, 0, 0, 0, 0))
+            }
+            // 铜球：chomp=光束8 thrash=支援格挡12；STASIS 吸牌（死亡归还）
+            MonsterKind::BronzeOrb => {
+                let (lo, hi) = if ascension >= 9 { (54, 60) } else { (52, 58) };
+                (hp_rng.random_start_end(lo, hi), (8, 12, 0, 0, 0, 0, 0))
+            }
+            // 铜制自动机：chomp=连枷(7/8)×2 thrash=超究光束(45/50) thrash_block=强化格挡(9/12)
+            // bellow_str=强化力量(3/4)；counter=回合计；战前神器3
+            MonsterKind::BronzeAutomaton => {
+                let hp = if ascension >= 9 { 320 } else { 300 };
+                let (flail, beam, str_amt) = if ascension >= 4 {
+                    (8, 50, 4)
+                } else {
+                    (7, 45, 3)
+                };
+                let block_amt = if ascension >= 9 { 12 } else { 9 };
+                (hp, (flail, beam, block_amt, str_amt, 0, 0, 0))
+            }
+            // 火把头：chomp=冲撞7（恒定，SetMove 驱动）
+            MonsterKind::TorchHead => {
+                let (lo, hi) = if ascension >= 9 { (40, 45) } else { (38, 40) };
+                (hp_rng.random_start_end(lo, hi), (7, 0, 0, 0, 0, 0, 0))
+            }
+            // 收集者：chomp=火球(18/21) thrash=群力(3/4/5) thrash_block=自我格挡(15/18)
+            // bellow_str=超大减益(3/5 A19)；turns=history.len()
+            MonsterKind::TheCollector => {
+                let hp = if ascension >= 9 { 300 } else { 282 };
+                let (fb, str_amt, mega) = if ascension >= 19 {
+                    (21, 5, 5)
+                } else if ascension >= 4 {
+                    (21, 4, 3)
+                } else {
+                    (18, 3, 3)
+                };
+                let block_amt = if ascension >= 9 { 18 } else { 15 };
+                (hp, (fb, str_amt, block_amt, mega, 0, 0, 0))
+            }
+            // 冠军：chomp=重斩(16/18) thrash=处决10×2 thrash_block=扇击(12/14)
+            // bellow_str=力量(2/3/4) bellow_block=锻造金属化(5/6/7) dark_strike=格挡(15/18/20)
+            MonsterKind::Champ => {
+                let hp = if ascension >= 9 { 440 } else { 420 };
+                let slash = if ascension >= 4 { 18 } else { 16 };
+                let slap = if ascension >= 4 { 14 } else { 12 };
+                let (str_amt, forge, block_amt) = if ascension >= 19 {
+                    (4, 7, 20)
+                } else if ascension >= 9 {
+                    (3, 6, 18)
+                } else if ascension >= 4 {
+                    (3, 5, 15)
+                } else {
+                    (2, 5, 15)
+                };
+                (hp, (slash, 10, slap, str_amt, forge, block_amt, 0))
+            }
         };
         Self {
             kind,
@@ -545,6 +705,7 @@ impl MonsterState {
             // 通用计数器：Hexaghost=灼伤升级标志 / Mugger=已偷金币；其余怪构 0
             burn_upgraded: 0,
             escaped: false,
+            stasis_card: None,
         }
     }
 
@@ -698,6 +859,59 @@ impl MonsterState {
                 2 | 3 => Intent::Buff, // Heal / Buff
                 _ => Intent::Attack,
             },
+            MonsterKind::GremlinWarrior | MonsterKind::GremlinThief | MonsterKind::TorchHead => {
+                match self.next_move {
+                    99 => Intent::Escape,
+                    _ => Intent::Attack,
+                }
+            }
+            MonsterKind::GremlinFat => match self.next_move {
+                99 => Intent::Escape,
+                _ => Intent::AttackDebuff,
+            },
+            MonsterKind::GremlinTsundere => match self.next_move {
+                1 => Intent::Defend,
+                99 => Intent::Escape,
+                _ => Intent::Attack,
+            },
+            MonsterKind::GremlinWizard => match self.next_move {
+                1 => Intent::Attack, // 魔法爆发
+                99 => Intent::Escape,
+                _ => Intent::Unknown, // 充能
+            },
+            MonsterKind::GremlinLeader => match self.next_move {
+                2 => Intent::Unknown,    // Rally 召唤
+                3 => Intent::DefendBuff, // Encourage
+                _ => Intent::Attack,     // Stab ×3
+            },
+            MonsterKind::BookOfStabbing => Intent::Attack,
+            MonsterKind::Taskmaster => Intent::AttackDebuff,
+            MonsterKind::BronzeOrb => match self.next_move {
+                2 => Intent::Defend,
+                3 => Intent::Debuff, // STASIS（STRONG_DEBUFF 归 Debuff）
+                _ => Intent::Attack,
+            },
+            MonsterKind::BronzeAutomaton => match self.next_move {
+                4 => Intent::Unknown, // 召唤铜球
+                3 => Intent::Sleep,   // 放电后眩晕
+                5 => Intent::DefendBuff,
+                _ => Intent::Attack,
+            },
+            MonsterKind::TheCollector => match self.next_move {
+                1 => Intent::Unknown, // 召唤火把头
+                4 => Intent::Debuff,  // 超大减益
+                5 => Intent::Unknown, // 复活
+                3 => Intent::DefendBuff,
+                _ => Intent::Attack, // 火球
+            },
+            MonsterKind::Champ => match self.next_move {
+                2 => Intent::DefendBuff, // 防御姿态
+                3 => Intent::Attack,     // 处决 ×2
+                4 => Intent::AttackDebuff,
+                5 | 7 => Intent::Buff, // 嘲弄 / 爆怒
+                6 => Intent::Debuff,   // 奚落
+                _ => Intent::Attack,   // 重斩
+            },
         }
     }
 
@@ -816,6 +1030,44 @@ impl MonsterState {
             },
             MonsterKind::Healer => match self.next_move {
                 1 => Some(self.chomp_dmg),
+                _ => None,
+            },
+            MonsterKind::GremlinWarrior
+            | MonsterKind::GremlinThief
+            | MonsterKind::GremlinFat
+            | MonsterKind::GremlinTsundere
+            | MonsterKind::GremlinWizard
+            | MonsterKind::TorchHead => Some(self.chomp_dmg),
+            MonsterKind::GremlinLeader => match self.next_move {
+                4 => Some(self.chomp_dmg),
+                _ => None,
+            },
+            MonsterKind::BookOfStabbing => match self.next_move {
+                1 => Some(self.chomp_dmg),
+                2 => Some(self.thrash_dmg),
+                _ => None,
+            },
+            MonsterKind::Taskmaster => match self.next_move {
+                2 => Some(self.chomp_dmg),
+                _ => None,
+            },
+            MonsterKind::BronzeOrb => match self.next_move {
+                1 => Some(self.chomp_dmg),
+                _ => None,
+            },
+            MonsterKind::BronzeAutomaton => match self.next_move {
+                1 => Some(self.chomp_dmg),
+                2 => Some(self.thrash_dmg),
+                _ => None,
+            },
+            MonsterKind::TheCollector => match self.next_move {
+                2 => Some(self.chomp_dmg),
+                _ => None,
+            },
+            MonsterKind::Champ => match self.next_move {
+                1 => Some(self.chomp_dmg),
+                3 => Some(self.thrash_dmg),
+                4 => Some(self.thrash_block),
                 _ => None,
             },
         }

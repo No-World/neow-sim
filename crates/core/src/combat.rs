@@ -349,6 +349,35 @@ enum Q {
     MonsterEscape {
         src: usize,
     },
+    // —— Act 2 精英/Boss ——
+    /// 召唤怪物（SpawnMonsterAction：构造器初始招，不消耗 aiRng；
+    /// HP 用 monster_hp 流——真游戏为全局随机，此处取确定性近似）
+    SpawnMonster {
+        kind: MonsterKind,
+    },
+    /// 小鬼首领 Rally：aiRng 八池抽一只小鬼填入空位（死亡位优先）
+    SummonGremlin,
+    /// 铜球 Stasis：抽牌堆（空则弃牌堆）按 稀有→罕见→普通→任意 抽走一张
+    StasisSteal {
+        src: usize,
+    },
+    /// 铜球支援光束：给指定种类的怪（自动机）格挡
+    BlockMonsterKind {
+        kind: MonsterKind,
+        amount: i32,
+    },
+    /// 小鬼首领 Encourage：全员 +力量，其他存活怪 +格挡
+    LeaderEncourage {
+        src: usize,
+        str_amt: i32,
+        block_amt: i32,
+    },
+    /// 冠军爆怒：移除自身全部减益
+    MonsterRemoveDebuffs {
+        src: usize,
+    },
+    /// 收集者复活：每个死亡/逃离的火把头位重生一只
+    ReviveTorchHeads,
 }
 
 /// 探素卡池（returnTrulyRandomCardInCombat(type) / Colorless 变体）
@@ -376,6 +405,8 @@ fn power_kind(pid: &str) -> Option<PowerKind> {
         "Malleable" => Some(PowerKind::Malleable),
         "Hex" => Some(PowerKind::Hex),
         "Confusion" => Some(PowerKind::Confusion),
+        "Angry" => Some(PowerKind::Angry),
+        "Stasis" => Some(PowerKind::Stasis),
         "Dexterity" => Some(PowerKind::Dexterity),
         "Poison" => Some(PowerKind::Poison),
         "Metallicize" => Some(PowerKind::Metallicize),
@@ -567,6 +598,34 @@ impl Combat {
                     apply_power(
                         &mut c.monsters[i].creature.powers,
                         PowerKind::Malleable,
+                        3,
+                        false,
+                        false,
+                    );
+                }
+                // 战鬼：愤怒 1（A17+ 2）
+                MonsterKind::GremlinWarrior => {
+                    apply_power(
+                        &mut c.monsters[i].creature.powers,
+                        PowerKind::Angry,
+                        if c.ascension >= 17 { 2 } else { 1 },
+                        false,
+                        false,
+                    );
+                }
+                // 巫鬼：currentCharge 起 1
+                MonsterKind::GremlinWizard => {
+                    c.monsters[i].burn_upgraded = 1;
+                }
+                // 连击之书：stabCount 起 1
+                MonsterKind::BookOfStabbing => {
+                    c.monsters[i].burn_upgraded = 1;
+                }
+                // 铜制自动机：神器 3
+                MonsterKind::BronzeAutomaton => {
+                    apply_power(
+                        &mut c.monsters[i].creature.powers,
+                        PowerKind::Artifact,
                         3,
                         false,
                         false,
@@ -1979,7 +2038,14 @@ impl Combat {
                 let skip_roll = match self.monsters[i].kind {
                     MonsterKind::Hexaghost => executed == 5,
                     MonsterKind::Byrd => executed == 5,
-                    MonsterKind::Mugger => true,
+                    // SetMove 驱动（takeTurn 无 RollMoveAction）：劫匪 + 五小鬼 + 火把头
+                    MonsterKind::Mugger
+                    | MonsterKind::GremlinWarrior
+                    | MonsterKind::GremlinThief
+                    | MonsterKind::GremlinFat
+                    | MonsterKind::GremlinTsundere
+                    | MonsterKind::GremlinWizard
+                    | MonsterKind::TorchHead => true,
                     _ => false,
                 };
                 if !skip_roll {
@@ -2766,6 +2832,288 @@ impl Combat {
                 }
                 2 => q.push(Q::HealAllMonsters(m.thrash_dmg)),
                 3 => q.push(Q::StrAllMonsters(m.thrash_block)),
+                _ => {}
+            },
+            // ══════════ Act 2 精英/Boss 及召唤物 ══════════
+            // 五小鬼 + 火把头：SetMove 驱动（无 RollMove），恒定招
+            MonsterKind::GremlinWarrior | MonsterKind::GremlinThief | MonsterKind::TorchHead => {
+                q.push(Q::MonsterDamage {
+                    src: i,
+                    base: m.chomp_dmg,
+                });
+                self.monsters[i].move_history.push(1);
+                self.monsters[i].next_move = 1;
+            }
+            // 胖鬼：钝击 + 虚弱（A17 +脆弱）
+            MonsterKind::GremlinFat => {
+                q.push(Q::MonsterDamage {
+                    src: i,
+                    base: m.chomp_dmg,
+                });
+                q.push(Q::ApplyPowerToPlayerFromMonster {
+                    kind: PowerKind::Weak,
+                    amount: m.thrash_dmg,
+                });
+                if self.ascension >= 17 {
+                    q.push(Q::ApplyPowerToPlayerFromMonster {
+                        kind: PowerKind::Frail,
+                        amount: m.thrash_block,
+                    });
+                }
+                self.monsters[i].move_history.push(2);
+                self.monsters[i].next_move = 2;
+            }
+            // 傲鬼：保护（随机其他怪格挡）；仅剩自己时改痛击
+            MonsterKind::GremlinTsundere => {
+                let others_alive = self
+                    .monsters
+                    .iter()
+                    .filter(|x| !x.creature.is_dead() && !x.escaped)
+                    .count()
+                    > 1;
+                if m.next_move == 1 {
+                    q.push(Q::MonsterBlockRandomOther {
+                        src: i,
+                        amount: m.thrash_dmg,
+                    });
+                    let next = if others_alive { 1 } else { 2 };
+                    self.monsters[i].move_history.push(next);
+                    self.monsters[i].next_move = next;
+                } else {
+                    q.push(Q::MonsterDamage {
+                        src: i,
+                        base: m.chomp_dmg,
+                    });
+                    self.monsters[i].move_history.push(2);
+                    self.monsters[i].next_move = 2;
+                }
+            }
+            // 巫鬼：充能 3 回合 → 魔法爆发（counter=currentCharge 起 1）
+            MonsterKind::GremlinWizard => {
+                let (cur_move, magic) = (m.next_move, m.chomp_dmg);
+                let next = if cur_move == 2 {
+                    self.monsters[i].burn_upgraded += 1;
+                    if self.monsters[i].burn_upgraded >= 3 {
+                        1
+                    } else {
+                        2
+                    }
+                } else {
+                    self.monsters[i].burn_upgraded = 0;
+                    q.push(Q::MonsterDamage {
+                        src: i,
+                        base: magic,
+                    });
+                    if self.ascension >= 17 {
+                        1
+                    } else {
+                        2
+                    }
+                };
+                self.monsters[i].move_history.push(next);
+                self.monsters[i].next_move = next;
+            }
+            // 小鬼首领：2=Rally 召唤×2  3=Encourage  4=刺击×3
+            MonsterKind::GremlinLeader => match m.next_move {
+                2 => {
+                    q.push(Q::SummonGremlin);
+                    q.push(Q::SummonGremlin);
+                }
+                3 => q.push(Q::LeaderEncourage {
+                    src: i,
+                    str_amt: m.thrash_dmg,
+                    block_amt: m.thrash_block,
+                }),
+                4 => {
+                    for _ in 0..m.bellow_str {
+                        q.push(Q::MonsterDamage {
+                            src: i,
+                            base: m.chomp_dmg,
+                        });
+                    }
+                }
+                _ => {}
+            },
+            // 连击之书：1=刺×stabCount  2=重刺（counter=stabCount）
+            MonsterKind::BookOfStabbing => match m.next_move {
+                1 => {
+                    let hits = m.burn_upgraded.max(1);
+                    for _ in 0..hits {
+                        q.push(Q::MonsterDamage {
+                            src: i,
+                            base: m.chomp_dmg,
+                        });
+                    }
+                }
+                2 => q.push(Q::MonsterDamage {
+                    src: i,
+                    base: m.thrash_dmg,
+                }),
+                _ => {}
+            },
+            // 监工：鞭笞 7 + 伤口×N（A18 自+1 力量）
+            MonsterKind::Taskmaster => {
+                q.push(Q::MonsterDamage {
+                    src: i,
+                    base: m.chomp_dmg,
+                });
+                if let Some(wound) = CardInst::new_by_class("Wound") {
+                    for _ in 0..m.thrash_dmg {
+                        q.push(Q::MakeDiscard(wound));
+                    }
+                }
+                if self.ascension >= 18 {
+                    q.push(Q::ApplyPowerToMonster {
+                        target: i,
+                        kind: PowerKind::Strength,
+                        amount: 1,
+                    });
+                }
+            }
+            // 铜球：1=光束  2=支援（给自动机格挡）  3=静滞吸牌
+            MonsterKind::BronzeOrb => match m.next_move {
+                1 => q.push(Q::MonsterDamage {
+                    src: i,
+                    base: m.chomp_dmg,
+                }),
+                2 => q.push(Q::BlockMonsterKind {
+                    kind: MonsterKind::BronzeAutomaton,
+                    amount: m.thrash_dmg,
+                }),
+                3 => q.push(Q::StasisSteal { src: i }),
+                _ => {}
+            },
+            // 铜制自动机：4=召唤两铜球  1=连枷×2  5=强化  2=超究光束  3=放电眩晕
+            MonsterKind::BronzeAutomaton => match m.next_move {
+                4 => {
+                    q.push(Q::SpawnMonster {
+                        kind: MonsterKind::BronzeOrb,
+                    });
+                    q.push(Q::SpawnMonster {
+                        kind: MonsterKind::BronzeOrb,
+                    });
+                }
+                1 => {
+                    for _ in 0..2 {
+                        q.push(Q::MonsterDamage {
+                            src: i,
+                            base: m.chomp_dmg,
+                        });
+                    }
+                }
+                5 => {
+                    q.push(Q::MonsterBlock {
+                        target: i,
+                        amount: m.thrash_block,
+                    });
+                    q.push(Q::ApplyPowerToMonster {
+                        target: i,
+                        kind: PowerKind::Strength,
+                        amount: m.bellow_str,
+                    });
+                }
+                2 => q.push(Q::MonsterDamage {
+                    src: i,
+                    base: m.thrash_dmg,
+                }),
+                3 => {} // 放电后眩晕：无动作
+                _ => {}
+            },
+            // 收集者：1=召唤火把头×2  2=火球  3=群力  4=超大减益  5=复活
+            MonsterKind::TheCollector => match m.next_move {
+                1 => {
+                    q.push(Q::SpawnMonster {
+                        kind: MonsterKind::TorchHead,
+                    });
+                    q.push(Q::SpawnMonster {
+                        kind: MonsterKind::TorchHead,
+                    });
+                }
+                2 => q.push(Q::MonsterDamage {
+                    src: i,
+                    base: m.chomp_dmg,
+                }),
+                3 => {
+                    let block = m.thrash_block + if self.ascension >= 19 { 5 } else { 0 };
+                    q.push(Q::MonsterBlock {
+                        target: i,
+                        amount: block,
+                    });
+                    q.push(Q::StrAllMonsters(m.thrash_dmg));
+                }
+                4 => {
+                    for kind in [PowerKind::Weak, PowerKind::Vulnerable, PowerKind::Frail] {
+                        q.push(Q::ApplyPowerToPlayerFromMonster {
+                            kind,
+                            amount: m.bellow_str,
+                        });
+                    }
+                }
+                5 => q.push(Q::ReviveTorchHeads),
+                _ => {}
+            },
+            // 冠军：1=重斩 2=防御姿态 3=处决×2 4=扇击 5=嘲弄 6=奚落 7=爆怒
+            MonsterKind::Champ => match m.next_move {
+                1 => q.push(Q::MonsterDamage {
+                    src: i,
+                    base: m.chomp_dmg,
+                }),
+                2 => {
+                    q.push(Q::MonsterBlock {
+                        target: i,
+                        amount: m.dark_strike_dmg,
+                    });
+                    q.push(Q::ApplyPowerToMonster {
+                        target: i,
+                        kind: PowerKind::Metallicize,
+                        amount: m.bellow_block,
+                    });
+                }
+                3 => {
+                    for _ in 0..2 {
+                        q.push(Q::MonsterDamage {
+                            src: i,
+                            base: m.thrash_dmg,
+                        });
+                    }
+                }
+                4 => {
+                    q.push(Q::MonsterDamage {
+                        src: i,
+                        base: m.thrash_block,
+                    });
+                    q.push(Q::ApplyPowerToPlayerFromMonster {
+                        kind: PowerKind::Frail,
+                        amount: 2,
+                    });
+                    q.push(Q::ApplyPowerToPlayerFromMonster {
+                        kind: PowerKind::Vulnerable,
+                        amount: 2,
+                    });
+                }
+                5 => q.push(Q::ApplyPowerToMonster {
+                    target: i,
+                    kind: PowerKind::Strength,
+                    amount: m.bellow_str,
+                }),
+                6 => {
+                    q.push(Q::ApplyPowerToPlayerFromMonster {
+                        kind: PowerKind::Weak,
+                        amount: 2,
+                    });
+                    q.push(Q::ApplyPowerToPlayerFromMonster {
+                        kind: PowerKind::Vulnerable,
+                        amount: 2,
+                    });
+                }
+                7 => {
+                    q.push(Q::MonsterRemoveDebuffs { src: i });
+                    q.push(Q::ApplyPowerToMonster {
+                        target: i,
+                        kind: PowerKind::Strength,
+                        amount: m.bellow_str * 3,
+                    });
+                }
                 _ => {}
             },
             MonsterKind::FungiBeast => match m.next_move {
@@ -3936,6 +4284,184 @@ impl Combat {
                     self.won = true;
                 }
             }
+            Q::SpawnMonster { kind } => {
+                // SpawnMonsterAction：构造器初始招（不消耗 aiRng）；
+                // HP 用 monster_hp 流（真游戏为全局随机——对拍时以 bridge 实测校准）
+                let asc = self.ascension;
+                let mut m = MonsterState::spawn(kind, asc, &mut self.rng.monster_hp);
+                if kind == MonsterKind::GremlinWizard {
+                    m.burn_upgraded = 1; // currentCharge 起 1
+                }
+                if kind == MonsterKind::GremlinWarrior {
+                    apply_power(
+                        &mut m.creature.powers,
+                        PowerKind::Angry,
+                        if asc >= 17 { 2 } else { 1 },
+                        false,
+                        false,
+                    );
+                }
+                let init_move: u8 = match kind {
+                    MonsterKind::GremlinWizard => 2, // 充能
+                    MonsterKind::GremlinFat => 2,
+                    _ => 1,
+                };
+                m.next_move = init_move;
+                m.move_history.push(init_move);
+                self.monsters.push(m);
+            }
+            Q::SummonGremlin => {
+                // SummonGremlinAction：aiRng 八池（战/贼×2 胖×2 傲 巫）；
+                // 空位 = 死亡小鬼位优先，总数上限 3
+                const POOL: [MonsterKind; 8] = [
+                    MonsterKind::GremlinWarrior,
+                    MonsterKind::GremlinWarrior,
+                    MonsterKind::GremlinThief,
+                    MonsterKind::GremlinThief,
+                    MonsterKind::GremlinFat,
+                    MonsterKind::GremlinFat,
+                    MonsterKind::GremlinTsundere,
+                    MonsterKind::GremlinWizard,
+                ];
+                let roll = self.rng.ai.random_start_end(0, 7);
+                let kind = POOL[(roll.max(0) as usize).min(7)];
+                let leader_pos = self
+                    .monsters
+                    .iter()
+                    .position(|m| m.kind == MonsterKind::GremlinLeader);
+                if let Some(lp) = leader_pos {
+                    let minions: Vec<usize> =
+                        (0..self.monsters.len()).filter(|&j| j != lp).collect();
+                    let asc = self.ascension;
+                    let mut nm = MonsterState::spawn(kind, asc, &mut self.rng.monster_hp);
+                    if kind == MonsterKind::GremlinWizard {
+                        nm.burn_upgraded = 1;
+                    }
+                    if kind == MonsterKind::GremlinWarrior {
+                        apply_power(
+                            &mut nm.creature.powers,
+                            PowerKind::Angry,
+                            if asc >= 17 { 2 } else { 1 },
+                            false,
+                            false,
+                        );
+                    }
+                    let init_move: u8 = if kind == MonsterKind::GremlinWizard {
+                        2
+                    } else {
+                        1
+                    };
+                    nm.next_move = init_move;
+                    nm.move_history.push(init_move);
+                    if let Some(&dead_slot) = minions
+                        .iter()
+                        .find(|&&j| self.monsters[j].creature.is_dead() || self.monsters[j].escaped)
+                    {
+                        self.monsters[dead_slot] = nm; // 占用死亡位
+                    } else if minions.len() < 3 {
+                        self.monsters.push(nm);
+                    }
+                }
+            }
+            Q::StasisSteal { src } => {
+                // ApplyStasisAction：抽牌堆（空则弃牌堆）稀有→罕见→普通→任意；
+                // 每级一次 cardRandomRng 调用（含落空）；抽走并暂存
+                let pick = |pile: &mut Vec<CardInst>,
+                            rng: &mut crate::rng::StsRandom|
+                 -> Option<CardInst> {
+                    for rarity in ["RARE", "UNCOMMON", "COMMON"] {
+                        let idxs: Vec<usize> = pile
+                            .iter()
+                            .enumerate()
+                            .filter(|(_, c)| c.def.rarity == rarity)
+                            .map(|(j, _)| j)
+                            .collect();
+                        if !idxs.is_empty() {
+                            let roll = rng.random_range(idxs.len() as i32 - 1);
+                            let pick = idxs[(roll.max(0) as usize).min(idxs.len() - 1)];
+                            return Some(pile.remove(pick));
+                        }
+                    }
+                    // 任意：全堆均匀
+                    if !pile.is_empty() {
+                        let roll = rng.random_range(pile.len() as i32 - 1);
+                        let pick = (roll.max(0) as usize).min(pile.len() - 1);
+                        return Some(pile.remove(pick));
+                    }
+                    None
+                };
+                let card = if !self.player.draw.is_empty() {
+                    pick(&mut self.player.draw, &mut self.rng.card_random)
+                } else {
+                    pick(&mut self.player.discard, &mut self.rng.card_random)
+                };
+                if let Some(c) = card {
+                    self.monsters[src].stasis_card = Some(c);
+                    apply_power(
+                        &mut self.monsters[src].creature.powers,
+                        PowerKind::Stasis,
+                        1,
+                        false,
+                        false,
+                    );
+                }
+            }
+            Q::BlockMonsterKind { kind, amount } => {
+                if let Some(t) = self
+                    .monsters
+                    .iter()
+                    .position(|m| m.kind == kind && !m.creature.is_dead() && !m.escaped)
+                {
+                    self.monsters[t].creature.block += amount;
+                }
+            }
+            Q::LeaderEncourage {
+                src,
+                str_amt,
+                block_amt,
+            } => {
+                for mi in 0..self.monsters.len() {
+                    if !self.alive(mi) {
+                        continue;
+                    }
+                    apply_power(
+                        &mut self.monsters[mi].creature.powers,
+                        PowerKind::Strength,
+                        str_amt,
+                        false,
+                        false,
+                    );
+                    if mi != src {
+                        self.monsters[mi].creature.block += block_amt;
+                    }
+                }
+            }
+            Q::MonsterRemoveDebuffs { src } => {
+                if self.alive(src) {
+                    self.monsters[src]
+                        .creature
+                        .powers
+                        .retain(|p| !p.kind.is_debuff());
+                }
+            }
+            Q::ReviveTorchHeads => {
+                // 收集者：每个死亡/逃离的火把头位重生一只（同位替换）
+                let asc = self.ascension;
+                for mi in 0..self.monsters.len() {
+                    if self.monsters[mi].kind == MonsterKind::TorchHead
+                        && (self.monsters[mi].creature.is_dead() || self.monsters[mi].escaped)
+                    {
+                        let mut nm = MonsterState::spawn(
+                            MonsterKind::TorchHead,
+                            asc,
+                            &mut self.rng.monster_hp,
+                        );
+                        nm.next_move = 1;
+                        nm.move_history.push(1);
+                        self.monsters[mi] = nm;
+                    }
+                }
+            }
             Q::PlayerFlatDamage(n) => {
                 // Burn.use（dontTriggerOnUseCard）：THORNS 直伤 —— 无乘区；
                 // 无形 atDamageFinalReceive 截断 >1 → 1；格挡吸收；可触发瓶中精灵
@@ -4007,6 +4533,14 @@ impl Combat {
 
     /// 怪物死亡钩子：Spore Cloud（对玩家施加易伤）→ 全灭判定
     fn on_monster_death(&mut self, i: usize) {
+        // Stasis（铜球）：死亡归还吸走的卡（手牌满则弃牌堆）
+        if let Some(card) = self.monsters[i].stasis_card.take() {
+            if self.player.hand.len() < 10 {
+                self.player.hand.push(card);
+            } else {
+                self.player.discard.push(card);
+            }
+        }
         if let Some(idx) = self.monsters[i]
             .creature
             .powers
@@ -4052,6 +4586,23 @@ impl Combat {
             let alive_after = cr.hp > 0;
             let hp_lost = hp_before - cr.hp;
             if alive_after && dmg > 0 && ty == DamageType::Normal {
+                // Angry（战鬼）：受击 → 力量 +amount
+                if let Some(angry) = cr
+                    .powers
+                    .iter()
+                    .find(|p| p.kind == PowerKind::Angry)
+                    .map(|p| p.amount)
+                {
+                    if let Some(sp) = cr.powers.iter_mut().find(|p| p.kind == PowerKind::Strength) {
+                        sp.amount += angry;
+                    } else {
+                        cr.powers.push(Power {
+                            kind: PowerKind::Strength,
+                            amount: angry,
+                            just_applied: false,
+                        });
+                    }
+                }
                 if let Some(idx) = cr.powers.iter().position(|p| p.kind == PowerKind::Flight) {
                     cr.powers[idx].amount -= 1;
                     if cr.powers[idx].amount <= 0 {
@@ -4474,6 +5025,205 @@ impl Combat {
         1
     }
 
+    /// GremlinLeader.getMove：按存活小鬼数分支（0/1/2+），
+    /// 部分分支有递归重掣（消耗 aiRng）
+    fn gremlin_leader_get_move(&mut self, i: usize, num: i32) -> u8 {
+        let alive_gremlins = self
+            .monsters
+            .iter()
+            .enumerate()
+            .filter(|(j, m)| *j != i && !m.creature.is_dead() && !m.escaped)
+            .count() as i32;
+        let mut num = num;
+        loop {
+            let m = &self.monsters[i];
+            let last = m.move_history.last().copied();
+            if alive_gremlins == 0 {
+                if num < 75 {
+                    return if last != Some(2) { 2 } else { 4 };
+                }
+                return if last != Some(4) { 4 } else { 2 };
+            }
+            if alive_gremlins < 2 {
+                if num < 50 {
+                    if last != Some(2) {
+                        return 2;
+                    }
+                    num = self.rng.ai.random_start_end(50, 99);
+                } else if num < 80 {
+                    return if last != Some(3) { 3 } else { 4 };
+                } else {
+                    if last == Some(4) {
+                        num = self.rng.ai.random_start_end(0, 80);
+                        continue;
+                    }
+                    return 4;
+                }
+            } else {
+                if num < 66 {
+                    return if last != Some(3) { 3 } else { 4 };
+                }
+                return if last != Some(4) { 4 } else { 3 };
+            }
+        }
+    }
+
+    /// BookOfStabbing.getMove：num<15 或非双刺时连击数+1 用刺；
+    /// A18 重刺后也 +1（counter=stabCount）
+    fn book_of_stabbing_get_move(&mut self, i: usize, num: i32) -> u8 {
+        let m = &self.monsters[i];
+        let last = m.move_history.last().copied();
+        let last2 = if m.move_history.len() >= 2 {
+            Some(m.move_history[m.move_history.len() - 2])
+        } else {
+            None
+        };
+        let a18 = self.ascension >= 18;
+        if num < 15 {
+            if last == Some(2) {
+                self.monsters[i].burn_upgraded += 1;
+                1
+            } else {
+                if a18 {
+                    self.monsters[i].burn_upgraded += 1;
+                }
+                2
+            }
+        } else if last == Some(1) && last2 == Some(1) {
+            if a18 {
+                self.monsters[i].burn_upgraded += 1;
+            }
+            2
+        } else {
+            self.monsters[i].burn_upgraded += 1;
+            1
+        }
+    }
+
+    /// BronzeOrb.getMove：num>=25 且未用过 → 静滞（一次性）；
+    /// num>=70 且非双支援 → 支援；非双光束 → 光束；否则支援
+    fn bronze_orb_get_move(&mut self, i: usize, num: i32) -> u8 {
+        let used_stasis = self.monsters[i].move_history.contains(&3);
+        let m = &self.monsters[i];
+        let last = m.move_history.last().copied();
+        let last2 = if m.move_history.len() >= 2 {
+            Some(m.move_history[m.move_history.len() - 2])
+        } else {
+            None
+        };
+        if !used_stasis && num >= 25 {
+            return 3;
+        }
+        if num >= 70 && !(last == Some(2) && last2 == Some(2)) {
+            return 2;
+        }
+        if !(last == Some(1) && last2 == Some(1)) {
+            return 1;
+        }
+        2
+    }
+
+    /// BronzeAutomaton.getMove：首招召唤；numTurns==4 → 光束（复位）；
+    /// 光束后 A19 强化/否则眩晕；其余连枷/强化交替（counter=numTurns）
+    fn bronze_automaton_get_move(&mut self, i: usize, num: i32) -> u8 {
+        let _ = num;
+        if self.monsters[i].first_move {
+            return 4; // SPAWN_ORBS
+        }
+        if self.monsters[i].burn_upgraded == 4 {
+            self.monsters[i].burn_upgraded = 0;
+            return 2; // HYPER_BEAM
+        }
+        let last = self.monsters[i].move_history.last().copied();
+        if last == Some(2) {
+            return if self.ascension >= 19 { 5 } else { 3 };
+        }
+        self.monsters[i].burn_upgraded += 1;
+        if matches!(last, Some(3) | Some(5) | Some(4)) {
+            1
+        } else {
+            5
+        }
+    }
+
+    /// TheCollector.getMove：首招召唤；第 3 回合且未放大 → 超大减益；
+    /// 有死亡火把头且 num<=25 → 复活；否则火球/群力交替
+    fn collector_get_move(&mut self, i: usize, num: i32) -> u8 {
+        if self.monsters[i].move_history.is_empty() {
+            return 1; // SPAWN
+        }
+        let ult_used = self.monsters[i].move_history.contains(&4);
+        let turns = self.monsters[i].move_history.len() as i32 + 1;
+        if turns >= 3 && !ult_used {
+            return 4; // MEGA_DEBUFF
+        }
+        let minion_dead = self
+            .monsters
+            .iter()
+            .enumerate()
+            .any(|(j, m)| j != i && (m.creature.is_dead() || m.escaped));
+        let m = &self.monsters[i];
+        let last = m.move_history.last().copied();
+        let last2 = if m.move_history.len() >= 2 {
+            Some(m.move_history[m.move_history.len() - 2])
+        } else {
+            None
+        };
+        if num <= 25 && minion_dead && last != Some(5) {
+            return 5; // REVIVE
+        }
+        if num <= 70 && !(last == Some(2) && last2 == Some(2)) {
+            return 2; // FIREBALL
+        }
+        if last != Some(3) {
+            3
+        } else {
+            2
+        }
+    }
+
+    /// Champ.getMove：半血以下触发爆怒（latch=hp*2<max，怪不回血）；
+    /// 之后连续处决；每 4 回合奚落；锻造≤2 次优先防御姿态
+    fn champ_get_move(&mut self, i: usize, num: i32) -> u8 {
+        let m = &self.monsters[i];
+        let threshold = m.creature.hp * 2 < m.creature.max_hp;
+        let last = m.move_history.last().copied();
+        let last2 = if m.move_history.len() >= 2 {
+            Some(m.move_history[m.move_history.len() - 2])
+        } else {
+            None
+        };
+        let num_turns = (m.move_history.len() as i32 % 4) + 1;
+        let forge_times = m.move_history.iter().filter(|&&x| x == 2).count() as i32;
+        let forge_cap = if self.ascension >= 19 { 30 } else { 15 };
+        let angered = m.move_history.contains(&7);
+        let threshold_reached = threshold || angered;
+        // 源码顺序：①首次过半血 → 爆怒；②过半后连续处决
+        if threshold && !angered {
+            return 7; // ANGER：清减益 + 力量×3
+        }
+        if threshold_reached && last != Some(3) && last2 != Some(3) {
+            return 3; // EXECUTE ×2
+        }
+        if num_turns == 4 && !threshold_reached {
+            return 6; // TAUNT（numTurns 归零由 len%4 推导自动实现）
+        }
+        if last != Some(2) && forge_times < 2 && num <= forge_cap {
+            return 2; // DEFENSIVE_STANCE
+        }
+        if last != Some(5) && last != Some(2) && num <= 30 {
+            return 5; // GLOAT
+        }
+        if last != Some(4) && num <= 55 {
+            return 4; // FACE_SLAP
+        }
+        if last != Some(1) {
+            1
+        } else {
+            4
+        }
+    }
+
     /// 意图决策（逐行对照各怪 getMove；num = aiRng.random(99)）
     fn roll_move(&mut self, i: usize) {
         let num = self.rng.ai.random_range(99);
@@ -4517,6 +5267,19 @@ impl Combat {
             MonsterKind::Snecko => self.snecko_get_move(i, num),
             MonsterKind::Centurion => self.centurion_get_move(i, num),
             MonsterKind::Healer => self.healer_get_move(i, num),
+            // 小鬼 SetMove 驱动：battle-start 摸一次，之后由 takeTurn 决定
+            MonsterKind::GremlinWarrior | MonsterKind::GremlinThief => 1,
+            MonsterKind::GremlinFat => 2,
+            MonsterKind::GremlinTsundere => 1,
+            MonsterKind::GremlinWizard => 2,
+            MonsterKind::TorchHead => 1,
+            MonsterKind::GremlinLeader => self.gremlin_leader_get_move(i, num),
+            MonsterKind::BookOfStabbing => self.book_of_stabbing_get_move(i, num),
+            MonsterKind::Taskmaster => 2,
+            MonsterKind::BronzeOrb => self.bronze_orb_get_move(i, num),
+            MonsterKind::BronzeAutomaton => self.bronze_automaton_get_move(i, num),
+            MonsterKind::TheCollector => self.collector_get_move(i, num),
+            MonsterKind::Champ => self.champ_get_move(i, num),
         };
         self.monsters[i].first_move = false;
         self.monsters[i].move_history.push(mv);
@@ -6459,6 +7222,238 @@ mod tests {
         };
         assert_eq!(play(21), play(21));
         assert_ne!(play(21), play(22));
+    }
+
+    // ══════════════ Act 2 精英/Boss ══════════════
+
+    /// 五小鬼：固定招循环 + 战鬼愤怒受击涨力量 + 巫鬼充能 3 回合爆发
+    #[test]
+    fn gremlin_minions_basics() {
+        let mut c = Combat::new_with(3, 20, &[MonsterKind::GremlinWarrior]);
+        let hp0 = c.player.creature.hp;
+        c.step(&Action::EndTurn);
+        assert_eq!(c.player.creature.hp, hp0 - 5, "A2+ 抓击 5");
+        assert_eq!(c.monsters[0].next_move, 1);
+        // 愤怒（A17+ 2 层）：受击每次 +2 力量
+        c.exec(Q::DamageMonster { target: 0, dmg: 3 });
+        assert_eq!(m_amount(&c, 0, PowerKind::Strength), Some(2));
+        c.exec(Q::DamageMonster { target: 0, dmg: 3 });
+        assert_eq!(
+            m_amount(&c, 0, PowerKind::Strength),
+            Some(4),
+            "A17+ 愤怒 2/次"
+        );
+
+        let mut w = Combat::new_with(3, 20, &[MonsterKind::GremlinWizard]);
+        assert_eq!(w.monsters[0].next_move, 2, "巫鬼充能起手");
+        w.step(&Action::EndTurn); // charge → 2
+        w.step(&Action::EndTurn); // charge → 3 满
+        assert_eq!(w.monsters[0].next_move, 1, "下回合爆发");
+        let hp0 = w.player.creature.hp;
+        w.step(&Action::EndTurn);
+        assert_eq!(w.player.creature.hp, hp0 - 30, "A2+ 魔法 30");
+    }
+
+    /// 小鬼首领：Rally 用 aiRng 八池召唤（上限 3）；Encourage 全员力量+队友格挡
+    #[test]
+    fn gremlin_leader_rally_encourage() {
+        let mut c = Combat::new_with(
+            5,
+            20,
+            &[
+                MonsterKind::GremlinThief,
+                MonsterKind::GremlinFat,
+                MonsterKind::GremlinLeader,
+            ],
+        );
+        // Encourage（A20=A17 档）：全 +力量 5，小鬼们 +格挡 10
+        c.monsters[2].next_move = 3;
+        c.step(&Action::EndTurn);
+        assert_eq!(m_amount(&c, 2, PowerKind::Strength), Some(5), "A17+ 力量 5");
+        assert_eq!(m_amount(&c, 0, PowerKind::Strength), Some(5));
+        assert_eq!(c.monsters[0].creature.block, 10);
+        assert_eq!(c.monsters[2].creature.block, 0, "自己无格挡");
+        // Rally：召唤 2 只（总数 2→4，其中死亡位可复用；杀两只小鬼后再召）
+        c.exec(Q::DamageMonster {
+            target: 0,
+            dmg: 999,
+        });
+        c.exec(Q::DamageMonster {
+            target: 1,
+            dmg: 999,
+        });
+        let before = c.monsters.len();
+        c.exec(Q::SummonGremlin);
+        assert_eq!(c.monsters.len(), before, "死亡位复用不扩表");
+        assert!(!c.monsters[0].creature.is_dead(), "新小鬼占位");
+        assert_ne!(c.monsters[0].kind, MonsterKind::GremlinLeader);
+        assert!(matches!(
+            c.monsters[0].kind,
+            MonsterKind::GremlinWarrior
+                | MonsterKind::GremlinThief
+                | MonsterKind::GremlinFat
+                | MonsterKind::GremlinTsundere
+                | MonsterKind::GremlinWizard
+        ));
+    }
+
+    /// 连击之书：连击数递增（初始 1，刺→2→3…），重刺 A18 也递增
+    #[test]
+    fn book_of_stabbing_escalates() {
+        let mut c = Combat::new_with(7, 20, &[MonsterKind::BookOfStabbing]);
+        // stabCount 起 1；开局 getMove 已按分支 +1（A18 双计）→ ≥2
+        assert!(c.monsters[0].burn_upgraded >= 2, "开局 roll 已递增");
+        // 直接构造连击：连续多轮刺击
+        for _ in 0..4 {
+            c.monsters[0].next_move = 1;
+            c.step(&Action::EndTurn);
+        }
+        // A18+：重刺后 stabCount 也 +1；此处验证 stabCount > 1
+        assert!(c.monsters[0].burn_upgraded > 1, "连击数增长");
+    }
+
+    /// 监工：鞭笞 7 + 3 伤口（A18）
+    #[test]
+    fn taskmaster_wounds() {
+        let mut c = Combat::new_with(9, 20, &[MonsterKind::Taskmaster]);
+        assert_eq!(c.monsters[0].next_move, 2);
+        let hp0 = c.player.creature.hp;
+        c.step(&Action::EndTurn);
+        assert_eq!(c.player.creature.hp, hp0 - 7);
+        let wounds = c
+            .player
+            .discard
+            .iter()
+            .filter(|x| x.def.id == "Wound")
+            .count();
+        assert_eq!(wounds, 3, "A18+ 3 张伤口");
+        assert_eq!(
+            m_amount(&c, 0, PowerKind::Strength),
+            Some(1),
+            "A18 自+1 力量"
+        );
+    }
+
+    /// 铜制自动机：召唤两铜球 → 铜球静滞吸牌 → 死亡归还 → 光束循环
+    #[test]
+    fn automaton_orbs_stasis() {
+        let mut c = Combat::new_with(11, 20, &[MonsterKind::BronzeAutomaton]);
+        assert_eq!(m_amount(&c, 0, PowerKind::Artifact), Some(3));
+        assert_eq!(c.monsters[0].next_move, 4, "首招召唤");
+        c.step(&Action::EndTurn);
+        assert_eq!(c.monsters.len(), 3, "两只铜球");
+        assert_eq!(c.monsters[0].next_move, 1, "连枷");
+        // 静滞吸牌（手动触发铜球）
+        let draw0 = c.player.draw.len();
+        c.exec(Q::StasisSteal { src: 1 });
+        assert_eq!(c.player.draw.len(), draw0 - 1, "抽走一张");
+        let stolen_id = c.monsters[1].stasis_card.unwrap().def.id;
+        // 铜球死亡 → 归还手牌
+        c.exec(Q::DamageMonster {
+            target: 1,
+            dmg: 999,
+        });
+        let hand_ids: Vec<&str> = c.player.hand.iter().map(|h| h.def.id).collect();
+        assert!(hand_ids.contains(&stolen_id), "死亡归还");
+        // 支援光束：给自动机格挡
+        c.exec(Q::BlockMonsterKind {
+            kind: MonsterKind::BronzeAutomaton,
+            amount: 12,
+        });
+        assert_eq!(c.monsters[0].creature.block, 12);
+    }
+
+    /// 收集者：召唤火把头、群力、超大减益（第 3 回合）、复活
+    #[test]
+    fn collector_spawn_and_revive() {
+        let mut c = Combat::new_with(13, 20, &[MonsterKind::TheCollector]);
+        assert_eq!(c.monsters[0].next_move, 1, "首招召唤");
+        c.step(&Action::EndTurn);
+        assert_eq!(c.monsters.len(), 3, "两只火把头");
+        // 第 3 回合（history.len()==2）→ 超大减益
+        c.monsters[0].next_move = 2; // T2 火球
+        c.step(&Action::EndTurn);
+        assert_eq!(c.monsters[0].next_move, 4, "第 3 回合超大减益");
+        c.step(&Action::EndTurn);
+        for k in [PowerKind::Weak, PowerKind::Vulnerable, PowerKind::Frail] {
+            assert!(c.player.creature.powers.iter().any(|p| p.kind == k));
+        }
+        // 杀火把头 → 复活
+        c.exec(Q::DamageMonster {
+            target: 1,
+            dmg: 999,
+        });
+        assert!(c.monsters[1].creature.is_dead());
+        c.exec(Q::ReviveTorchHeads);
+        assert!(!c.monsters[1].creature.is_dead(), "原位重生");
+        assert_eq!(c.monsters.len(), 3, "不扩表");
+    }
+
+    /// 冠军：半血触发爆怒（清减益+力量×9~12），随后连续处决 ×2
+    #[test]
+    fn champ_phase2_anger() {
+        let mut c = Combat::new_with(15, 20, &[MonsterKind::Champ]);
+        assert_eq!(c.monsters[0].creature.max_hp, 440, "A9+ 血量");
+        // 施加减益再打入半血 → 爆怒清减益 + 力量×(4×3 A19)
+        apply_power(
+            &mut c.monsters[0].creature.powers,
+            PowerKind::Weak,
+            2,
+            true,
+            true,
+        );
+        c.monsters[0].creature.hp = 100;
+        // 手动触发一次 getMove（爆怒）
+        c.roll_move(0);
+        // roll_move 走 getMove → 爆怒（7）
+        assert_eq!(c.monsters[0].next_move, 7, "半血爆怒");
+        c.step(&Action::EndTurn);
+        assert!(
+            !c.monsters[0]
+                .creature
+                .powers
+                .iter()
+                .any(|p| p.kind == PowerKind::Weak),
+            "减益被清"
+        );
+        assert_eq!(
+            m_amount(&c, 0, PowerKind::Strength),
+            Some(12),
+            "A19 力量 4×3"
+        );
+        assert_eq!(c.monsters[0].next_move, 3, "爆怒后处决");
+        let hp0 = c.player.creature.hp;
+        c.step(&Action::EndTurn);
+        // 处决 10×2（力量 +12 → 22×2=44）
+        assert_eq!(c.player.creature.hp, hp0 - 44);
+    }
+
+    /// Act 2 精英/Boss 同种子重放一致（含召唤物流）
+    #[test]
+    fn act2_elites_replay_deterministic() {
+        let play = |seed: u64| {
+            let mut c = Combat::new_with(
+                seed,
+                20,
+                &[
+                    MonsterKind::GremlinThief,
+                    MonsterKind::GremlinFat,
+                    MonsterKind::GremlinLeader,
+                ],
+            );
+            c.player.creature.max_hp = 999;
+            c.player.creature.hp = 999;
+            c.player.hand.clear();
+            for _ in 0..12 {
+                if c.over {
+                    break;
+                }
+                c.step(&Action::EndTurn);
+            }
+            c.state_hash()
+        };
+        assert_eq!(play(31), play(31));
+        assert_ne!(play(31), play(32));
     }
 
     fn pamount_monster(c: &Combat, k: PowerKind) -> Option<i32> {
