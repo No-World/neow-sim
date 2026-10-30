@@ -16,6 +16,8 @@
 pub mod cards;
 pub mod combat;
 pub mod damage;
+pub mod effects;
+pub mod generated;
 pub mod powers;
 pub mod rng;
 pub mod state;

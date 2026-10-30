@@ -1,0 +1,82 @@
+{
+ "data": [
+  {
+   "id": "Ironclad",
+   "max_hp": 80,
+   "starting_deck": [
+    "Strike_R",
+    "Strike_R",
+    "Strike_R",
+    "Strike_R",
+    "Strike_R",
+    "Defend_R",
+    "Defend_R",
+    "Defend_R",
+    "Defend_R",
+    "Bash"
+   ],
+   "starting_relics": [
+    "Burning Blood"
+   ]
+  },
+  {
+   "id": "TheSilent",
+   "max_hp": 70,
+   "starting_deck": [
+    "Strike_G",
+    "Strike_G",
+    "Strike_G",
+    "Strike_G",
+    "Strike_G",
+    "Defend_G",
+    "Defend_G",
+    "Defend_G",
+    "Defend_G",
+    "Defend_G",
+    "Survivor",
+    "Neutralize"
+   ],
+   "starting_relics": [
+    "Ring of the Snake"
+   ]
+  },
+  {
+   "id": "Defect",
+   "max_hp": 75,
+   "starting_deck": [
+    "Strike_B",
+    "Strike_B",
+    "Strike_B",
+    "Strike_B",
+    "Defend_B",
+    "Defend_B",
+    "Defend_B",
+    "Defend_B",
+    "Zap",
+    "Dualcast"
+   ],
+   "starting_relics": [
+    "Cracked Core"
+   ]
+  },
+  {
+   "id": "Watcher",
+   "max_hp": 72,
+   "starting_deck": [
+    "Strike_P",
+    "Strike_P",
+    "Strike_P",
+    "Strike_P",
+    "Defend_P",
+    "Defend_P",
+    "Defend_P",
+    "Defend_P",
+    "Eruption",
+    "Vigilance"
+   ],
+   "starting_relics": [
+    "PureWater"
+   ]
+  }
+ ]
+}
