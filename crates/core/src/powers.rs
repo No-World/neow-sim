@@ -34,6 +34,33 @@ pub enum PowerKind {
     Metallicize,
     /// 再生（Regeneration：EOT 治疗 amount 后 -1 层）
     Regen,
+    // —— 以下为本批新增（钩子行为在 combat 中实现） ——
+    /// 恶魔形态（Demon Form：回合开始抽牌后 +STR）
+    DemonForm,
+    /// 狂暴（Berserk：回合开始 +energy）
+    Berserk,
+    /// 暴虐（Brutality：回合开始抽牌后抽 n 失 n 血）
+    Brutality,
+    /// 壁垒（Barricade：回合开始不掉格挡）
+    Barricade,
+    /// 荆棘（Thorns：受击反弹 amount，THORNS 类型）
+    Thorns,
+    /// 神器（Artifact：抵消下一个施加到自身的减益）
+    Artifact,
+    /// 无形（IntangiblePlayer：FinalReceive 管线伤害 >1 → 1，轮末衰减）
+    IntangiblePlayer,
+    /// 能量化（Energized：下回合能量重置时 +amount 后移除）
+    Energized,
+    /// 燃烧（Combust：EOT 失 1 HP 对所有敌人造成 amount）
+    Combust,
+    /// 暗之拥（Dark Embrace：每消耗一张牌抽 amount）
+    DarkEmbrace,
+    /// 怒火（Rage：本回合每打出一张攻击牌获得 amount 格挡，EOT 移除）
+    Rage,
+    /// 蜷缩（Curl Up：首次受到非致死 NORMAL 伤害时获得 amount 格挡后移除）
+    CurlUp,
+    /// 孢子云（Spore Cloud：死亡时对玩家施加 amount 层易伤）
+    SporeCloud,
 }
 
 /// atEndOfRound 衰减结果
@@ -70,12 +97,7 @@ impl Power {
             PowerKind::Weak | PowerKind::Frail => source_is_monster,
             // RitualPower: skipFirst = true（怪物侧首轮不投予）；其余无 skip
             PowerKind::Ritual => true,
-            PowerKind::LoseStrength
-            | PowerKind::Strength
-            | PowerKind::Dexterity
-            | PowerKind::Poison
-            | PowerKind::Metallicize
-            | PowerKind::Regen => false,
+            _ => false,
         };
         Self {
             kind,
@@ -96,14 +118,30 @@ impl Power {
             PowerKind::Poison => "Poison",
             PowerKind::Metallicize => "Metallicize",
             PowerKind::Regen => "Regeneration",
+            PowerKind::DemonForm => "Demon Form",
+            PowerKind::Berserk => "Berserk",
+            PowerKind::Brutality => "Brutality",
+            PowerKind::Barricade => "Barricade",
+            PowerKind::Thorns => "Thorns",
+            PowerKind::Artifact => "Artifact",
+            PowerKind::IntangiblePlayer => "IntangiblePlayer",
+            PowerKind::Energized => "Energized",
+            PowerKind::Combust => "Combust",
+            PowerKind::DarkEmbrace => "Dark Embrace",
+            PowerKind::Rage => "Rage",
+            PowerKind::CurlUp => "Curl Up",
+            PowerKind::SporeCloud => "Spore Cloud",
         }
     }
 
-    /// 是否走通用轮末衰减（易伤/虚弱/脆弱）；毒/再生有自己的 tick，仪式/金属化不衰减
+    /// 是否走通用轮末衰减（易伤/虚弱/脆弱/无形）；毒/再生有自己的 tick，其余不衰减
     pub fn is_turn_based(&self) -> bool {
         matches!(
             self.kind,
-            PowerKind::Vulnerable | PowerKind::Weak | PowerKind::Frail
+            PowerKind::Vulnerable
+                | PowerKind::Weak
+                | PowerKind::Frail
+                | PowerKind::IntangiblePlayer
         )
     }
 
@@ -124,13 +162,16 @@ impl Power {
         }
     }
 
-    /// atDamageFinalGive/FinalReceive：M2 无实现者，保留钩子位
+    /// atDamageFinalGive/FinalReceive：IntangiblePlayer 在此环节把伤害 >1 截为 1（源码无类型过滤）
     pub fn at_damage_final_give(&self, dmg: f32, _ty: DamageType) -> f32 {
         dmg
     }
 
     pub fn at_damage_final_receive(&self, dmg: f32, _ty: DamageType) -> f32 {
-        dmg
+        match self.kind {
+            PowerKind::IntangiblePlayer if dmg > 1.0 => 1.0,
+            _ => dmg,
+        }
     }
 
     /// modifyBlock（FrailPower: ×0.75；在受格挡方的 power 列表上迭代）

@@ -16,6 +16,17 @@ pub const ENGINE_POWERS: &[&str] = &[
     "Poison",
     "Metallicize",
     "Regeneration",
+    "Demon Form",
+    "Berserk",
+    "Brutality",
+    "Barricade",
+    "Thorns",
+    "Artifact",
+    "IntangiblePlayer",
+    "Energized",
+    "Combust",
+    "Dark Embrace",
+    "Rage",
 ];
 
 #[derive(Clone, Copy, Debug)]

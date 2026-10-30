@@ -24,7 +24,9 @@ chars = json.loads((DATA / "characters.json").read_text(encoding="utf-8"))["data
 
 # 引擎侧拒绝原因分布（与 cards.rs engine_playable 同逻辑）
 ENGINE_POWERS = {"Strength", "Vulnerable", "Weakened", "Frail", "Ritual",
-                 "LoseStrengthPower", "Dexterity", "Poison", "Metallicize", "Regeneration"}
+                 "LoseStrengthPower", "Dexterity", "Poison", "Metallicize", "Regeneration",
+                 "Demon Form", "Berserk", "Brutality", "Barricade", "Thorns", "Artifact",
+                 "IntangiblePlayer", "Energized", "Combust", "Dark Embrace", "Rage"}
 
 
 def reject_reason(c):

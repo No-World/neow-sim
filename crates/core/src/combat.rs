@@ -73,6 +73,19 @@ fn power_kind(pid: &str) -> Option<PowerKind> {
         "Poison" => Some(PowerKind::Poison),
         "Metallicize" => Some(PowerKind::Metallicize),
         "Regeneration" => Some(PowerKind::Regen),
+        "Demon Form" => Some(PowerKind::DemonForm),
+        "Berserk" => Some(PowerKind::Berserk),
+        "Brutality" => Some(PowerKind::Brutality),
+        "Barricade" => Some(PowerKind::Barricade),
+        "Thorns" => Some(PowerKind::Thorns),
+        "Artifact" => Some(PowerKind::Artifact),
+        "IntangiblePlayer" => Some(PowerKind::IntangiblePlayer),
+        "Energized" => Some(PowerKind::Energized),
+        "Combust" => Some(PowerKind::Combust),
+        "Dark Embrace" => Some(PowerKind::DarkEmbrace),
+        "Rage" => Some(PowerKind::Rage),
+        "Curl Up" => Some(PowerKind::CurlUp),
+        "Spore Cloud" => Some(PowerKind::SporeCloud),
         _ => None,
     }
 }
@@ -238,6 +251,18 @@ impl Combat {
             0
         };
         let mut q: Vec<Q> = Vec::new();
+        // onUseCard 钩子（先于卡牌效果）：Rage —— 打出攻击牌获得 amount 格挡
+        if card.def.card_type == "ATTACK" {
+            if let Some(rage) = self
+                .player
+                .creature
+                .powers
+                .iter()
+                .find(|pw| pw.kind == PowerKind::Rage)
+            {
+                q.push(Q::PlayerBlock(rage.amount));
+            }
+        }
         for &eff in card.def.effects {
             match eff {
                 Effect::Damage(Target::Enemy, e) => {
@@ -309,6 +334,17 @@ impl Combat {
         self.player.hand.remove(i);
         if card.def.flags.contains(&"exhaust") {
             self.player.exhaust.push(card);
+            // onExhaust 钩子：Dark Embrace —— 每消耗一张抽 amount
+            if let Some(de) = self
+                .player
+                .creature
+                .powers
+                .iter()
+                .find(|pw| pw.kind == PowerKind::DarkEmbrace)
+            {
+                let n = de.amount;
+                self.draw_cards(n as usize);
+            }
         } else {
             self.player.discard.push(card);
         }
@@ -325,6 +361,7 @@ impl Combat {
         self.turn_has_ended = true;
         // callEndOfTurnActions：玩家 powers 的 EOT，按插入序逐个结算：
         // Metallicize（PreEndTurnCards 钩子，先于其余）→ LoseStrength/Regen（atEndOfTurn）
+        let mut combust_damage = 0;
         {
             let mut keep: Vec<Power> = Vec::new();
             let mut strength_deltas: Vec<i32> = Vec::new();
@@ -345,6 +382,14 @@ impl Combat {
                             });
                         }
                     }
+                    // Combust：失 1 HP，对所有敌人造成 amount（THORNS 直伤，不走力量）
+                    PowerKind::Combust => {
+                        self.player.creature.hp -= 1;
+                        combust_damage += p.amount;
+                        keep.push(p);
+                    }
+                    // Rage：仅本回合有效，EOT 移除
+                    PowerKind::Rage => {}
                     _ => keep.push(p),
                 }
             }
@@ -357,6 +402,23 @@ impl Combat {
                     false,
                     false,
                 );
+            }
+        }
+        if combust_damage > 0 {
+            if self.player.creature.is_dead() {
+                self.over = true;
+                self.won = false;
+                return;
+            }
+            for mi in 0..self.monsters.len() {
+                if self.alive(mi) {
+                    self.monsters[mi].creature.apply_damage(combust_damage);
+                }
+            }
+            if self.all_monsters_dead() {
+                self.over = true;
+                self.won = true;
+                return;
             }
         }
         // DiscardAtEndOfTurn：无保留卡（retain）与 Runic Pyramid/Equilibrium 例外
@@ -381,9 +443,68 @@ impl Combat {
         }
         self.turn += 1;
         self.turn_has_ended = false;
-        self.player.creature.block = 0;
-        self.player.energy = 3;
+        // ── 下回合开始序列（GameActionManager turn-start 分支）──
+        // ① startOfTurnPowers（pre）：Berserk +能量；Energized（onEnergyRecharge）+能量后移除
+        let mut bonus_energy = 0;
+        let mut keep: Vec<Power> = Vec::new();
+        for pw in self.player.creature.powers.drain(..) {
+            match pw.kind {
+                PowerKind::Berserk => {
+                    bonus_energy += pw.amount;
+                    keep.push(pw);
+                }
+                PowerKind::Energized => bonus_energy += pw.amount, // 移除自身
+                _ => keep.push(pw),
+            }
+        }
+        self.player.creature.powers = keep;
+        // ② loseBlock（Barricade 豁免）
+        if !self
+            .player
+            .creature
+            .powers
+            .iter()
+            .any(|pw| pw.kind == PowerKind::Barricade)
+        {
+            self.player.creature.block = 0;
+        }
+        // ③ 能量重置（3 + 加成）
+        self.player.energy = 3 + bonus_energy;
+        // ④ 抽 5
         self.draw_cards(5);
+        // ⑤ atStartOfTurnPostDraw：Demon Form +力量；Brutality 抽 n 失 n 血
+        let mut str_gain = 0;
+        let mut draw_extra = 0;
+        let mut hp_loss = 0;
+        for pw in &self.player.creature.powers {
+            match pw.kind {
+                PowerKind::DemonForm => str_gain += pw.amount,
+                PowerKind::Brutality => {
+                    draw_extra += pw.amount;
+                    hp_loss += pw.amount;
+                }
+                _ => {}
+            }
+        }
+        if str_gain > 0 {
+            apply_power(
+                &mut self.player.creature.powers,
+                PowerKind::Strength,
+                str_gain,
+                false,
+                self.turn_has_ended,
+            );
+        }
+        if draw_extra > 0 {
+            self.draw_cards(draw_extra as usize);
+        }
+        if hp_loss > 0 {
+            self.player.creature.hp -= hp_loss; // LoseHPAction 绕过格挡
+            if self.player.creature.is_dead() {
+                self.over = true;
+                self.won = false;
+            }
+        }
     }
 
     /// 怪物 takeTurn 入队（演出类动作省略，见 parity-spec 豁免表）
@@ -461,10 +582,11 @@ impl Combat {
             self.monsters[i].creature.powers = keep;
             if poison_tick > 0 {
                 self.monsters[i].creature.hp -= poison_tick;
-                if self.monsters[i].creature.is_dead() && self.all_monsters_dead() {
-                    self.over = true;
-                    self.won = true;
-                    return;
+                if self.monsters[i].creature.is_dead() {
+                    self.on_monster_death(i);
+                    if self.over {
+                        return;
+                    }
                 }
             }
         }
@@ -510,10 +632,23 @@ impl Combat {
         match a {
             Q::DamageMonster { target, dmg } => {
                 if self.alive(target) {
+                    // Curl Up：首次受到非致死 NORMAL 伤害 → 获得 amount 格挡后移除
+                    // （onAttacked 在 decrementBlock 前触发，故本次伤害即被吸收）
+                    if dmg > 0 && dmg < self.monsters[target].creature.hp {
+                        if let Some(idx) = self.monsters[target]
+                            .creature
+                            .powers
+                            .iter()
+                            .position(|pw| pw.kind == PowerKind::CurlUp)
+                        {
+                            let amt = self.monsters[target].creature.powers[idx].amount;
+                            self.monsters[target].creature.powers.remove(idx);
+                            self.monsters[target].creature.block += amt;
+                        }
+                    }
                     self.monsters[target].creature.apply_damage(dmg);
-                    if self.all_monsters_dead() {
-                        self.over = true;
-                        self.won = true;
+                    if self.monsters[target].creature.is_dead() {
+                        self.on_monster_death(target);
                     }
                 }
             }
@@ -528,6 +663,23 @@ impl Combat {
                 if self.player.creature.is_dead() {
                     self.over = true;
                     self.won = false;
+                    return;
+                }
+                // Thorns：受击反弹（THORNS 直伤，不再触发对方荆棘/力量）
+                if let Some(amt) = self
+                    .player
+                    .creature
+                    .powers
+                    .iter()
+                    .find(|pw| pw.kind == PowerKind::Thorns)
+                    .map(|pw| pw.amount)
+                {
+                    if amt > 0 && self.alive(src) {
+                        self.monsters[src].creature.apply_damage(amt);
+                        if self.monsters[src].creature.is_dead() {
+                            self.on_monster_death(src);
+                        }
+                    }
                 }
             }
             Q::PlayerBlock(b) => self.player.creature.block += b,
@@ -552,13 +704,7 @@ impl Combat {
                 }
             }
             Q::ApplyPowerToSelf { kind, amount } => {
-                apply_power(
-                    &mut self.player.creature.powers,
-                    kind,
-                    amount,
-                    false,
-                    self.turn_has_ended,
-                );
+                self.apply_power_to_player_checked(kind, amount, false);
             }
             Q::Draw(n) => self.draw_cards(n.max(0) as usize),
             Q::GainEnergy(n) => self.player.energy += n,
@@ -576,6 +722,61 @@ impl Combat {
             Q::MakeDiscard(c) => self.player.discard.push(c),
             Q::RollMove(i) => self.roll_move(i),
         }
+    }
+
+    /// 怪物死亡钩子：Spore Cloud（对玩家施加易伤）→ 全灭判定
+    fn on_monster_death(&mut self, i: usize) {
+        if let Some(idx) = self.monsters[i]
+            .creature
+            .powers
+            .iter()
+            .position(|pw| pw.kind == PowerKind::SporeCloud)
+        {
+            let amt = self.monsters[i].creature.powers[idx].amount;
+            self.monsters[i].creature.powers.remove(idx);
+            self.apply_power_to_player_checked(PowerKind::Vulnerable, amt, true);
+        }
+        if self.all_monsters_dead() {
+            self.over = true;
+            self.won = true;
+        }
+    }
+
+    /// 对玩家施加 power：神器（Artifact）可抵消减益（Vulnerable/Weak/Frail/Poison）
+    pub(crate) fn apply_power_to_player_checked(
+        &mut self,
+        kind: PowerKind,
+        amount: i32,
+        source_is_monster: bool,
+    ) {
+        let debuff = matches!(
+            kind,
+            PowerKind::Vulnerable | PowerKind::Weak | PowerKind::Frail | PowerKind::Poison
+        );
+        if debuff {
+            if let Some(idx) = self
+                .player
+                .creature
+                .powers
+                .iter()
+                .position(|pw| pw.kind == PowerKind::Artifact)
+            {
+                if self.player.creature.powers[idx].amount > 0 {
+                    self.player.creature.powers[idx].amount -= 1;
+                    if self.player.creature.powers[idx].amount == 0 {
+                        self.player.creature.powers.remove(idx);
+                    }
+                    return; // 被神器抵消
+                }
+            }
+        }
+        apply_power(
+            &mut self.player.creature.powers,
+            kind,
+            amount,
+            source_is_monster,
+            self.turn_has_ended,
+        );
     }
 
     /// DrawCardAction + EmptyDeckShuffleAction：抽牌堆空 → 弃牌堆洗回（shuffleRng）
@@ -994,5 +1195,208 @@ mod tests {
         w2.determinize(2002);
         assert_eq!(w1.public_hash(), pub0);
         assert_eq!(w2.public_hash(), pub0);
+    }
+
+    fn pamount(c: &Combat, k: PowerKind) -> Option<i32> {
+        c.player
+            .creature
+            .powers
+            .iter()
+            .find(|p| p.kind == k)
+            .map(|p| p.amount)
+    }
+
+    /// 回合开始 power：Berserk/Energized 加能量、Energized 移除
+    #[test]
+    fn start_of_turn_energy_powers() {
+        let mut c = Combat::new_asc(1, 0);
+        apply_power(
+            &mut c.player.creature.powers,
+            PowerKind::Berserk,
+            2,
+            false,
+            false,
+        );
+        apply_power(
+            &mut c.player.creature.powers,
+            PowerKind::Energized,
+            2,
+            false,
+            false,
+        );
+        c.step(&Action::EndTurn);
+        assert_eq!(c.player.energy, 7, "3 + Berserk2 + Energized2");
+        assert!(pamount(&c, PowerKind::Energized).is_none());
+        assert_eq!(pamount(&c, PowerKind::Berserk), Some(2));
+    }
+
+    /// 恶魔形态：每回合开始 +2 力量
+    #[test]
+    fn demon_form_grows() {
+        let mut c = Combat::new_asc(2, 0);
+        apply_power(
+            &mut c.player.creature.powers,
+            PowerKind::DemonForm,
+            2,
+            false,
+            false,
+        );
+        c.step(&Action::EndTurn);
+        assert_eq!(pamount(&c, PowerKind::Strength), Some(2));
+        c.step(&Action::EndTurn);
+        assert_eq!(pamount(&c, PowerKind::Strength), Some(4));
+    }
+
+    /// 荆棘：受击反弹 3，THORNS 直伤
+    #[test]
+    fn thorns_reflects() {
+        let mut c = Combat::new_asc(3, 0);
+        apply_power(
+            &mut c.player.creature.powers,
+            PowerKind::Thorns,
+            3,
+            false,
+            false,
+        );
+        let hp0 = c.monsters[0].creature.hp;
+        c.monsters[0].next_move = 1; // 咬噬 11
+        c.step(&Action::EndTurn);
+        assert_eq!(c.player.creature.hp, 80 - 11);
+        assert_eq!(c.monsters[0].creature.hp, hp0 - 3);
+    }
+
+    /// 无形：FinalReceive 管线把伤害截为 1
+    #[test]
+    fn intangible_caps_damage() {
+        let mut c = Combat::new_asc(4, 0);
+        apply_power(
+            &mut c.player.creature.powers,
+            PowerKind::IntangiblePlayer,
+            1,
+            false,
+            false,
+        );
+        c.monsters[0].next_move = 1;
+        let hp0 = c.player.creature.hp;
+        c.step(&Action::EndTurn);
+        assert_eq!(c.player.creature.hp, hp0 - 1);
+    }
+
+    /// 神器：抵消一次减益后消失
+    #[test]
+    fn artifact_negates_debuff() {
+        let mut c = Combat::new_asc(5, 0);
+        apply_power(
+            &mut c.player.creature.powers,
+            PowerKind::Artifact,
+            1,
+            false,
+            false,
+        );
+        c.apply_power_to_player_checked(PowerKind::Vulnerable, 2, true);
+        assert!(pamount(&c, PowerKind::Vulnerable).is_none());
+        assert!(pamount(&c, PowerKind::Artifact).is_none());
+        c.apply_power_to_player_checked(PowerKind::Vulnerable, 2, true);
+        assert_eq!(pamount(&c, PowerKind::Vulnerable), Some(2));
+    }
+
+    /// 壁垒：回合开始保留剩余格挡
+    #[test]
+    fn barricade_retains_block() {
+        let mut c = Combat::new_asc(6, 0);
+        apply_power(
+            &mut c.player.creature.powers,
+            PowerKind::Barricade,
+            -1,
+            false,
+            false,
+        );
+        force_hand(&mut c, &["Defend_R", "Defend_R"]);
+        c.step(&Action::PlayCard {
+            index: 0,
+            target: None,
+        });
+        c.step(&Action::PlayCard {
+            index: 0,
+            target: None,
+        }); // 格挡 10
+        c.monsters[0].next_move = 3; // 抽打 7
+        c.step(&Action::EndTurn);
+        assert_eq!(c.player.creature.block, 3, "壁垒保留 10-7=3");
+    }
+
+    /// 燃烧：玩家 EOT 失 1 HP，对所有敌人造成 5（此时咆哮尚未发生、无格挡，直接掉血）
+    #[test]
+    fn combust_eot() {
+        let mut c = Combat::new_asc(7, 0);
+        apply_power(
+            &mut c.player.creature.powers,
+            PowerKind::Combust,
+            5,
+            false,
+            false,
+        );
+        let hp0 = c.monsters[0].creature.hp;
+        let php0 = c.player.creature.hp;
+        c.monsters[0].next_move = 2; // 咆哮不攻击，+6 格挡
+        c.step(&Action::EndTurn);
+        assert_eq!(c.player.creature.hp, php0 - 1);
+        assert_eq!(c.monsters[0].creature.hp, hp0 - 5);
+        assert_eq!(c.monsters[0].creature.block, 6, "咆哮在燃烧后结算");
+    }
+
+    /// 怒火：每张攻击牌 +3 格挡，非攻击不加，EOT 移除
+    #[test]
+    fn rage_blocks_per_attack() {
+        let mut c = Combat::new_asc(8, 0);
+        apply_power(
+            &mut c.player.creature.powers,
+            PowerKind::Rage,
+            3,
+            false,
+            false,
+        );
+        force_hand(&mut c, &["Strike_R", "Defend_R"]);
+        c.step(&Action::PlayCard {
+            index: 0,
+            target: Some(0),
+        });
+        assert_eq!(c.player.creature.block, 3);
+        c.step(&Action::PlayCard {
+            index: 0,
+            target: None,
+        });
+        assert_eq!(c.player.creature.block, 8);
+        c.step(&Action::EndTurn);
+        assert!(pamount(&c, PowerKind::Rage).is_none());
+    }
+
+    /// 暗之拥：消耗一张牌抽一张
+    #[test]
+    fn dark_embrace_draws_on_exhaust() {
+        let mut c = Combat::new_asc(9, 0);
+        apply_power(
+            &mut c.player.creature.powers,
+            PowerKind::DarkEmbrace,
+            1,
+            false,
+            false,
+        );
+        let def = CARDS
+            .iter()
+            .find(|d| d.flags.contains(&"exhaust") && engine_playable(d))
+            .expect("存在可玩消耗牌");
+        let old = std::mem::take(&mut c.player.hand);
+        c.player.draw.extend(old);
+        c.player.hand = vec![CardInst {
+            def,
+            upgraded: false,
+        }];
+        c.step(&Action::PlayCard {
+            index: 0,
+            target: None,
+        });
+        assert!(c.player.exhaust.iter().any(|x| x.def.id == def.id));
+        assert_eq!(c.player.hand.len(), 1, "消耗1张+暗之拥抽1张");
     }
 }
