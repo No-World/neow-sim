@@ -112,7 +112,13 @@ fn effect_supported(e: &Effect) -> bool {
         Effect::Channel(orb, x, _) => expr_ok(*x) && crate::state::OrbKind::from_id(orb).is_some(),
         Effect::EvokeLeftmost | Effect::EvokeNoRemove => true,
         Effect::OrbSlots(x) => expr_ok(*x),
-        Effect::ShuffleDraw | Effect::ForceEndTurn | Effect::DiscardNonAttacks => true,
+        Effect::ShuffleDraw
+        | Effect::ForceEndTurn
+        | Effect::DiscardNonAttacks
+        | Effect::DiscardAllHand
+        | Effect::SetHandCostZero
+        | Effect::ExhaustHand => true,
+        Effect::VampireMaxHp(x) => expr_ok(*x),
         Effect::IfIntentAttack(x) => expr_ok(*x),
         Effect::GainBlock(x)
         | Effect::VampireDamageAll(x)
@@ -120,8 +126,8 @@ fn effect_supported(e: &Effect) -> bool {
         | Effect::ExhaustNonAttacks(x)
         | Effect::DamagePerAttack(x) => expr_ok(*x),
         Effect::ModifyPower(_, pid, _) => ENGINE_POWERS.contains(pid),
-        // ExhaustHand（ExhaustAction 弃牌语义待核）与其余未知动作暂不可玩
-        Effect::ExhaustHand | Effect::Unsupported(_) => false,
+        // 其余未知动作暂不可玩
+        Effect::Unsupported(_) => false,
     }
 }
 

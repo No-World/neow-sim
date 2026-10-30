@@ -104,6 +104,14 @@ enum Q {
     OrbSlots(i32),
     ShuffleDraw,
     GainBlock(i32),
+    DoDiscardAllHand,
+    DoSetHandCostZero,
+    DoExhaustHand,
+    VampireMaxHp {
+        target: usize,
+        base: i32,
+        max_hp_gain: i32,
+    },
     IfIntentAttack {
         target: usize,
         str_gain: i32,
@@ -177,6 +185,7 @@ pub struct Combat {
     /// 选择屏挂起时暂存的动作队列
     pending_queue: Option<Vec<Q>>,
     pub attacks_this_turn: i32,
+    hand_cost_zero_this_turn: bool,
     force_end_turn_after_queue: bool,
     pub turn: i32,
     pub turn_has_ended: bool,
@@ -231,6 +240,7 @@ impl Combat {
             pending: None,
             pending_queue: None,
             attacks_this_turn: 0,
+            hand_cost_zero_this_turn: false,
             force_end_turn_after_queue: false,
             turn: 1,
             turn_has_ended: false,
@@ -420,6 +430,7 @@ impl Combat {
             Expr::BlockBase => card.base_block().unwrap_or(0),
             Expr::CurrentBlock => self.player.creature.block,
             Expr::XCost => x_cost,
+            Expr::HandSize => self.player.hand.len() as i32,
             Expr::Const(_) | Expr::Raw(_) => unreachable!("can_play 已过滤不可求值表达式"),
         }
     }
@@ -621,6 +632,17 @@ impl Combat {
             Effect::EvokeNoRemove => q.push(Q::EvokeNoRemove),
             Effect::OrbSlots(e) => q.push(Q::OrbSlots(self.eval(e, card, x_cost))),
             Effect::ShuffleDraw => q.push(Q::ShuffleDraw),
+            Effect::DiscardAllHand => q.push(Q::DoDiscardAllHand),
+            Effect::SetHandCostZero => q.push(Q::DoSetHandCostZero),
+            Effect::VampireMaxHp(e) => {
+                let gain = self.eval(e, card, x_cost);
+                q.push(Q::VampireMaxHp {
+                    target: ti,
+                    base: card.base_damage().unwrap_or(0),
+                    max_hp_gain: gain,
+                });
+            }
+            Effect::ExhaustHand => q.push(Q::DoExhaustHand),
             Effect::IfIntentAttack(e) => q.push(Q::IfIntentAttack {
                 target: ti,
                 str_gain: self.eval(e, card, x_cost),
@@ -656,7 +678,7 @@ impl Combat {
                 target: ti,
                 base: self.eval(e, card, x_cost),
             }),
-            Effect::ExhaustHand | Effect::Unsupported(_) => {
+            Effect::Unsupported(_) => {
                 unreachable!("can_play 已过滤不可玩效果")
             }
             Effect::Damage(_, _) => unreachable!("can_play 已过滤非敌方目标伤害"),
@@ -843,6 +865,7 @@ impl Combat {
         }
         self.turn += 1;
         self.attacks_this_turn = 0;
+        self.hand_cost_zero_this_turn = false;
         self.turn_has_ended = false;
         // ── 下回合开始序列（GameActionManager turn-start 分支）──
         // ① startOfTurnPowers（pre）：Berserk +能量；Energized（onEnergyRecharge）+能量后移除
@@ -1301,6 +1324,52 @@ impl Combat {
                 let mut pile = std::mem::take(&mut self.player.draw);
                 card_group_shuffle(&mut pile, &mut self.rng.shuffle);
                 self.player.draw = pile;
+            }
+            Q::DoDiscardAllHand => {
+                let cards = std::mem::take(&mut self.player.hand);
+                self.player.discard.extend(cards);
+            }
+            Q::DoSetHandCostZero => {
+                // BulletTime：本回合手牌全部免费（setCostForTurn(-9)）
+                self.hand_cost_zero_this_turn = true;
+            }
+            Q::DoExhaustHand => {
+                let cards = std::mem::take(&mut self.player.hand);
+                let n = cards.len();
+                self.player.exhaust.extend(cards);
+                // onExhaust 钩子：Dark Embrace
+                if let Some(de) = self
+                    .player
+                    .creature
+                    .powers
+                    .iter()
+                    .find(|p| p.kind == PowerKind::DarkEmbrace)
+                    .map(|p| p.amount)
+                {
+                    self.draw_cards(de as usize * n);
+                }
+            }
+            Q::VampireMaxHp {
+                target,
+                base,
+                max_hp_gain,
+            } => {
+                if self.alive(target) {
+                    let d = calc_player_card_damage(
+                        base,
+                        DamageType::Normal,
+                        &self.player.creature.powers,
+                        &self.monsters[target].creature.powers,
+                        self.player.stance,
+                    );
+                    self.monsters[target].creature.apply_damage(d);
+                    if self.monsters[target].creature.is_dead() {
+                        // FeedAction：击杀时增加最大生命
+                        self.player.creature.max_hp += max_hp_gain;
+                        self.player.creature.hp += max_hp_gain;
+                        self.on_monster_death(target);
+                    }
+                }
             }
             Q::IfIntentAttack { target, str_gain } => {
                 // SpotWeaknessAction：意图基伤 >= 0 时获得力量

@@ -28,6 +28,8 @@ pub enum Expr {
     /// X 费能量
     XCost,
     /// 源码常量名（数值在提取表已解析时不再出现）
+    /// 当前手牌数（运行时求值）
+    HandSize,
     Const(&'static str),
     /// 未解析表达式（待手移植）
     Raw(&'static str),
@@ -90,6 +92,12 @@ pub enum Effect {
     IfIntentAttack(Expr),
     /// 弃掉所有非攻击手牌（UnloadAction/Unload）
     DiscardNonAttacks,
+    /// 弃掉全部手牌（BladeFury/CalculatedGamble/重复弃）
+    DiscardAllHand,
+    /// 本回合手牌全部免费（BulletTime：setCostForTurn(-9)）
+    SetHandCostZero,
+    /// 伤害 + 击杀时增加最大生命（FeedAction）
+    VampireMaxHp(Expr),
     /// 未支持动作（值为 Java 动作类名）——手移植清单
     Unsupported(&'static str),
 }

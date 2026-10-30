@@ -24,7 +24,7 @@ def expr_rs(e) -> str:
     if isinstance(e, str):
         return {"Magic": "Expr::Magic", "DamageBase": "Expr::DamageBase",
                 "BlockBase": "Expr::BlockBase", "CurrentBlock": "Expr::CurrentBlock",
-                "XCost": "Expr::XCost"}.get(e, f"Expr::Raw({s(e)})")
+                "XCost": "Expr::XCost", "HandSize": "Expr::HandSize"}.get(e, f"Expr::Raw({s(e)})")
     if isinstance(e, dict):
         if "Const" in e:
             return f"Expr::Const({s(e['Const'])})"
@@ -91,6 +91,12 @@ def effect_rs(eff) -> str:
         return "Effect::EvokeLeftmost"
     if "EvokeNoRemove" in eff:
         return "Effect::EvokeNoRemove"
+    if "DiscardAllHand" in eff:
+        return "Effect::DiscardAllHand"
+    if "SetHandCostZero" in eff:
+        return "Effect::SetHandCostZero"
+    if "VampireMaxHp" in eff:
+        return f"Effect::VampireMaxHp({expr_rs(eff['VampireMaxHp'])})"
     if "IfIntentAttack" in eff:
         return f"Effect::IfIntentAttack({expr_rs(eff['IfIntentAttack'])})"
     if "DiscardNonAttacks" in eff:

@@ -606,8 +606,8 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: Some(1),
         upg_base_cost: None,
         flags: &["exhaust"],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("FeedAction")],
+        status: "parsed_branch",
+        effects: &[Effect::Damage(Target::Enemy, Expr::DamageBase)],
     },
     CardDef {
         id: "Feel No Pain",
@@ -648,8 +648,11 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &["exhaust"],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("FiendFireAction")],
+        status: "parsed",
+        effects: &[Effect::Repeat(
+            Expr::HandSize,
+            &[Effect::Damage(Target::Enemy, Expr::DamageBase)],
+        )],
     },
     CardDef {
         id: "Fire Breathing",
@@ -1883,10 +1886,10 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: Some(2),
         flags: &[],
-        status: "unsupported",
+        status: "parsed",
         effects: &[
             Effect::ApplyPower(Target::SelfC, "NoDrawPower", Expr::N(1)),
-            Effect::Unsupported("ApplyBulletTimeAction"),
+            Effect::SetHandCostZero,
         ],
     },
     CardDef {
@@ -1924,8 +1927,8 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &["exhaust"],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("CalculatedGambleAction")],
+        status: "parsed",
+        effects: &[Effect::Draw(Expr::HandSize)],
     },
     CardDef {
         id: "Caltrops",
@@ -2989,8 +2992,8 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("BladeFuryAction")],
+        status: "parsed",
+        effects: &[Effect::MakeInHand("Shiv", Expr::HandSize)],
     },
     CardDef {
         id: "Strike_G",

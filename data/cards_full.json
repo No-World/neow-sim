@@ -4,10 +4,10 @@
   "note": "use() 效果 DSL；Unsupported 需手移植"
  },
  "stats": {
-  "parsed": 249,
-  "parsed_branch": 53,
+  "parsed": 253,
+  "parsed_branch": 54,
   "no_use": 0,
-  "unsupported": 73
+  "unsupported": 68
  },
  "data": [
   {
@@ -836,13 +836,14 @@
    },
    "effects": [
     {
-     "Unsupported": "FeedAction"
+     "Damage": [
+      "Enemy",
+      "DamageBase"
+     ],
+     "VampireMaxHp": "Magic"
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "FeedAction"
-   ]
+   "status": "parsed_branch"
   },
   {
    "id": "Feel No Pain",
@@ -891,13 +892,20 @@
    },
    "effects": [
     {
-     "Unsupported": "FiendFireAction"
+     "Repeat": [
+      "HandSize",
+      [
+       {
+        "Damage": [
+         "Enemy",
+         "DamageBase"
+        ]
+       }
+      ]
+     ]
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "FiendFireAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Fire Breathing",
@@ -2612,13 +2620,10 @@
      ]
     },
     {
-     "Unsupported": "ApplyBulletTimeAction"
+     "SetHandCostZero": 1
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "ApplyBulletTimeAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Burst",
@@ -2665,13 +2670,11 @@
    "upgrade": {},
    "effects": [
     {
-     "Unsupported": "CalculatedGambleAction"
+     "DiscardAllHand": 1,
+     "Draw": "HandSize"
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "CalculatedGambleAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Caltrops",
@@ -4158,13 +4161,14 @@
    "upgrade": {},
    "effects": [
     {
-     "Unsupported": "BladeFuryAction"
+     "DiscardAllHand": 1,
+     "MakeInHand": [
+      "Shiv",
+      "HandSize"
+     ]
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "BladeFuryAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Strike_G",

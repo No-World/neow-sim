@@ -197,6 +197,16 @@ def classify_action(cls: str, args: str, consts: dict, overrides: dict, lvars: d
             else:
                 n = {"Raw": "-x"}
         return {"OrbSlots": n}
+    if cls == "FiendFireAction":
+        return {"Repeat": ["HandSize", [{"Damage": ["Enemy", "DamageBase"]}]]}
+    if cls == "BladeFuryAction":
+        return {"DiscardAllHand": 1, "MakeInHand": ["Shiv", "HandSize"]}
+    if cls == "CalculatedGambleAction":
+        return {"DiscardAllHand": 1, "Draw": "HandSize"}
+    if cls == "ApplyBulletTimeAction":
+        return {"SetHandCostZero": 1}
+    if cls == "FeedAction":
+        return {"Damage": ["Enemy", "DamageBase"], "VampireMaxHp": "Magic"}
     if cls == "SpotWeaknessAction":
         # (targetMonster, damageIncrease)：意图有伤害时获得力量
         n = expr(parts[1], consts, overrides, lvars) if len(parts) > 1 else 3
@@ -344,9 +354,13 @@ def scan_actions(text: str, consts: dict, overrides: dict, lvars: dict, depth: i
             if cls.endswith("Action"):
                 eff = classify_action(cls, args, consts, overrides, lvars)
                 if eff is not None:
-                    effects.append(eff)
-                    if "Unsupported" in eff:
-                        unsupported.append(eff["Unsupported"])
+                    if isinstance(eff, list):
+                        for e2 in eff:
+                            effects.append(e2)
+                    else:
+                        effects.append(eff)
+                        if "Unsupported" in eff:
+                            unsupported.append(eff["Unsupported"])
             i = end + 1
     return effects, unsupported
 
