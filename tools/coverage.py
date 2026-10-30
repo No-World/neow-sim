@@ -242,7 +242,7 @@ md = f"""# 覆盖率审计（自动生成：tools/coverage.py）
 | 怪物 | {len(monsters)}/73 ✅ | {MONSTERS_IMPL}/73（MonsterKind 逐只手写，Act 1 全覆盖） |
 | power | {len(powers)} 条 ✅ | {POWERS_IMPL} 种（PowerKind 枚举，含钩子行为） |
 | 遗物 | {len(relics)} 条 ✅ | 0（战斗内主动遗物待做） |
-| 药水 | {len(potions)} 条 ✅ | {POTIONS_IMPL}/{len(potions)}（PotionSlot 占位除外全部可执行；掉落采样原语就绪） |
+| 药水 | {len(potions)} 条 ✅ | {POTIONS_IMPL}/{len(potions)}（可执行药水全量；第 43 条为 PotionSlot 占位符——游戏用它表示空栏，引擎用 `Option::None` 等价建模，非待办） |
 | 角色 | {len(chars)}/4 ✅ | 1/4（铁甲，无角色专属机制） |
 
 ## 系统层
