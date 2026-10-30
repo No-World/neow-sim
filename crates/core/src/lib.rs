@@ -18,6 +18,7 @@ pub mod combat;
 pub mod damage;
 pub mod effects;
 pub mod generated;
+pub mod potions;
 pub mod powers;
 pub mod rng;
 pub mod state;

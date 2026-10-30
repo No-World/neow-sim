@@ -5,6 +5,7 @@
 用法: python3 coverage.py <data_dir> <repo_root>
 """
 import json
+import re
 import subprocess
 import sys
 from collections import Counter
@@ -26,7 +27,30 @@ chars = json.loads((DATA / "characters.json").read_text(encoding="utf-8"))["data
 ENGINE_POWERS = {"Strength", "Vulnerable", "Weakened", "Frail", "Ritual",
                  "LoseStrengthPower", "Dexterity", "Poison", "Metallicize", "Regeneration",
                  "Demon Form", "Berserk", "Brutality", "Barricade", "Thorns", "Artifact",
-                 "IntangiblePlayer", "Energized", "Combust", "Dark Embrace", "Rage", "Focus"}
+                 "IntangiblePlayer", "Energized", "Combust", "Dark Embrace", "Rage", "Focus",
+                 "Plated Armor"}
+
+
+# ── 引擎实现量自动统计（直接读 Rust 源，避免手工维护过期） ──
+CORE = ROOT / "neow-sim" / "crates" / "core" / "src"
+
+
+def _count_enum(path: Path, enum_name: str) -> int:
+    """枚举变体计数（取 enum 块到第一个 '}' 的顶层变体数）"""
+    if not path.exists():
+        return 0
+    src = path.read_text(encoding="utf-8")
+    m = re.search(rf"enum {enum_name}\s*\{{", src)
+    if not m:
+        return 0
+    body = src[m.end(): src.find("}", m.end())]
+    return sum(1 for line in body.splitlines()
+               if line.strip() and not line.strip().startswith("//"))
+
+
+MONSTERS_IMPL = _count_enum(CORE / "state.rs", "MonsterKind")
+POWERS_IMPL = _count_enum(CORE / "powers.rs", "PowerKind")
+POTIONS_IMPL = _count_enum(CORE / "potions.rs", "PotionKind")
 
 
 CLASS_NAMES = {c["class"] for c in cards["data"]}
@@ -215,10 +239,10 @@ md = f"""# 覆盖率审计（自动生成：tools/coverage.py）
 
 | 内容 | 数据提取 | 行为实现 |
 |---|---|---|
-| 怪物 | {len(monsters)}/73 ✅ | 2/73（颚虫/邪教徒，手写行为） |
-| power | {len(powers)} 条 ✅ | 11 种（Strength/易伤/虚弱/脆弱/Ritual/LoseStrength/敏捷/毒/金属化/再生） |
+| 怪物 | {len(monsters)}/73 ✅ | {MONSTERS_IMPL}/73（MonsterKind 逐只手写，Act 1 全覆盖） |
+| power | {len(powers)} 条 ✅ | {POWERS_IMPL} 种（PowerKind 枚举，含钩子行为） |
 | 遗物 | {len(relics)} 条 ✅ | 0（战斗内主动遗物待做） |
-| 药水 | {len(potions)} 条 ✅ | 0 |
+| 药水 | {len(potions)} 条 ✅ | {POTIONS_IMPL}/{len(potions)}（PotionSlot 占位除外全部可执行；掉落采样原语就绪） |
 | 角色 | {len(chars)}/4 ✅ | 1/4（铁甲，无角色专属机制） |
 
 ## 系统层
@@ -229,9 +253,10 @@ md = f"""# 覆盖率审计（自动生成：tools/coverage.py）
 | 数值管线（calculateCardDamage 等 3 条，f32 逐位） | ✅ |
 | RNG 13 流 + 洗牌管线（黄金向量对拍） | ✅ |
 | 诚实型搜索 API（Clone/determinize/public_hash） | ✅ |
-| 战斗内选择屏（hand/grid select、Scry） | ❌ |
-| 充能球（Defect）/姿态（Watcher） | ❌ |
-| 药水/主动遗物 | ❌ |
+| 战斗内选择屏（hand/grid select、Scry、探素、姿态选择） | ✅ |
+| 充能球（Defect）/姿态（Watcher） | ✅ |
+| 药水系统（使用/丢弃/免死/掉落采样） | ✅ |
+| 主动遗物 | ❌ |
 | 地图/事件/商店/休息/奖励（M3） | ❌ |
 | pyo3 Python 绑定 | ❌ |
 | **L1/L2 对拍（无误的最终裁判）** | ❌ 未开始（依赖 bridge） |

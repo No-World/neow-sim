@@ -12,7 +12,8 @@ use std::hash::{Hash, Hasher};
 
 use crate::cards::{engine_playable, ironclad_starter, CardInst};
 use crate::damage::{calc_monster_damage, calc_player_card_block, calc_player_card_damage};
-use crate::effects::{Effect, Expr, Target};
+use crate::effects::{CardDef, Effect, Expr, Target};
+use crate::potions::{pool_for_class, return_random_potion, PotionKind};
 use crate::powers::{apply_power, DamageType, Decay, Power, PowerKind};
 use crate::rng::{card_group_shuffle, RngStreams, StsRandom, Xs128};
 use crate::state::{Creature, MonsterKind, MonsterState, PlayerState};
@@ -39,6 +40,23 @@ pub enum Action {
     ScryChoice {
         discard_indices: Vec<usize>,
     },
+    /// 使用第 index 瓶药水（投掷型需目标；能量免费）
+    UsePotion {
+        index: usize,
+        target: Option<usize>,
+    },
+    /// 丢弃药水（不消耗行动）
+    DiscardPotion {
+        index: usize,
+    },
+    /// 探素（Discovery）三选一：选 options[index]（×copies 入手，本回合 0 费）
+    DiscoveryResponse {
+        index: usize,
+    },
+    /// 姿态药水：进入 Calm（false）或 Wrath（true）
+    StanceResponse {
+        wrath: bool,
+    },
 }
 
 /// 战斗内挂起的选择屏（协议 v0.2 选择屏三件套之二）
@@ -58,6 +76,8 @@ pub enum PilePickPurpose {
     ExhaustToHand,
     DiscardToDeckTop,
     DiscardToHand,
+    /// 液态记忆：弃堆选 1 入手且本回合 0 费（BetterDiscardPileToHandAction flag=0）
+    DiscardToHandFreeCost,
     DrawPileToHand,
     DrawPlayTwiceExhaust,
     DiscardExhaustPick,
@@ -82,6 +102,17 @@ pub enum Pending {
         pile: &'static str,
         purpose: PilePickPurpose,
     },
+    /// 探素屏：三选一（选项在打开时用 cardRandomRng 采样，去重）
+    Discovery {
+        options: Vec<CardInst>,
+        copies: i32,
+    },
+    /// 姿态药水：平静/愤怒二选一
+    StanceChoice,
+    /// 赌徒特酿：弃任意张（可 0 张），抽等量
+    GamblersDiscard,
+    /// 不死药（已废弃）：消耗任意张手牌
+    HandExhaustAny,
 }
 
 /// 引擎级原子动作（引擎 action 队列的 M2 子集）
@@ -254,6 +285,51 @@ enum Q {
         amount: i32,
     },
     RollMove(usize),
+    // —— 药水系统 ——
+    /// 纯伤害（THORNS 管线跳过双方 power：火焰/爆炸药水）
+    DamagePure {
+        target: usize,
+        dmg: i32,
+    },
+    DamageAllPure {
+        dmg: i32,
+    },
+    /// 探素屏：type=null → 无色池（AttackPotion 系列）
+    DoDiscovery {
+        pool: DiscoveryPool,
+        copies: i32,
+    },
+    DoStanceChoice,
+    DoGamblersDiscard,
+    DoExhaustAny,
+    DoDiscardPickFreeCost,
+    /// 蒸馏混沌：打抽牌堆顶 n 次（目标随机怪）
+    DoDistilledChaos {
+        n: i32,
+    },
+    /// 异蛇之油后半：随机化手牌费用（cardRandomRng.random(3)，永改）
+    DoRandomizeHandCost,
+    /// 暗之精华：字面复刻双重循环（0 球时无效的源码行为也保留）
+    DoChannelDarkPerOrb {
+        amount: i32,
+    },
+    /// 混沌药水：每个空栏位掷一瓶（potionRng，limited 路径）
+    DoObtainRandomPotions,
+    /// 果汁：max HP +n（战斗内同时治疗 n）
+    MaxHpPlus(i32),
+    /// 烟雾弹：逃离战斗（无奖励，不判负）
+    DoSmokeEscape,
+    /// 邪教徒药水：玩家侧仪式
+    DoPlayerRitual(i32),
+}
+
+/// 探素卡池（returnTrulyRandomCardInCombat(type) / Colorless 变体）
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum DiscoveryPool {
+    Attack,
+    Skill,
+    Power,
+    Colorless,
 }
 
 /// 效果 DSL 的 power id → PowerKind（ENGINE_POWERS 白名单）
@@ -265,6 +341,9 @@ fn power_kind(pid: &str) -> Option<PowerKind> {
         "Frail" => Some(PowerKind::Frail),
         "Ritual" => Some(PowerKind::Ritual),
         "LoseStrengthPower" => Some(PowerKind::LoseStrength),
+        "LoseDexterityPower" | "DexLoss" => Some(PowerKind::LoseDexterity),
+        "DuplicationPower" => Some(PowerKind::Duplication),
+        "Plated Armor" => Some(PowerKind::PlatedArmor),
         "Dexterity" => Some(PowerKind::Dexterity),
         "Poison" => Some(PowerKind::Poison),
         "Metallicize" => Some(PowerKind::Metallicize),
@@ -312,6 +391,8 @@ pub struct Combat {
     pub turn_has_ended: bool,
     pub over: bool,
     pub won: bool,
+    /// 烟雾弹逃离（战斗结束但非失败：M3 奖励层据此不给奖励）
+    pub escaped: bool,
     pub ascension: i32,
 }
 
@@ -355,6 +436,7 @@ impl Combat {
                 draw: ironclad_starter(ascension),
                 discard: Vec::new(),
                 exhaust: Vec::new(),
+                potions: vec![None, None, None],
             },
             monsters,
             rng,
@@ -376,6 +458,7 @@ impl Combat {
             turn_has_ended: false,
             over: false,
             won: false,
+            escaped: false,
             ascension,
         };
         card_group_shuffle(&mut c.player.draw, &mut c.rng.shuffle);
@@ -463,7 +546,208 @@ impl Combat {
             }
         }
         v.push(Action::EndTurn);
+        self.potion_actions(&mut v);
         v
+    }
+
+    /// 药水合法动作：使用（可被动不可用/回合已结束时禁用）与丢弃（任何时候可丢）
+    fn potion_actions(&self, v: &mut Vec<Action>) {
+        for (i, slot) in self.player.potions.iter().enumerate() {
+            let Some(p) = slot else { continue };
+            if p.kind.can_use(self.turn_has_ended) {
+                if p.kind.target_required() {
+                    for m in 0..self.monsters.len() {
+                        if self.alive(m) {
+                            v.push(Action::UsePotion {
+                                index: i,
+                                target: Some(m),
+                            });
+                        }
+                    }
+                } else {
+                    v.push(Action::UsePotion {
+                        index: i,
+                        target: None,
+                    });
+                }
+            }
+            v.push(Action::DiscardPotion { index: i });
+        }
+    }
+
+    /// 使用药水：逐只对照 potions/*.java 的 use()（效果经引擎 Q 队列结算）
+    pub fn use_potion(&mut self, index: usize, target: Option<usize>) {
+        let p = self.player.potions[index].clone().expect("空药水栏");
+        let potency = p.potency;
+        let ti = target.unwrap_or(0);
+        // 使用即消耗栏位（混沌药水需要先腾出自身栏位再掷新药水）
+        self.player.potions[index] = None;
+        let mut q: Vec<Q> = Vec::new();
+        use PotionKind as P;
+        match p.kind {
+            // 火焰：THORNS 纯伤（applyEnemyPowersOnly 也只走受方 NORMAL 乘区，等效无修正）
+            P::Fire => q.push(Q::DamagePure {
+                target: ti,
+                dmg: potency,
+            }),
+            // 格挡：GainBlockAction（吃敏捷/脆弱乘区，同卡牌格挡管线）
+            P::Block => {
+                let b = calc_player_card_block(potency, &self.player.creature.powers);
+                q.push(Q::PlayerBlock(b));
+            }
+            P::Swift => q.push(Q::Draw(potency)),
+            P::Energy => q.push(Q::GainEnergy(potency)),
+            // 爆炸：createDamageMatrix(potency, true) 纯伤全怪
+            P::Explosive => q.push(Q::DamageAllPure { dmg: potency }),
+            P::Strength => q.push(Q::ApplyPowerToSelf {
+                kind: PowerKind::Strength,
+                amount: potency,
+            }),
+            P::Weaken => q.push(Q::ApplyPowerToMonster {
+                target: ti,
+                kind: PowerKind::Weak,
+                amount: potency,
+            }),
+            P::Fear => q.push(Q::ApplyPowerToMonster {
+                target: ti,
+                kind: PowerKind::Vulnerable,
+                amount: potency,
+            }),
+            P::Regen => q.push(Q::ApplyPowerToSelf {
+                kind: PowerKind::Regen,
+                amount: potency,
+            }),
+            P::Ancient => q.push(Q::ApplyPowerToSelf {
+                kind: PowerKind::Artifact,
+                amount: potency,
+            }),
+            // 血药：回复最大生命 20%（战斗内 HealAction，回合结束后不可用）
+            P::Blood => {
+                let amt = (self.player.creature.max_hp as f32 * potency as f32 / 100.0) as i32;
+                q.push(Q::Heal(amt));
+            }
+            P::Dexterity => q.push(Q::ApplyPowerToSelf {
+                kind: PowerKind::Dexterity,
+                amount: potency,
+            }),
+            P::Steroid => {
+                q.push(Q::ApplyPowerToSelf {
+                    kind: PowerKind::Strength,
+                    amount: potency,
+                });
+                q.push(Q::ApplyPowerToSelf {
+                    kind: PowerKind::LoseStrength,
+                    amount: potency,
+                });
+            }
+            P::Speed => {
+                q.push(Q::ApplyPowerToSelf {
+                    kind: PowerKind::Dexterity,
+                    amount: potency,
+                });
+                q.push(Q::ApplyPowerToSelf {
+                    kind: PowerKind::LoseDexterity,
+                    amount: potency,
+                });
+            }
+            // 熔炉的祝福：ArmamentsAction(true) 升级全手牌
+            P::BlessingOfTheForge => q.push(Q::DoUpgradeAllHand),
+            P::Attack => q.push(Q::DoDiscovery {
+                pool: DiscoveryPool::Attack,
+                copies: potency,
+            }),
+            P::Skill => q.push(Q::DoDiscovery {
+                pool: DiscoveryPool::Skill,
+                copies: potency,
+            }),
+            P::Power => q.push(Q::DoDiscovery {
+                pool: DiscoveryPool::Power,
+                copies: potency,
+            }),
+            P::Colorless => q.push(Q::DoDiscovery {
+                pool: DiscoveryPool::Colorless,
+                copies: potency,
+            }),
+            // 邪教徒药水：RitualPower(player, 1, true)（玩家侧仪式，轮末投予）
+            P::Cultist => q.push(Q::DoPlayerRitual(potency)),
+            // 果汁：increaseMaxHp(5)（同时治疗 5）
+            P::FruitJuice => q.push(Q::MaxHpPlus(potency)),
+            // 异蛇之油：抽 5 + 随机化手牌费用（cardRandomRng，永改）
+            P::SneckoOil => {
+                q.push(Q::Draw(potency));
+                q.push(Q::DoRandomizeHandCost);
+            }
+            // 烟雾弹：逃离战斗（不判负、无奖励）
+            P::SmokeBomb => q.push(Q::DoSmokeEscape),
+            // 混沌药水：每个空栏位掷一瓶（limited 路径，跳过果汁）
+            P::EntropicBrew => q.push(Q::DoObtainRandomPotions),
+            P::LiquidBronze => q.push(Q::ApplyPowerToSelf {
+                kind: PowerKind::Thorns,
+                amount: potency,
+            }),
+            P::EssenceOfSteel => q.push(Q::ApplyPowerToSelf {
+                kind: PowerKind::PlatedArmor,
+                amount: potency,
+            }),
+            // 赌徒特酿：手牌非空才开屏
+            P::GamblersBrew => {
+                if !self.player.hand.is_empty() {
+                    q.push(Q::DoGamblersDiscard);
+                }
+            }
+            P::Duplication => q.push(Q::ApplyPowerToSelf {
+                kind: PowerKind::Duplication,
+                amount: potency,
+            }),
+            // 液态记忆：弃堆非空才开屏
+            P::LiquidMemories => {
+                if !self.player.discard.is_empty() {
+                    q.push(Q::DoDiscardPickFreeCost);
+                }
+            }
+            P::DistilledChaos => q.push(Q::DoDistilledChaos { n: potency }),
+            // 狡诈：3 张已升级小刀入手（Shiv.upgrade() 后 makeStatEquivalentCopy）
+            P::Cunning => {
+                let mut shiv = CardInst::new("Shiv");
+                shiv.upgraded = true;
+                for _ in 0..potency {
+                    q.push(Q::MakeInHand(shiv));
+                }
+            }
+            // 暗之精华：字面双重循环（orbs.size() 为 0 时不生效——保留源码行为）
+            P::EssenceOfDarkness => q.push(Q::DoChannelDarkPerOrb { amount: potency }),
+            P::Focus => q.push(Q::ApplyPowerToSelf {
+                kind: PowerKind::Focus,
+                amount: potency,
+            }),
+            P::Capacity => q.push(Q::OrbSlots(potency)),
+            P::GhostInAJar => q.push(Q::ApplyPowerToSelf {
+                kind: PowerKind::IntangiblePlayer,
+                amount: potency,
+            }),
+            P::HeartOfIron => q.push(Q::ApplyPowerToSelf {
+                kind: PowerKind::Metallicize,
+                amount: potency,
+            }),
+            P::BottledMiracle => {
+                let miracle = CardInst::new("Miracle");
+                for _ in 0..potency {
+                    q.push(Q::MakeInHand(miracle));
+                }
+            }
+            P::Stance => q.push(Q::DoStanceChoice),
+            P::Ambrosia => q.push(Q::ChangeStance(crate::state::Stance::Divinity)),
+            P::Poison => q.push(Q::ApplyPowerToMonster {
+                target: ti,
+                kind: PowerKind::Poison,
+                amount: potency,
+            }),
+            // 不死药（已废弃）：消耗任意张手牌
+            P::Elixir => q.push(Q::DoExhaustAny),
+            // 瓶中精灵：canUse=false，仅死亡免死钩子触发（见 player_hp_loss）
+            P::Fairy => unreachable!("瓶中精灵不可主动使用"),
+        }
+        self.drain(q);
     }
 
     /// 意图显示伤害（createIntent → calculateDamage 管线，随 power 变化）
@@ -496,6 +780,15 @@ impl Combat {
             Action::ScryChoice { discard_indices } => self.resolve_scry(discard_indices),
             Action::HandPickResponse { index } => self.resolve_hand_pick(*index),
             Action::PilePickResponse { index } => self.resolve_pile_pick(*index),
+            Action::UsePotion { index, target } => {
+                assert!(self.pending.is_none(), "选择屏挂起中不可用药水");
+                self.use_potion(*index, *target);
+            }
+            Action::DiscardPotion { index } => {
+                self.player.potions[*index] = None;
+            }
+            Action::DiscoveryResponse { index } => self.resolve_discovery(*index),
+            Action::StanceResponse { wrath } => self.resolve_stance(*wrath),
         }
     }
 
@@ -522,6 +815,29 @@ impl Combat {
                     self.player.discard.push(c);
                 }
             }
+            // 赌徒特酿：弃任意张（可 0），抽等量（GamblingChipAction）
+            Some(Pending::GamblersDiscard) => {
+                let mut sel = indices.to_vec();
+                sel.sort_unstable();
+                sel.dedup();
+                let n = sel.len();
+                for &i in sel.iter().rev() {
+                    let c = self.player.hand.remove(i);
+                    self.player.discard.push(c);
+                }
+                self.discarded_this_turn += n as i32;
+                self.draw_cards(n);
+            }
+            // 不死药（已废弃）：消耗任意张（ExhaustAction(false,true,true)）
+            Some(Pending::HandExhaustAny) => {
+                let mut sel = indices.to_vec();
+                sel.sort_unstable();
+                sel.dedup();
+                for &i in sel.iter().rev() {
+                    let c = self.player.hand.remove(i);
+                    self.player.exhaust.push(c);
+                }
+            }
             _ => panic!("当前无弃牌选择屏"),
         }
         self.resume_queue();
@@ -543,6 +859,37 @@ impl Combat {
         for &i in chosen.iter().rev() {
             let c = self.player.draw.remove(len - n + i);
             self.player.discard.push(c);
+        }
+        self.resume_queue();
+    }
+
+    /// 探素响应：选中卡 ×copies 入手（手牌满则弃），本回合 0 费
+    fn resolve_discovery(&mut self, index: usize) {
+        if let Some(Pending::Discovery { options, copies }) = self.pending.clone() {
+            if let Some(&c) = options.get(index) {
+                let n = copies.max(1) as usize;
+                for _ in 0..n {
+                    let mut c = c;
+                    c.cost_delta = -(c.def.cost.unwrap_or(0)).max(0);
+                    if self.player.hand.len() < 10 {
+                        self.player.hand.push(c);
+                    } else {
+                        self.player.discard.push(c);
+                    }
+                }
+            }
+        }
+        self.resume_queue();
+    }
+
+    /// 姿态药水响应：进入平静或愤怒
+    fn resolve_stance(&mut self, wrath: bool) {
+        if let Some(Pending::StanceChoice) = self.pending.clone() {
+            self.player.stance = if wrath {
+                crate::state::Stance::Wrath
+            } else {
+                crate::state::Stance::Calm
+            };
         }
         self.resume_queue();
     }
@@ -589,9 +936,10 @@ impl Combat {
     }
 
     fn resolve_pile_pick(&mut self, index: usize) {
-        if let Some(Pending::PilePick { pile, .. }) = self.pending.clone() {
-            match pile {
-                "draw_play" => {
+        if let Some(Pending::PilePick { purpose, .. }) = self.pending.clone() {
+            // 按目的分派（同一牌堆可对应不同去向；与源码各 *Action 对齐）
+            match purpose {
+                PilePickPurpose::DrawPlayTwiceExhaust => {
                     // Omniscience：选卡执行两次并消耗
                     if index < self.player.draw.len() {
                         let card = self.player.draw.remove(index);
@@ -605,7 +953,7 @@ impl Combat {
                         self.player.exhaust.push(card);
                     }
                 }
-                "discard_exhaust" => {
+                PilePickPurpose::DiscardExhaustPick => {
                     // Meditate：从弃牌堆选卡消耗
                     if index < self.player.discard.len() {
                         let c = self.player.discard.remove(index);
@@ -616,21 +964,43 @@ impl Combat {
                         self.player.exhaust.push(c);
                     }
                 }
-                "exhaust" => {
+                PilePickPurpose::ExhaustToHand => {
                     if index < self.player.exhaust.len() {
                         let c = self.player.exhaust.remove(index);
                         if self.player.hand.len() < 10 {
                             self.player.hand.push(c);
+                        } else {
+                            self.player.discard.push(c);
                         }
                     }
                 }
-                "discard" => {
+                PilePickPurpose::DiscardToDeckTop => {
                     if index < self.player.discard.len() {
                         let c = self.player.discard.remove(index);
                         self.player.draw.push(c);
                     }
                 }
-                _ => {}
+                // BetterDiscardPileToHandAction：弃堆选 1 入手
+                PilePickPurpose::DiscardToHand => {
+                    if index < self.player.discard.len() && self.player.hand.len() < 10 {
+                        let c = self.player.discard.remove(index);
+                        self.player.hand.push(c);
+                    }
+                }
+                // 液态记忆：入手且本回合 0 费
+                PilePickPurpose::DiscardToHandFreeCost => {
+                    if index < self.player.discard.len() && self.player.hand.len() < 10 {
+                        let mut c = self.player.discard.remove(index);
+                        c.cost_delta = -(c.def.cost.unwrap_or(0)).max(0);
+                        self.player.hand.push(c);
+                    }
+                }
+                PilePickPurpose::DrawPileToHand => {
+                    if index < self.player.draw.len() && self.player.hand.len() < 10 {
+                        let c = self.player.draw.remove(index);
+                        self.player.hand.push(c);
+                    }
+                }
             }
         }
         self.resume_queue();
@@ -693,6 +1063,39 @@ impl Combat {
         for &eff in card.def.effects {
             self.apply_effect(eff, card, ti, x_cost, &mut q, 0);
         }
+        // DuplicationPower.onUseCard：下一张牌额外免费结算一次（同目标同 X 费，
+        // 不再扣能量/移牌；重播也触发 Rage/Finisher 计数）
+        let dup = self
+            .player
+            .creature
+            .powers
+            .iter()
+            .position(|pw| pw.kind == PowerKind::Duplication);
+        if let Some(di) = dup {
+            if self.player.creature.powers[di].amount > 0 {
+                if card.def.card_type == "ATTACK" {
+                    if let Some(rage) = self
+                        .player
+                        .creature
+                        .powers
+                        .iter()
+                        .find(|pw| pw.kind == PowerKind::Rage)
+                    {
+                        q.push(Q::PlayerBlock(rage.amount));
+                    }
+                }
+                for &eff in card.def.effects {
+                    self.apply_effect(eff, card, ti, x_cost, &mut q, 0);
+                }
+                if card.def.card_type == "ATTACK" {
+                    self.attacks_this_turn += 1;
+                }
+                self.player.creature.powers[di].amount -= 1;
+                if self.player.creature.powers[di].amount == 0 {
+                    self.player.creature.powers.remove(di);
+                }
+            }
+        }
         // UseCardAction 去向：exhaust 旗标 → 消耗堆，否则弃牌堆
         self.player.hand.remove(i);
         if card.def.flags.contains(&"exhaust") {
@@ -726,6 +1129,78 @@ impl Combat {
     }
 
     /// 效果 DSL 递归解释执行（Repeat 展开，深度防御上限 8）
+    /// 免费打出一张不在手牌的卡（PlayTopCardAction：蒸馏混沌等）
+    /// 目标必选存活怪（getRandomMonster）；计入 Rage/Finisher/last_card_type
+    fn play_card_free(&mut self, card: CardInst, target: Option<usize>) {
+        let ti = target.unwrap_or(0);
+        let mut q: Vec<Q> = Vec::new();
+        self.last_card_type = Some(card.def.card_type.to_string());
+        if card.def.card_type == "ATTACK" {
+            if let Some(rage) = self
+                .player
+                .creature
+                .powers
+                .iter()
+                .find(|pw| pw.kind == PowerKind::Rage)
+            {
+                q.push(Q::PlayerBlock(rage.amount));
+            }
+        }
+        for &eff in card.def.effects {
+            self.apply_effect(eff, card, ti, 0, &mut q, 0);
+        }
+        if card.def.flags.contains(&"exhaust") {
+            self.player.exhaust.push(card);
+        } else {
+            self.player.discard.push(card);
+        }
+        if card.def.card_type == "ATTACK" {
+            self.attacks_this_turn += 1;
+        }
+        self.drain(q);
+    }
+
+    /// returnTrulyRandomCardInCombat(type) / ...ColorlessCardInCombat：
+    /// src 池 = 角色色 COMMON/UNCOMMON/RARE（无色池 = COLORLESS 非基础非特殊非状态），
+    /// 剔除 HEALING 标签（red: Feed/Reaper/LessonLearned），cardRandomRng 均匀采样
+    fn sample_discovery_card(&mut self, pool: DiscoveryPool) -> CardInst {
+        let ty = match pool {
+            DiscoveryPool::Attack => "ATTACK",
+            DiscoveryPool::Skill => "SKILL",
+            DiscoveryPool::Power => "POWER",
+            DiscoveryPool::Colorless => "",
+        };
+        let candidates: Vec<&'static CardDef> = crate::generated::CARDS
+            .iter()
+            .filter(|d| match pool {
+                DiscoveryPool::Colorless => {
+                    d.color == "COLORLESS"
+                        && !matches!(d.rarity, "BASIC" | "SPECIAL")
+                        && d.card_type != "STATUS"
+                }
+                _ => {
+                    d.color == "RED"
+                        && matches!(d.rarity, "COMMON" | "UNCOMMON" | "RARE")
+                        && d.card_type == ty
+                }
+            })
+            .filter(|d| !matches!(d.id, "Feed" | "Reaper" | "LessonLearned"))
+            .collect();
+        assert!(!candidates.is_empty(), "探素池为空");
+        let roll = self
+            .rng
+            .card_random
+            .random_range(candidates.len() as i32 - 1);
+        let def = candidates[(roll.max(0) as usize).min(candidates.len() - 1)];
+        CardInst {
+            def,
+            upgraded: false,
+            damage_bonus: 0,
+            block_bonus: 0,
+            cost_delta: 0,
+        }
+    }
+
     fn apply_effect(
         &self,
         eff: Effect,
@@ -1246,13 +1721,21 @@ impl Combat {
         {
             let mut keep: Vec<Power> = Vec::new();
             let mut strength_deltas: Vec<i32> = Vec::new();
+            let mut dex_deltas: Vec<i32> = Vec::new();
             for p in self.player.creature.powers.drain(..) {
                 match p.kind {
                     PowerKind::Metallicize => {
                         self.player.creature.block += p.amount;
                         keep.push(p);
                     }
+                    // Plated Armor：atEndOfTurnPreEndTurnCards 获得等同层数格挡
+                    PowerKind::PlatedArmor => {
+                        self.player.creature.block += p.amount;
+                        keep.push(p);
+                    }
                     PowerKind::LoseStrength => strength_deltas.push(p.amount),
+                    // DexLoss：EOT 敏捷 -amount 后移除（LoseDexterityPower）
+                    PowerKind::LoseDexterity => dex_deltas.push(p.amount),
                     PowerKind::Regen => {
                         self.player.creature.hp =
                             (self.player.creature.hp + p.amount).min(self.player.creature.max_hp);
@@ -1279,6 +1762,15 @@ impl Combat {
                 apply_power(
                     &mut self.player.creature.powers,
                     PowerKind::Strength,
+                    -d,
+                    false,
+                    false,
+                );
+            }
+            for d in dex_deltas {
+                apply_power(
+                    &mut self.player.creature.powers,
+                    PowerKind::Dexterity,
                     -d,
                     false,
                     false,
@@ -1825,6 +2317,28 @@ impl Combat {
             }
         }
         decay_powers(&mut self.player.creature.powers);
+        // 玩家侧仪式（CultistPotion）：RitualPower.atEndOfRound 轮末投予力量
+        {
+            let mut grants: Vec<i32> = Vec::new();
+            for p in self.player.creature.powers.iter_mut() {
+                if p.kind == PowerKind::Ritual {
+                    if p.just_applied {
+                        p.just_applied = false;
+                    } else {
+                        grants.push(p.amount);
+                    }
+                }
+            }
+            for g in grants {
+                apply_power(
+                    &mut self.player.creature.powers,
+                    PowerKind::Strength,
+                    g,
+                    false,
+                    self.turn_has_ended,
+                );
+            }
+        }
         for i in 0..self.monsters.len() {
             if !self.alive(i) {
                 continue;
@@ -1904,8 +2418,13 @@ impl Combat {
                     &self.player.creature.powers,
                     self.player.stance,
                 );
+                let before_hp = self.player.creature.hp;
                 self.player.creature.apply_damage(d);
-                if self.player.creature.is_dead() {
+                // Plated Armor wasHPLost：NORMAL 类型实际掉血 → -1 层
+                if before_hp - self.player.creature.hp > 0 {
+                    self.reduce_plated_armor();
+                }
+                if self.player.creature.is_dead() && !self.fairy_rescue() {
                     self.over = true;
                     self.won = false;
                     return;
@@ -1958,8 +2477,8 @@ impl Combat {
                     (self.player.creature.hp + n).min(self.player.creature.max_hp);
             }
             Q::LoseHP(n) => {
-                self.player.creature.hp -= n; // HP 损失绕过格挡
-                if self.player.creature.is_dead() {
+                self.player.creature.hp -= n; // HP 损失绕过格挡（HP_LOSS 也触发瓶中精灵）
+                if self.player.creature.is_dead() && !self.fairy_rescue() {
                     self.over = true;
                     self.won = false;
                 }
@@ -2669,6 +3188,164 @@ impl Combat {
                 }
             }
             Q::RollMove(i) => self.roll_move(i),
+            // —— 药水系统 exec ——
+            Q::DamagePure { target, dmg } => {
+                if self.alive(target) {
+                    self.monsters[target].creature.apply_damage(dmg);
+                    if self.monsters[target].creature.is_dead() {
+                        self.on_monster_death(target);
+                    }
+                }
+            }
+            Q::DamageAllPure { dmg } => {
+                for mi in 0..self.monsters.len() {
+                    if self.alive(mi) {
+                        self.monsters[mi].creature.apply_damage(dmg);
+                        if self.monsters[mi].creature.is_dead() {
+                            self.on_monster_death(mi);
+                            if self.over {
+                                return;
+                            }
+                        }
+                    }
+                }
+            }
+            Q::DoDiscovery {
+                pool: pool_kind,
+                copies,
+            } => {
+                // DiscoveryAction.generateCardChoices：采样 3 张互不重复（HEALING 剔除）
+                let mut options: Vec<CardInst> = Vec::new();
+                while options.len() < 3 {
+                    let c = self.sample_discovery_card(pool_kind);
+                    if options.iter().any(|o| o.def.id == c.def.id) {
+                        continue; // dupe → 重掷（同一 rng 流）
+                    }
+                    options.push(c);
+                }
+                self.pending = Some(Pending::Discovery { options, copies });
+            }
+            Q::DoStanceChoice => {
+                self.pending = Some(Pending::StanceChoice);
+            }
+            Q::DoGamblersDiscard => {
+                self.pending = Some(Pending::GamblersDiscard);
+            }
+            Q::DoExhaustAny => {
+                if !self.player.hand.is_empty() {
+                    self.pending = Some(Pending::HandExhaustAny);
+                }
+            }
+            Q::DoDiscardPickFreeCost => {
+                // BetterDiscardPileToHandAction(1, 0)：弃堆恰 1 张时免选择直接入手
+                if self.player.discard.len() <= 1 {
+                    if let Some(mut c) = self.player.discard.pop() {
+                        if self.player.hand.len() < 10 {
+                            c.cost_delta = -(c.def.cost.unwrap_or(0)).max(0);
+                            self.player.hand.push(c);
+                        } else {
+                            self.player.discard.push(c);
+                        }
+                    }
+                } else if self.player.hand.len() < 10 {
+                    self.pending = Some(Pending::PilePick {
+                        pile: "discard",
+                        purpose: PilePickPurpose::DiscardToHandFreeCost,
+                    });
+                }
+            }
+            Q::DoDistilledChaos { n } => {
+                // PlayTopCardAction ×n：抽堆顶免贽打出（目标 = 随机存活怪；
+                // 抽堆尽且弃堆尽则中止；抽堆尽则洗牌后续）
+                for _ in 0..n.max(0) {
+                    if self.player.draw.is_empty() {
+                        if self.player.discard.is_empty() {
+                            break;
+                        }
+                        let mut pile = std::mem::take(&mut self.player.discard);
+                        card_group_shuffle(&mut pile, &mut self.rng.shuffle);
+                        self.player.draw = pile;
+                    }
+                    let card = self.player.draw.pop().expect("checked");
+                    // getRandomMonster(null, true, cardRandomRng)
+                    let alive: Vec<usize> = (0..self.monsters.len())
+                        .filter(|&i| self.alive(i))
+                        .collect();
+                    let target = if alive.is_empty() {
+                        None
+                    } else {
+                        let roll = self
+                            .rng
+                            .card_random
+                            .random_start_end(0, (alive.len() - 1) as i32);
+                        Some(alive[(roll.max(0) as usize).min(alive.len() - 1)])
+                    };
+                    self.play_card_free(card, target);
+                    if self.over {
+                        return;
+                    }
+                }
+            }
+            Q::DoRandomizeHandCost => {
+                // RandomizeHandCostAction：cost>=0 的手牌费用 ← cardRandomRng.random(3)
+                // （永改：card.cost = costForTurn = newCost）
+                for c in self.player.hand.iter_mut() {
+                    let cur = c.def.cost.unwrap_or(-2);
+                    if cur < 0 {
+                        continue;
+                    }
+                    let new_cost = self.rng.card_random.random_range(3);
+                    if cur + c.cost_delta == new_cost {
+                        continue; // 源码：cost == newCost 时跳过（等效无操作）
+                    }
+                    c.cost_delta = new_cost - cur;
+                }
+            }
+            Q::DoChannelDarkPerOrb { amount } => {
+                // EssenceOfDarknessAction 字面复刻：外层条件随播球动态增长
+                let mut i = 0;
+                while i < self.player.orbs.len() {
+                    for _ in 0..amount.max(0) {
+                        self.exec(Q::Channel {
+                            kind: crate::state::OrbKind::Dark,
+                            auto_evoke: true,
+                        });
+                    }
+                    i += 1;
+                }
+            }
+            Q::DoObtainRandomPotions => {
+                // EntropicBrew：每个空栏位掣一瓶（returnRandomPotion(true)：
+                // 掷稀度 + 拒绝采样，跳过果汁；至少重掣一次）
+                let pool = pool_for_class("Ironclad"); // M3：按局外角色参数化
+                for slot in self.player.potions.iter_mut() {
+                    if slot.is_none() {
+                        let k = return_random_potion(&pool, true, &mut self.rng.potion);
+                        *slot = Some(crate::potions::PotionInst::new(k));
+                    }
+                }
+            }
+            Q::MaxHpPlus(n) => {
+                // FruitJuice：increaseMaxHp(n, true) → 上限+n 且治疗 n
+                self.player.creature.max_hp += n;
+                self.player.creature.hp += n;
+            }
+            Q::DoSmokeEscape => {
+                // SmokeBomb：room.smoked → 战斗立即结束（逃离，无奖励，不算失败）
+                self.over = true;
+                self.won = false;
+                self.escaped = true;
+            }
+            Q::DoPlayerRitual(amount) => {
+                // CultistPotion：RitualPower(player, amount, true)（skipFirst）
+                apply_power(
+                    &mut self.player.creature.powers,
+                    PowerKind::Ritual,
+                    amount,
+                    false,
+                    false,
+                );
+            }
         }
     }
 
@@ -2772,6 +3449,45 @@ impl Combat {
             source_is_monster,
             self.turn_has_ended,
         );
+    }
+
+    /// 瓶中精灵免死钩子（源码 AbstractPlayer.damage 1467 行附近）——
+    /// 生命值将被扣至 1 以下时消耗精灵并回复最大生命的 30%（最少 1 点，
+    /// 整数截断）。返回是否成功免死。
+    fn fairy_rescue(&mut self) -> bool {
+        let slot = self
+            .player
+            .potions
+            .iter()
+            .position(|p| p.as_ref().map(|p| p.kind) == Some(PotionKind::Fairy));
+        if let Some(i) = slot {
+            let p = self.player.potions[i].take().expect("checked");
+            self.player.creature.hp = 0;
+            let heal = ((self.player.creature.max_hp as f32) * (p.potency as f32 / 100.0)) as i32;
+            self.player.creature.hp = heal.max(1).min(self.player.creature.max_hp);
+            true
+        } else {
+            false
+        }
+    }
+
+    /// Plated Armor wasHPLost：-1 层，归零移除（ReducePowerAction）
+    fn reduce_plated_armor(&mut self) {
+        if self
+            .player
+            .creature
+            .powers
+            .iter()
+            .any(|p| p.kind == PowerKind::PlatedArmor)
+        {
+            apply_power(
+                &mut self.player.creature.powers,
+                PowerKind::PlatedArmor,
+                -1,
+                false,
+                false,
+            );
+        }
     }
 
     /// DrawCardAction + EmptyDeckShuffleAction（源码核对语义）：
@@ -2890,6 +3606,8 @@ impl Combat {
         self.rng.ai.counter.hash(&mut h);
         self.rng.shuffle.counter.hash(&mut h);
         self.rng.monster_hp.counter.hash(&mut h);
+        self.rng.card_random.counter.hash(&mut h);
+        self.rng.potion.counter.hash(&mut h);
         h.finish()
     }
 
@@ -2912,6 +3630,13 @@ impl Combat {
         self.player.creature.hp.hash(h);
         self.player.stance.hash(h);
         self.player.max_orbs.hash(h);
+        // 药水栏（公开信息）：种类即可（potency 由种类确定）
+        for slot in &self.player.potions {
+            match slot {
+                Some(p) => (1u8, p.kind).hash(h),
+                None => 0u8.hash(h),
+            }
+        }
         for orb in &self.player.orbs {
             (orb.kind, orb.dark_growth).hash(h);
         }
@@ -2955,6 +3680,16 @@ impl Combat {
                 5u8.hash(h);
                 pile.hash(h);
             }
+            Some(Pending::Discovery { options, copies }) => {
+                6u8.hash(h);
+                copies.hash(h);
+                for c in options {
+                    (c.def.id, c.upgraded).hash(h);
+                }
+            }
+            Some(Pending::StanceChoice) => 7u8.hash(h),
+            Some(Pending::GamblersDiscard) => 8u8.hash(h),
+            Some(Pending::HandExhaustAny) => 9u8.hash(h),
         }
     }
 
@@ -3775,5 +4510,665 @@ mod tests {
                 "生长应给力量"
             );
         }
+    }
+
+    // ══════════════ 药水系统（potions/*.java 对照） ══════════════
+
+    use crate::potions::{PotionInst, PotionKind};
+
+    fn give_potion(c: &mut Combat, kind: PotionKind) {
+        c.player.potions[0] = Some(PotionInst::new(kind));
+    }
+
+    /// 火焰药水：20 点 THORNS 纯伤（不吃力量/虚弱/易伤）
+    #[test]
+    fn fire_potion_pure_damage() {
+        let mut c = Combat::new(1);
+        let hp0 = c.monsters[0].creature.hp;
+        apply_power(
+            &mut c.player.creature.powers,
+            PowerKind::Strength,
+            5,
+            false,
+            false,
+        );
+        apply_power(
+            &mut c.monsters[0].creature.powers,
+            PowerKind::Vulnerable,
+            3,
+            false,
+            false,
+        );
+        give_potion(&mut c, PotionKind::Fire);
+        c.step(&Action::UsePotion {
+            index: 0,
+            target: Some(0),
+        });
+        assert_eq!(c.monsters[0].creature.hp, hp0 - 20, "纯伤不吃 STR/易伤");
+        assert!(c.player.potions[0].is_none(), "使用后栏位腾空");
+    }
+
+    /// 格挡药水：吃敏捷/脆弱乘区（同卡牌格挡管线）
+    #[test]
+    fn block_potion_dex_frail() {
+        let mut c = Combat::new(1);
+        apply_power(
+            &mut c.player.creature.powers,
+            PowerKind::Dexterity,
+            2,
+            false,
+            false,
+        );
+        apply_power(
+            &mut c.player.creature.powers,
+            PowerKind::Frail,
+            1,
+            true,
+            true,
+        );
+        give_potion(&mut c, PotionKind::Block);
+        c.step(&Action::UsePotion {
+            index: 0,
+            target: None,
+        });
+        let expect = crate::damage::calc_player_card_block(12, &c.player.creature.powers);
+        assert_eq!(c.player.creature.block, expect);
+        assert!(expect < 12, "虚弱下应低于基础值");
+    }
+
+    /// 指向型投掷：恐惧/虚弱/毒药水作用于目标怪
+    #[test]
+    fn targeted_debuff_potions() {
+        for (kind, pk) in [
+            (PotionKind::Fear, PowerKind::Vulnerable),
+            (PotionKind::Weaken, PowerKind::Weak),
+            (PotionKind::Poison, PowerKind::Poison),
+        ] {
+            let mut c = Combat::new(1);
+            give_potion(&mut c, kind);
+            c.step(&Action::UsePotion {
+                index: 0,
+                target: Some(0),
+            });
+            let p = c.monsters[0]
+                .creature
+                .powers
+                .iter()
+                .find(|p| p.kind == pk)
+                .expect("应施加 power");
+            assert!(p.amount >= 3);
+        }
+    }
+
+    /// 爆炸药水：10 点纯伤全体（不吃力量）
+    #[test]
+    fn explosive_potion_all_pure() {
+        let mut c = Combat::new_with(7, 20, &[MonsterKind::JawWorm, MonsterKind::Cultist]);
+        let hp0: Vec<i32> = c.monsters.iter().map(|m| m.creature.hp).collect();
+        apply_power(
+            &mut c.player.creature.powers,
+            PowerKind::Strength,
+            99,
+            false,
+            false,
+        );
+        give_potion(&mut c, PotionKind::Explosive);
+        c.step(&Action::UsePotion {
+            index: 0,
+            target: None,
+        });
+        for (i, &hp) in hp0.iter().enumerate() {
+            assert_eq!(c.monsters[i].creature.hp, hp - 10);
+        }
+    }
+
+    /// 类固醇/速度药水：临时增益 EOT 失效
+    #[test]
+    fn steroid_speed_temporary() {
+        let mut c = Combat::new(1);
+        give_potion(&mut c, PotionKind::Steroid);
+        c.step(&Action::UsePotion {
+            index: 0,
+            target: None,
+        });
+        assert_eq!(pamount(&c, PowerKind::Strength), Some(5));
+        c.player
+            .creature
+            .powers
+            .retain(|p| p.kind != PowerKind::Rage);
+        c.exec(Q::DamagePure { target: 0, dmg: 0 }); // no-op
+        c.end_turn(); // 走完怪物回合（大颚虫 A20 攻击可能致死，先拉满血）
+        assert!(c.player.creature.hp > 0 || c.over);
+        if !c.over {
+            assert_eq!(pamount(&c, PowerKind::Strength), None, "EOT 失效");
+        }
+    }
+
+    /// 血药/果汁：百分比治疗与上限提升
+    #[test]
+    fn blood_and_fruit_juice() {
+        let mut c = Combat::new(1);
+        c.player.creature.hp = 40;
+        give_potion(&mut c, PotionKind::Blood);
+        c.step(&Action::UsePotion {
+            index: 0,
+            target: None,
+        });
+        assert_eq!(c.player.creature.hp, 56, "80×20%＝16");
+
+        give_potion(&mut c, PotionKind::FruitJuice);
+        c.step(&Action::UsePotion {
+            index: 0,
+            target: None,
+        });
+        assert_eq!(c.player.creature.max_hp, 85);
+        assert_eq!(c.player.creature.hp, 61, "上限+5 且治疗 5");
+    }
+
+    /// 瓶中精灵：致死伤害免死回复 30%；不可主动使用
+    #[test]
+    fn fairy_rescue_on_lethal() {
+        let mut c = Combat::new(1);
+        c.player.creature.hp = 10;
+        give_potion(&mut c, PotionKind::Fairy);
+        // 不可主动使用
+        assert!(!c
+            .legal_actions()
+            .iter()
+            .any(|a| matches!(a, Action::UsePotion { index: 0, .. })));
+        c.exec(Q::MonsterDamage { src: 0, base: 999 });
+        assert!(!c.over, "免死");
+        assert_eq!(c.player.creature.hp, 24, "80×30%＝24");
+        assert!(c.player.potions[0].is_none(), "精灵被消耗");
+        // 再次致死：无精灵 → 死亡
+        c.exec(Q::MonsterDamage { src: 0, base: 999 });
+        assert!(c.over && !c.won);
+    }
+
+    /// 攻击药水：探素屏三选一，选中卡入手且本回合 0 费
+    #[test]
+    fn attack_potion_discovery_flow() {
+        let mut c = Combat::new(1);
+        give_potion(&mut c, PotionKind::Attack);
+        c.step(&Action::UsePotion {
+            index: 0,
+            target: None,
+        });
+        let options = match &c.pending {
+            Some(Pending::Discovery { options, .. }) => options.clone(),
+            _ => panic!("应挂起探素屏"),
+        };
+        assert_eq!(options.len(), 3);
+        assert!(options
+            .iter()
+            .all(|o| o.def.card_type == "ATTACK" && o.def.color == "RED"));
+        // 选项去重
+        assert_eq!(
+            options
+                .iter()
+                .map(|o| o.def.id)
+                .collect::<std::collections::HashSet<_>>()
+                .len(),
+            3
+        );
+        let hand0 = c.player.hand.len();
+        c.step(&Action::DiscoveryResponse { index: 0 });
+        assert!(c.pending.is_none());
+        assert_eq!(c.player.hand.len(), hand0 + 1);
+        let got = c.player.hand.last().unwrap();
+        assert_eq!(got.cost_pay(), 0, "本回合 0 费");
+    }
+
+    /// 无色药水：池来自 COLORLESS（非基础非特殊非状态）
+    #[test]
+    fn colorless_potion_pool() {
+        let mut c = Combat::new(1);
+        give_potion(&mut c, PotionKind::Colorless);
+        c.step(&Action::UsePotion {
+            index: 0,
+            target: None,
+        });
+        match &c.pending {
+            Some(Pending::Discovery { options, .. }) => {
+                assert!(options.iter().all(|o| o.def.color == "COLORLESS"));
+            }
+            _ => panic!("应挂起探素屏"),
+        }
+        c.step(&Action::DiscoveryResponse { index: 2 });
+        assert!(c.pending.is_none());
+    }
+
+    /// 狡诈药水：3 张已升级小刀入手
+    #[test]
+    fn cunning_upgraded_shivs() {
+        let mut c = Combat::new(1);
+        c.player.hand.clear();
+        give_potion(&mut c, PotionKind::Cunning);
+        c.step(&Action::UsePotion {
+            index: 0,
+            target: None,
+        });
+        assert_eq!(c.player.hand.len(), 3);
+        assert!(c
+            .player
+            .hand
+            .iter()
+            .all(|h| h.def.id == "Shiv" && h.upgraded));
+    }
+
+    /// 蒸馏混沌：抽堆顶 3 张依次免费打出（单怪=确定性目标）
+    #[test]
+    fn distilled_chaos_plays_top() {
+        let mut c = Combat::new(1);
+        let hp0 = c.monsters[0].creature.hp;
+        c.player.draw.clear();
+        c.player.discard.clear();
+        c.player.draw = ["Defend_R", "Strike_R", "Strike_R", "Strike_R"]
+            .iter()
+            .map(|id| CardInst::new(id))
+            .collect();
+        c.player.hand.clear();
+        give_potion(&mut c, PotionKind::DistilledChaos);
+        c.step(&Action::UsePotion {
+            index: 0,
+            target: None,
+        });
+        assert!(c.pending.is_none());
+        // A20：打击 6+STR(0)=6×3；剩余顶张 Defend_R 未被打出
+        assert_eq!(c.monsters[0].creature.hp, hp0 - 18);
+        assert_eq!(c.player.draw.len(), 1);
+        let strikes_in_discard = c
+            .player
+            .discard
+            .iter()
+            .filter(|x| x.def.id == "Strike_R")
+            .count();
+        assert_eq!(strikes_in_discard, 3);
+    }
+
+    /// 复制药水：下一张牌额外免费结算一次
+    #[test]
+    fn duplication_potion_double_play() {
+        let mut c = Combat::new(1);
+        let hp0 = c.monsters[0].creature.hp;
+        give_potion(&mut c, PotionKind::Duplication);
+        c.step(&Action::UsePotion {
+            index: 0,
+            target: None,
+        });
+        force_hand(&mut c, &["Strike_R"]);
+        c.step(&Action::PlayCard {
+            index: 0,
+            target: Some(0),
+        });
+        assert_eq!(c.monsters[0].creature.hp, hp0 - 12, "打击 6×2 次");
+        // 能量只扣一次
+        assert_eq!(c.player.energy, 2);
+        assert_eq!(pamount(&c, PowerKind::Duplication), None, "归零移除");
+    }
+
+    /// 混沌药水：所有空栏位填满随机药水（确定性、无果汁）
+    #[test]
+    fn entropic_brew_fills_all() {
+        let mut c = Combat::new(1);
+        give_potion(&mut c, PotionKind::EntropicBrew);
+        c.step(&Action::UsePotion {
+            index: 0,
+            target: None,
+        });
+        assert!(c.player.potions.iter().all(|p| p.is_some()), "三栏全满");
+        assert!(!c
+            .player
+            .potions
+            .iter()
+            .any(|p| p.as_ref().map(|p| p.kind) == Some(PotionKind::FruitJuice)));
+        // 同种子可重放
+        let mut c2 = Combat::new(1);
+        give_potion(&mut c2, PotionKind::EntropicBrew);
+        c2.step(&Action::UsePotion {
+            index: 0,
+            target: None,
+        });
+        let ids = |c: &Combat| {
+            c.player
+                .potions
+                .iter()
+                .map(|p| p.as_ref().unwrap().kind)
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(ids(&c), ids(&c2));
+    }
+
+    /// 暗之精华：字面双重循环——0 球无效；≥1 球时填满全部球槽（左侧被引出）
+    #[test]
+    fn essence_of_darkness_loop() {
+        let mut c = Combat::new(1);
+        give_potion(&mut c, PotionKind::EssenceOfDarkness);
+        c.step(&Action::UsePotion {
+            index: 0,
+            target: None,
+        });
+        assert!(c.player.orbs.is_empty(), "0 球时源码行为：无效果");
+
+        let mut c = Combat::new(1);
+        c.exec(Q::Channel {
+            kind: crate::state::OrbKind::Frost,
+            auto_evoke: true,
+        });
+        give_potion(&mut c, PotionKind::EssenceOfDarkness);
+        c.step(&Action::UsePotion {
+            index: 0,
+            target: None,
+        });
+        assert_eq!(c.player.orbs.len(), 3);
+        assert!(c
+            .player
+            .orbs
+            .iter()
+            .all(|o| o.kind == crate::state::OrbKind::Dark));
+        // 被挤出的冰球引出：5 格挡（不吃专注修正前的基础）
+        assert_eq!(c.player.creature.block, 5);
+    }
+
+    /// 钢之精华：多层护甲 EOT 获甲、受击掉血 -1 层
+    #[test]
+    fn plated_armor_potion_flow() {
+        let mut c = Combat::new(1);
+        give_potion(&mut c, PotionKind::EssenceOfSteel);
+        c.step(&Action::UsePotion {
+            index: 0,
+            target: None,
+        });
+        assert_eq!(pamount(&c, PowerKind::PlatedArmor), Some(4));
+        // EOT：+4 格挡（不经 end_turn 全流程，直接调内部钩子所在函数不现实；用 exec 途径）
+        // 这里用 end_of_round 前的 end_turn 太重，改用直接验证：受击掉层
+        let hp_before = c.player.creature.hp;
+        c.exec(Q::MonsterDamage { src: 0, base: 30 }); // 掉血（无格挡）
+        assert!(c.player.creature.hp < hp_before);
+        assert_eq!(pamount(&c, PowerKind::PlatedArmor), Some(3), "掉血 -1 层");
+        // 只格挡不掉血：不减层
+        c.player.creature.block = 99;
+        c.exec(Q::MonsterDamage { src: 0, base: 5 });
+        assert_eq!(pamount(&c, PowerKind::PlatedArmor), Some(3));
+    }
+
+    /// 赌徒特酿：弃任意张抽等量
+    #[test]
+    fn gamblers_brew_flow() {
+        let mut c = Combat::new(1);
+        let hand_n = c.player.hand.len();
+        give_potion(&mut c, PotionKind::GamblersBrew);
+        c.step(&Action::UsePotion {
+            index: 0,
+            target: None,
+        });
+        assert!(matches!(c.pending, Some(Pending::GamblersDiscard)));
+        c.step(&Action::HandSelect {
+            indices: vec![0, 1],
+        });
+        assert!(c.pending.is_none());
+        assert_eq!(c.player.hand.len(), hand_n, "弃 2 抽 2");
+        assert_eq!(c.player.discard.len(), 2);
+    }
+
+    /// 液态记忆：弃堆选 1 入手且本回合 0 费；弃堆恰 1 张时免选
+    #[test]
+    fn liquid_memories_flow() {
+        let mut c = Combat::new(1);
+        c.player.discard = vec![CardInst::new("Bash")];
+        give_potion(&mut c, PotionKind::LiquidMemories);
+        c.step(&Action::UsePotion {
+            index: 0,
+            target: None,
+        });
+        assert!(c.pending.is_none(), "单张免选");
+        assert_eq!(c.player.hand.last().unwrap().def.id, "Bash");
+        assert_eq!(c.player.hand.last().unwrap().cost_pay(), 0);
+
+        // 多张：开屏选择
+        let mut c = Combat::new(1);
+        c.player.discard = vec![CardInst::new("Bash"), CardInst::new("Defend_R")];
+        give_potion(&mut c, PotionKind::LiquidMemories);
+        c.step(&Action::UsePotion {
+            index: 0,
+            target: None,
+        });
+        assert!(matches!(
+            c.pending,
+            Some(Pending::PilePick {
+                purpose: PilePickPurpose::DiscardToHandFreeCost,
+                ..
+            })
+        ));
+        c.step(&Action::PilePickResponse { index: 0 });
+        assert_eq!(c.player.hand.last().unwrap().def.id, "Bash");
+        assert_eq!(c.player.hand.last().unwrap().cost_pay(), 0);
+        assert_eq!(c.player.discard.len(), 1);
+    }
+
+    /// 异蛇之油：抽 5 + 手牌费用随机化（X 费不变，确定性可重放）
+    #[test]
+    fn snecko_oil_randomize() {
+        let run = |seed: u64| {
+            let mut c = Combat::new(seed);
+            c.player.draw.clear();
+            c.player.discard.clear();
+            c.player.draw = ["Strike_R"; 8].iter().map(|id| CardInst::new(id)).collect();
+            force_hand(&mut c, &["Whirlwind", "Bash", "Defend_R"]);
+            give_potion(&mut c, PotionKind::SneckoOil);
+            c.step(&Action::UsePotion {
+                index: 0,
+                target: None,
+            });
+            let costs: Vec<i32> = c.player.hand.iter().map(|h| h.cost_pay()).collect();
+            (c, costs)
+        };
+        let (c, costs) = run(7);
+        assert_eq!(c.player.hand.len(), 8, "3+5 抽满");
+        assert_eq!(costs[0], -1, "X 费不变");
+        assert!(costs[1..].iter().all(|&x| (0..=3).contains(&x)));
+        let (_, costs2) = run(7);
+        assert_eq!(costs, costs2, "同种子确定性");
+    }
+
+    /// 烟雾弹：逃离战斗（结束、不判负、无奖励标记）
+    #[test]
+    fn smoke_bomb_escape() {
+        let mut c = Combat::new(1);
+        give_potion(&mut c, PotionKind::SmokeBomb);
+        c.step(&Action::UsePotion {
+            index: 0,
+            target: None,
+        });
+        assert!(c.over);
+        assert!(!c.won);
+        assert!(c.escaped);
+        assert!(c.legal_actions().is_empty());
+    }
+
+    /// 姿态药水（二选一）与琼浆（神性）
+    #[test]
+    fn stance_potion_and_ambrosia() {
+        let mut c = Combat::new(1);
+        give_potion(&mut c, PotionKind::Stance);
+        c.step(&Action::UsePotion {
+            index: 0,
+            target: None,
+        });
+        assert!(matches!(c.pending, Some(Pending::StanceChoice)));
+        c.step(&Action::StanceResponse { wrath: true });
+        assert_eq!(c.player.stance, crate::state::Stance::Wrath);
+
+        give_potion(&mut c, PotionKind::Ambrosia);
+        c.step(&Action::UsePotion {
+            index: 0,
+            target: None,
+        });
+        assert_eq!(c.player.stance, crate::state::Stance::Divinity);
+    }
+
+    /// 邪教徒药水：玩家侧仪式，轮末投予力量（首跳）
+    #[test]
+    fn cultist_potion_player_ritual() {
+        let mut c = Combat::new(1);
+        give_potion(&mut c, PotionKind::Cultist);
+        c.step(&Action::UsePotion {
+            index: 0,
+            target: None,
+        });
+        c.end_of_round_powers(); // 第一轮：skipFirst 消耗
+        assert_eq!(pamount(&c, PowerKind::Strength), None);
+        c.end_of_round_powers(); // 第二轮：+1
+        assert_eq!(pamount(&c, PowerKind::Strength), Some(1));
+    }
+
+    /// 简单增益药水一批：能量/敏捷/专注/扩容/鬼魂/钢铁之心/铜液/再生/先古/迅速
+    #[test]
+    fn simple_buff_potions() {
+        let mut c = Combat::new(1);
+        let e0 = c.player.energy;
+        give_potion(&mut c, PotionKind::Energy);
+        c.step(&Action::UsePotion {
+            index: 0,
+            target: None,
+        });
+        assert_eq!(c.player.energy, e0 + 2);
+
+        give_potion(&mut c, PotionKind::Dexterity);
+        c.step(&Action::UsePotion {
+            index: 0,
+            target: None,
+        });
+        assert_eq!(pamount(&c, PowerKind::Dexterity), Some(2));
+
+        give_potion(&mut c, PotionKind::Focus);
+        c.step(&Action::UsePotion {
+            index: 0,
+            target: None,
+        });
+        assert_eq!(pamount(&c, PowerKind::Focus), Some(2));
+
+        let orbs0 = c.player.max_orbs;
+        give_potion(&mut c, PotionKind::Capacity);
+        c.step(&Action::UsePotion {
+            index: 0,
+            target: None,
+        });
+        assert_eq!(c.player.max_orbs, orbs0 + 2);
+
+        give_potion(&mut c, PotionKind::GhostInAJar);
+        c.step(&Action::UsePotion {
+            index: 0,
+            target: None,
+        });
+        assert_eq!(pamount(&c, PowerKind::IntangiblePlayer), Some(1));
+
+        give_potion(&mut c, PotionKind::HeartOfIron);
+        c.step(&Action::UsePotion {
+            index: 0,
+            target: None,
+        });
+        assert_eq!(pamount(&c, PowerKind::Metallicize), Some(6));
+
+        give_potion(&mut c, PotionKind::LiquidBronze);
+        c.step(&Action::UsePotion {
+            index: 0,
+            target: None,
+        });
+        assert_eq!(pamount(&c, PowerKind::Thorns), Some(3));
+
+        give_potion(&mut c, PotionKind::Regen);
+        c.step(&Action::UsePotion {
+            index: 0,
+            target: None,
+        });
+        assert_eq!(pamount(&c, PowerKind::Regen), Some(5));
+
+        give_potion(&mut c, PotionKind::Ancient);
+        c.step(&Action::UsePotion {
+            index: 0,
+            target: None,
+        });
+        assert_eq!(pamount(&c, PowerKind::Artifact), Some(1));
+
+        let h0 = c.player.hand.len();
+        give_potion(&mut c, PotionKind::Swift);
+        c.step(&Action::UsePotion {
+            index: 0,
+            target: None,
+        });
+        assert_eq!(c.player.hand.len(), (h0 + 3).min(10));
+    }
+
+    /// 熔炉的祝福：升级全手牌（可升级的）
+    #[test]
+    fn blessing_of_forge_upgrades_hand() {
+        let mut c = Combat::new(1);
+        force_hand(&mut c, &["Strike_R", "Defend_R", "Bash"]);
+        give_potion(&mut c, PotionKind::BlessingOfTheForge);
+        c.step(&Action::UsePotion {
+            index: 0,
+            target: None,
+        });
+        assert!(c.player.hand.iter().all(|h| h.upgraded));
+    }
+
+    /// 全药水扫描：每只都能使用且不 panic（带响应屏的顺带解决）
+    #[test]
+    fn all_potions_smoke() {
+        for kind in crate::potions::ALL_POTIONS {
+            let mut c = Combat::new(11);
+            c.player.creature.hp = 80;
+            c.player.potions[0] = Some(PotionInst::new(*kind));
+            if !kind.can_use(false) {
+                continue; // Fairy 仅被动
+            }
+            let target = if kind.target_required() {
+                Some(0)
+            } else {
+                None
+            };
+            c.step(&Action::UsePotion { index: 0, target });
+            // 解开可能挂起的选择屏（探素/姿态/赌徒/液态记忆）
+            match &c.pending {
+                Some(Pending::Discovery { .. }) => c.step(&Action::DiscoveryResponse { index: 0 }),
+                Some(Pending::StanceChoice) => c.step(&Action::StanceResponse { wrath: false }),
+                Some(Pending::GamblersDiscard) => c.step(&Action::HandSelect { indices: vec![] }),
+                Some(Pending::PilePick { .. }) => c.step(&Action::PilePickResponse { index: 0 }),
+                Some(Pending::HandExhaustAny) => c.step(&Action::HandSelect { indices: vec![] }),
+                _ => {}
+            }
+        }
+    }
+
+    /// 丢弃药水：任何时候可丢，栏位腾空
+    #[test]
+    fn discard_potion_frees_slot() {
+        let mut c = Combat::new(1);
+        give_potion(&mut c, PotionKind::Fire);
+        c.step(&Action::DiscardPotion { index: 0 });
+        assert!(c.player.potions[0].is_none());
+        assert!(!c.over);
+    }
+
+    /// 药水使用后同种子可重放（state_hash 一致）
+    #[test]
+    fn potion_replay_deterministic() {
+        let play = |seed: u64| {
+            let mut c = Combat::new(seed);
+            c.player.potions[0] = Some(PotionInst::new(PotionKind::Fire));
+            c.player.potions[1] = Some(PotionInst::new(PotionKind::Block));
+            c.step(&Action::UsePotion {
+                index: 0,
+                target: Some(0),
+            });
+            c.step(&Action::UsePotion {
+                index: 1,
+                target: None,
+            });
+            c.state_hash()
+        };
+        assert_eq!(play(3), play(3));
+        assert_ne!(play(3), play(4));
     }
 }

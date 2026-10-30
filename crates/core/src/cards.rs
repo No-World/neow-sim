@@ -28,6 +28,7 @@ pub const ENGINE_POWERS: &[&str] = &[
     "Dark Embrace",
     "Rage",
     "Focus",
+    "Plated Armor",
 ];
 
 #[derive(Clone, Copy, Debug)]

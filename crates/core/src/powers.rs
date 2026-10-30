@@ -63,6 +63,15 @@ pub enum PowerKind {
     SporeCloud,
     /// 专注（Focus：充能球被动/引出 +amount，Plasma 不受影响）
     Focus,
+    // —— 药水系统新增（钩子行为在 combat 中实现） ——
+    /// 多层护甲（Plated Armor：EOT 获得 amount 格挡；受到有实际掉血的
+    /// NORMAL 伤害时 -1 层，归零移除；wasHPLost 钩子，PlatedArmorPower.java）
+    PlatedArmor,
+    /// 复制（DuplicationPower：下一张打出的牌额外免费结算一次，每次 -1，
+    /// 归零移除；跨回合持续，非 turn-based）
+    Duplication,
+    /// 敏捷失效（DexLoss：EOT 敏捷 -amount 后移除自身，LoseDexterityPower.java）
+    LoseDexterity,
 }
 
 impl PowerKind {
@@ -144,6 +153,18 @@ impl Power {
             PowerKind::CurlUp => "Curl Up",
             PowerKind::SporeCloud => "Spore Cloud",
             PowerKind::Focus => "Focus",
+            PowerKind::PlatedArmor => "Plated Armor",
+            PowerKind::Duplication => "DuplicationPower",
+            PowerKind::LoseDexterity => "DexLoss",
+        }
+    }
+
+    /// strength 叠加 ±999 上限、归零移除；Plated Armor 叠加封顶 999（stackPower）
+    pub fn stack_cap(&self) -> Option<i32> {
+        match self.kind {
+            PowerKind::Strength => Some(999),
+            PowerKind::PlatedArmor => Some(999),
+            _ => None,
         }
     }
 
@@ -228,16 +249,16 @@ pub fn apply_power(
 ) {
     if let Some(p) = target.iter_mut().find(|p| p.kind == kind) {
         p.amount += amount;
-        if matches!(kind, PowerKind::Strength) {
-            p.amount = p.amount.clamp(-999, 999);
-            if p.amount == 0 {
-                target.retain(|q| q.kind != kind);
-            }
+        if let Some(cap) = p.stack_cap() {
+            p.amount = p.amount.clamp(-cap, cap);
+        }
+        if p.amount == 0 {
+            target.retain(|q| q.kind != kind);
         }
     } else {
         let mut p = Power::new(kind, amount, source_is_monster, turn_has_ended);
-        if matches!(kind, PowerKind::Strength) {
-            p.amount = p.amount.clamp(-999, 999);
+        if let Some(cap) = p.stack_cap() {
+            p.amount = p.amount.clamp(-cap, cap);
         }
         target.push(p);
     }

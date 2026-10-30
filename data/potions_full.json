@@ -1,0 +1,393 @@
+{
+ "date": "2026-10-30",
+ "count": 43,
+ "data": [
+  {
+   "cls": "Ambrosia",
+   "id": "Ambrosia",
+   "rarity": "RARE",
+   "isThrown": false,
+   "targetRequired": false,
+   "potency": "2",
+   "zhName": "仙馔密酒"
+  },
+  {
+   "cls": "AncientPotion",
+   "id": "Ancient Potion",
+   "rarity": "UNCOMMON",
+   "isThrown": false,
+   "targetRequired": false,
+   "potency": "1",
+   "zhName": "先古药水"
+  },
+  {
+   "cls": "AttackPotion",
+   "id": "AttackPotion",
+   "rarity": "COMMON",
+   "isThrown": false,
+   "targetRequired": false,
+   "potency": "1",
+   "zhName": "攻击药水"
+  },
+  {
+   "cls": "BlessingOfTheForge",
+   "id": "BlessingOfTheForge",
+   "rarity": "COMMON",
+   "isThrown": false,
+   "targetRequired": false,
+   "potency": "0",
+   "zhName": "熔炉的祝福"
+  },
+  {
+   "cls": "BlockPotion",
+   "id": "Block Potion",
+   "rarity": "COMMON",
+   "isThrown": false,
+   "targetRequired": false,
+   "potency": "12",
+   "zhName": "格挡药水"
+  },
+  {
+   "cls": "BloodPotion",
+   "id": "BloodPotion",
+   "rarity": "COMMON",
+   "isThrown": false,
+   "targetRequired": false,
+   "potency": "20",
+   "zhName": "鲜血药水"
+  },
+  {
+   "cls": "BottledMiracle",
+   "id": "BottledMiracle",
+   "rarity": "COMMON",
+   "isThrown": false,
+   "targetRequired": false,
+   "potency": "2",
+   "zhName": "瓶装奇迹"
+  },
+  {
+   "cls": "ColorlessPotion",
+   "id": "ColorlessPotion",
+   "rarity": "COMMON",
+   "isThrown": false,
+   "targetRequired": false,
+   "potency": "1",
+   "zhName": "无色药水"
+  },
+  {
+   "cls": "CultistPotion",
+   "id": "CultistPotion",
+   "rarity": "RARE",
+   "isThrown": false,
+   "targetRequired": false,
+   "potency": "1",
+   "zhName": "邪教徒药水"
+  },
+  {
+   "cls": "CunningPotion",
+   "id": "CunningPotion",
+   "rarity": "UNCOMMON",
+   "isThrown": false,
+   "targetRequired": false,
+   "potency": "3",
+   "zhName": "狡诈药水"
+  },
+  {
+   "cls": "DexterityPotion",
+   "id": "Dexterity Potion",
+   "rarity": "COMMON",
+   "isThrown": false,
+   "targetRequired": false,
+   "potency": "2",
+   "zhName": "敏捷药水"
+  },
+  {
+   "cls": "DistilledChaosPotion",
+   "id": "DistilledChaos",
+   "rarity": "UNCOMMON",
+   "isThrown": false,
+   "targetRequired": false,
+   "potency": "3",
+   "zhName": "精炼混沌"
+  },
+  {
+   "cls": "DuplicationPotion",
+   "id": "DuplicationPotion",
+   "rarity": "UNCOMMON",
+   "isThrown": false,
+   "targetRequired": false,
+   "potency": "1",
+   "zhName": "复制药水"
+  },
+  {
+   "cls": "Elixir",
+   "id": "ElixirPotion",
+   "rarity": "UNCOMMON",
+   "isThrown": false,
+   "targetRequired": false,
+   "potency": "0",
+   "zhName": "万灵药水"
+  },
+  {
+   "cls": "EnergyPotion",
+   "id": "Energy Potion",
+   "rarity": "COMMON",
+   "isThrown": false,
+   "targetRequired": false,
+   "potency": "2",
+   "zhName": "能量药水"
+  },
+  {
+   "cls": "EntropicBrew",
+   "id": "EntropicBrew",
+   "rarity": "RARE",
+   "isThrown": false,
+   "targetRequired": false,
+   "potency": "AbstractDungeon.player.potionSlots",
+   "zhName": "混沌药水"
+  },
+  {
+   "cls": "EssenceOfDarkness",
+   "id": "EssenceOfDarkness",
+   "rarity": "RARE",
+   "isThrown": false,
+   "targetRequired": false,
+   "potency": "1",
+   "zhName": "暗之精华"
+  },
+  {
+   "cls": "EssenceOfSteel",
+   "id": "EssenceOfSteel",
+   "rarity": "UNCOMMON",
+   "isThrown": false,
+   "targetRequired": false,
+   "potency": "4",
+   "zhName": "钢之精华"
+  },
+  {
+   "cls": "ExplosivePotion",
+   "id": "Explosive Potion",
+   "rarity": "COMMON",
+   "isThrown": true,
+   "targetRequired": false,
+   "potency": "10",
+   "zhName": "爆炸药水"
+  },
+  {
+   "cls": "FairyPotion",
+   "id": "FairyPotion",
+   "rarity": "RARE",
+   "isThrown": false,
+   "targetRequired": false,
+   "potency": "30",
+   "zhName": "瓶中精灵"
+  },
+  {
+   "cls": "FearPotion",
+   "id": "FearPotion",
+   "rarity": "COMMON",
+   "isThrown": true,
+   "targetRequired": true,
+   "potency": "3",
+   "zhName": "恐惧药水"
+  },
+  {
+   "cls": "FirePotion",
+   "id": "Fire Potion",
+   "rarity": "COMMON",
+   "isThrown": true,
+   "targetRequired": true,
+   "potency": "20",
+   "zhName": "火焰药水"
+  },
+  {
+   "cls": "FocusPotion",
+   "id": "FocusPotion",
+   "rarity": "COMMON",
+   "isThrown": false,
+   "targetRequired": false,
+   "potency": "2",
+   "zhName": "集中药水"
+  },
+  {
+   "cls": "FruitJuice",
+   "id": "Fruit Juice",
+   "rarity": "RARE",
+   "isThrown": false,
+   "targetRequired": false,
+   "potency": "5",
+   "zhName": "果汁"
+  },
+  {
+   "cls": "GamblersBrew",
+   "id": "GamblersBrew",
+   "rarity": "UNCOMMON",
+   "isThrown": false,
+   "targetRequired": false,
+   "potency": "0",
+   "zhName": "赌徒特酿"
+  },
+  {
+   "cls": "GhostInAJar",
+   "id": "GhostInAJar",
+   "rarity": "RARE",
+   "isThrown": false,
+   "targetRequired": false,
+   "potency": "1",
+   "zhName": "罐装幽灵"
+  },
+  {
+   "cls": "HeartOfIron",
+   "id": "HeartOfIron",
+   "rarity": "RARE",
+   "isThrown": false,
+   "targetRequired": false,
+   "potency": "6",
+   "zhName": "铁之心"
+  },
+  {
+   "cls": "LiquidBronze",
+   "id": "LiquidBronze",
+   "rarity": "UNCOMMON",
+   "isThrown": false,
+   "targetRequired": false,
+   "potency": "3",
+   "zhName": "流动铜液"
+  },
+  {
+   "cls": "LiquidMemories",
+   "id": "LiquidMemories",
+   "rarity": "UNCOMMON",
+   "isThrown": false,
+   "targetRequired": false,
+   "potency": "1",
+   "zhName": "液态记忆"
+  },
+  {
+   "cls": "PoisonPotion",
+   "id": "Poison Potion",
+   "rarity": "COMMON",
+   "isThrown": true,
+   "targetRequired": true,
+   "potency": "6",
+   "zhName": "毒药水"
+  },
+  {
+   "cls": "PotionOfCapacity",
+   "id": "PotionOfCapacity",
+   "rarity": "UNCOMMON",
+   "isThrown": false,
+   "targetRequired": false,
+   "potency": "2",
+   "zhName": "扩容药水"
+  },
+  {
+   "cls": "PotionSlot",
+   "id": "Potion Slot",
+   "rarity": "PLACEHOLDER",
+   "isThrown": false,
+   "targetRequired": false,
+   "potency": "0",
+   "zhName": "药水栏"
+  },
+  {
+   "cls": "PowerPotion",
+   "id": "PowerPotion",
+   "rarity": "COMMON",
+   "isThrown": false,
+   "targetRequired": false,
+   "potency": "1",
+   "zhName": "能力药水"
+  },
+  {
+   "cls": "RegenPotion",
+   "id": "Regen Potion",
+   "rarity": "UNCOMMON",
+   "isThrown": false,
+   "targetRequired": false,
+   "potency": "5",
+   "zhName": "再生药水"
+  },
+  {
+   "cls": "SkillPotion",
+   "id": "SkillPotion",
+   "rarity": "COMMON",
+   "isThrown": false,
+   "targetRequired": false,
+   "potency": "1",
+   "zhName": "技能药水"
+  },
+  {
+   "cls": "SmokeBomb",
+   "id": "SmokeBomb",
+   "rarity": "RARE",
+   "isThrown": true,
+   "targetRequired": false,
+   "potency": "0",
+   "zhName": "烟雾弹"
+  },
+  {
+   "cls": "SneckoOil",
+   "id": "SneckoOil",
+   "rarity": "RARE",
+   "isThrown": false,
+   "targetRequired": false,
+   "potency": "5",
+   "zhName": "异蛇之油"
+  },
+  {
+   "cls": "SpeedPotion",
+   "id": "SpeedPotion",
+   "rarity": "COMMON",
+   "isThrown": false,
+   "targetRequired": false,
+   "potency": "5",
+   "zhName": "速度药水"
+  },
+  {
+   "cls": "StancePotion",
+   "id": "StancePotion",
+   "rarity": "UNCOMMON",
+   "isThrown": false,
+   "targetRequired": false,
+   "potency": "0",
+   "zhName": "姿态药水"
+  },
+  {
+   "cls": "SteroidPotion",
+   "id": "SteroidPotion",
+   "rarity": "COMMON",
+   "isThrown": false,
+   "targetRequired": false,
+   "potency": "5",
+   "zhName": "类固醇药水"
+  },
+  {
+   "cls": "StrengthPotion",
+   "id": "Strength Potion",
+   "rarity": "COMMON",
+   "isThrown": false,
+   "targetRequired": false,
+   "potency": "2",
+   "zhName": "力量药水"
+  },
+  {
+   "cls": "SwiftPotion",
+   "id": "Swift Potion",
+   "rarity": "COMMON",
+   "isThrown": false,
+   "targetRequired": false,
+   "potency": "3",
+   "zhName": "迅捷药水"
+  },
+  {
+   "cls": "WeakenPotion",
+   "id": "Weak Potion",
+   "rarity": "COMMON",
+   "isThrown": true,
+   "targetRequired": true,
+   "potency": "3",
+   "zhName": "虚弱药水"
+  }
+ ]
+}

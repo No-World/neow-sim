@@ -1,6 +1,7 @@
 //! 战斗状态结构。
 
 use crate::cards::CardInst;
+use crate::potions::PotionInst;
 use crate::powers::Power;
 use crate::rng::StsRandom;
 
@@ -174,6 +175,8 @@ pub struct PlayerState {
     pub draw: Vec<CardInst>,
     pub discard: Vec<CardInst>,
     pub exhaust: Vec<CardInst>,
+    /// 药水栏（AbstractPlayer.potionSlots = 3；None = 空栏）
+    pub potions: Vec<Option<PotionInst>>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
