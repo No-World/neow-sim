@@ -134,6 +134,13 @@ enum Q {
     EvokeNoRemove,
     OrbSlots(i32),
     DoDrawToHand(i32),
+    DoSetHandCostOne,
+    DoIfNoAttacksDraw(i32),
+    DoIfKillGainEnergy {
+        target: usize,
+        energy_gain: i32,
+    },
+    DoMoveTypeToHand(&'static str),
     DoRemoveAllBlock {
         target: usize,
     },
@@ -249,6 +256,7 @@ pub struct Combat {
     pending_queue: Option<Vec<Q>>,
     pub attacks_this_turn: i32,
     hand_cost_zero_this_turn: bool,
+    hand_cost_max_one: bool,
     skip_monster_turn: bool,
     force_end_turn_after_queue: bool,
     pub discarded_this_turn: i32,
@@ -307,6 +315,7 @@ impl Combat {
             pending_queue: None,
             attacks_this_turn: 0,
             hand_cost_zero_this_turn: false,
+            hand_cost_max_one: false,
             skip_monster_turn: false,
             force_end_turn_after_queue: false,
             discarded_this_turn: 0,
@@ -811,6 +820,13 @@ impl Combat {
                 target: ti,
                 base: self.eval(e, card, x_cost),
             }),
+            Effect::SetHandCostOne => q.push(Q::DoSetHandCostOne),
+            Effect::IfNoAttacksDraw(e) => q.push(Q::DoIfNoAttacksDraw(self.eval(e, card, x_cost))),
+            Effect::IfKillGainEnergy(e) => q.push(Q::DoIfKillGainEnergy {
+                target: ti,
+                energy_gain: self.eval(e, card, x_cost),
+            }),
+            Effect::MoveTypeToHand(t) => q.push(Q::DoMoveTypeToHand(t)),
             Effect::RemoveAllBlock => q.push(Q::DoRemoveAllBlock { target: ti }),
             Effect::IfStance(sid, inner) => {
                 if let Some(st) = crate::state::Stance::from_id(sid) {
@@ -1040,6 +1056,7 @@ impl Combat {
         self.turn += 1;
         self.attacks_this_turn = 0;
         self.hand_cost_zero_this_turn = false;
+        self.hand_cost_max_one = false;
         self.turn_has_ended = false;
         // ── 下回合开始序列（GameActionManager turn-start 分支）──
         // ① startOfTurnPowers（pre）：Berserk +能量；Energized（onEnergyRecharge）+能量后移除
@@ -1613,6 +1630,44 @@ impl Combat {
                 for &i in indices.iter().rev() {
                     let c = self.player.hand.remove(i);
                     self.player.discard.push(c);
+                }
+            }
+            Q::DoSetHandCostOne => {
+                // Enlightenment：本回合手牌费用上限 1
+                self.hand_cost_max_one = true;
+            }
+            Q::DoIfNoAttacksDraw(n) => {
+                // Impatience：手牌无攻击牌时抽 N 张
+                let has_attack = self.player.hand.iter().any(|c| c.def.card_type == "ATTACK");
+                if !has_attack {
+                    self.draw_cards(n as usize);
+                }
+            }
+            Q::DoIfKillGainEnergy {
+                target,
+                energy_gain,
+            } => {
+                // Sunder：目标已死（在前序 Damage 中被击杀）则获得能量
+                if !self.alive(target) {
+                    self.player.energy += energy_gain;
+                }
+            }
+            Q::DoMoveTypeToHand(card_type) => {
+                // Violence/SecretTechnique/SecretWeapon：将抽牌堆中指定类型全移入手
+                let matching: Vec<usize> = self
+                    .player
+                    .draw
+                    .iter()
+                    .enumerate()
+                    .filter(|(_, c)| c.def.card_type == card_type)
+                    .rev()
+                    .map(|(i, _)| i)
+                    .collect();
+                for i in matching {
+                    if self.player.hand.len() < 10 {
+                        let c = self.player.draw.remove(i);
+                        self.player.hand.push(c);
+                    }
                 }
             }
             Q::DoRemoveAllBlock { target } => {

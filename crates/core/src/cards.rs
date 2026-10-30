@@ -122,7 +122,12 @@ fn effect_supported(e: &Effect) -> bool {
         Effect::IfStanceBlock(_, x) => expr_ok(*x),
         Effect::IfDiscardedGainEnergy(x) => expr_ok(*x),
         Effect::DrawToHand(x) | Effect::IfIntentApplyWeak(x) => expr_ok(*x),
-        Effect::RemoveAllBlock | Effect::SelectDrawPileToHand => true,
+        Effect::RemoveAllBlock
+        | Effect::SelectDrawPileToHand
+        | Effect::SetHandCostOne
+        | Effect::IfKillGainEnergy(_) => true,
+        Effect::IfNoAttacksDraw(x) => expr_ok(*x),
+        Effect::MoveTypeToHand(t) => matches!(*t, "ATTACK" | "SKILL"),
         Effect::IfLastCardSkill(x) => expr_ok(*x),
         Effect::IfStance(_, inner) | Effect::IfNotStance(_, inner) => {
             inner.iter().all(effect_supported)

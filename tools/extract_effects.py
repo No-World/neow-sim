@@ -197,6 +197,27 @@ def classify_action(cls: str, args: str, consts: dict, overrides: dict, lvars: d
             else:
                 n = {"Raw": "-x"}
         return {"OrbSlots": n}
+    if cls == "EmptyDeckShuffleAction":
+        return {"ShuffleDraw": 1}
+    if cls == "EnlightenmentAction":
+        return {"SetHandCostOne": 1}
+    if cls == "ConditionalDrawAction":
+        # (amount, typeToCheck) — if no cards of type in hand, draw amount
+        n = expr(parts[0], consts, overrides, lvars) if parts else 2
+        return {"IfNoAttacksDraw": n}
+    if cls == "SunderAction":
+        # (target, info, energyGain) — damage + if kill gain energy
+        eg = expr(parts[2], consts, overrides, lvars) if len(parts) > 2 else 3
+        return [{"Damage": ["Enemy", "DamageBase"]}, {"IfKillGainEnergy": eg}]
+    if cls == "DrawPileToHandAction":
+        # (amount, typeToCheck) — move all cards of type from draw to hand
+        return {"MoveTypeToHand": "ATTACK"}
+    if cls == "SkillFromDeckToHandAction":
+        return {"MoveTypeToHand": "SKILL"}
+    if cls == "AttackFromDeckToHandAction":
+        return {"MoveTypeToHand": "ATTACK"}
+    if cls == "ForethoughtAction":
+        return {"SelectPutOnDeckBottom": 1}
     if cls == "RemoveAllBlockAction":
         return {"RemoveAllBlock": 1}
     if cls == "IndignationAction":

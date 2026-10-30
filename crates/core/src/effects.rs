@@ -142,6 +142,14 @@ pub enum Effect {
     SelectDrawPileToHand,
     /// 上一张牌是技能时抽牌（SanctityAction）
     IfLastCardSkill(Expr),
+    /// 手牌费用降为 1（Enlightenment：cost > 1 → cost = 1）
+    SetHandCostOne,
+    /// 手牌无攻击牌时抽牌（ConditionalDrawAction/Impatience）
+    IfNoAttacksDraw(Expr),
+    /// 击杀时获得能量（SunderAction 的能量部分）
+    IfKillGainEnergy(Expr),
+    /// 将抽牌堆中指定类型全部移入手（DrawPileToHand/Violence）
+    MoveTypeToHand(&'static str),
     /// 未支持动作（值为 Java 动作类名）——手移植清单
     Unsupported(&'static str),
 }

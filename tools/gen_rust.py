@@ -91,6 +91,14 @@ def effect_rs(eff) -> str:
         return "Effect::EvokeLeftmost"
     if "EvokeNoRemove" in eff:
         return "Effect::EvokeNoRemove"
+    if "SetHandCostOne" in eff:
+        return "Effect::SetHandCostOne"
+    if "IfNoAttacksDraw" in eff:
+        return f"Effect::IfNoAttacksDraw({expr_rs(eff['IfNoAttacksDraw'])})"
+    if "IfKillGainEnergy" in eff:
+        return f"Effect::IfKillGainEnergy({expr_rs(eff['IfKillGainEnergy'])})"
+    if "MoveTypeToHand" in eff:
+        return f"Effect::MoveTypeToHand({s(eff['MoveTypeToHand'])})"
     if "RemoveAllBlock" in eff:
         return "Effect::RemoveAllBlock"
     if "IfStance" in eff:

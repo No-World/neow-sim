@@ -75,6 +75,12 @@ def effect_supported(e):
         return True
     if k in ("ShuffleDraw", "ForceEndTurn", "DiscardNonAttacks", "DiscardAllHand", "SetHandCostZero", "ExhaustHand"):
         return True
+    if k in ("RemoveAllBlock", "SelectDrawPileToHand", "SetHandCostOne", "IfKillGainEnergy"):
+        return True
+    if k == "IfNoAttacksDraw":
+        return expr_ok(e[k])
+    if k == "MoveTypeToHand":
+        return e[k] in ("ATTACK", "SKILL")
     if k in ("RemoveAllBlock", "SelectDrawPileToHand"):
         return True
     if k == "IfLastCardSkill":

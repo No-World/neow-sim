@@ -4,10 +4,10 @@
   "note": "use() 效果 DSL；Unsupported 需手移植"
  },
  "stats": {
-  "parsed": 275,
-  "parsed_branch": 56,
+  "parsed": 281,
+  "parsed_branch": 58,
   "no_use": 0,
-  "unsupported": 44
+  "unsupported": 36
  },
  "data": [
   {
@@ -8724,13 +8724,16 @@
    },
    "effects": [
     {
-     "Unsupported": "SunderAction"
+     "Damage": [
+      "Enemy",
+      "DamageBase"
+     ]
+    },
+    {
+     "IfKillGainEnergy": 3
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "SunderAction"
-   ]
+   "status": "parsed_branch"
   },
   {
    "id": "Sweeping Beam",
@@ -9165,7 +9168,7 @@
    },
    "effects": [
     {
-     "Unsupported": "EmptyDeckShuffleAction"
+     "ShuffleDraw": 1
     },
     {
      "ShuffleDraw": 1
@@ -9174,10 +9177,7 @@
      "Draw": "Magic"
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "EmptyDeckShuffleAction"
-   ]
+   "status": "parsed_branch"
   },
   {
    "id": "Discovery",
@@ -9247,13 +9247,10 @@
    "upgrade": {},
    "effects": [
     {
-     "Unsupported": "EnlightenmentAction"
+     "SetHandCostOne": 1
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "EnlightenmentAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Finesse",
@@ -9326,13 +9323,10 @@
    "upgrade": {},
    "effects": [
     {
-     "Unsupported": "ForethoughtAction"
+     "SelectPutOnDeckBottom": 1
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "ForethoughtAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Good Instincts",
@@ -9402,13 +9396,10 @@
    },
    "effects": [
     {
-     "Unsupported": "ConditionalDrawAction"
+     "IfNoAttacksDraw": "Magic"
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "ConditionalDrawAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "J.A.X.",
@@ -9835,13 +9826,10 @@
    "upgrade": {},
    "effects": [
     {
-     "Unsupported": "SkillFromDeckToHandAction"
+     "MoveTypeToHand": "SKILL"
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "SkillFromDeckToHandAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Secret Weapon",
@@ -9861,13 +9849,10 @@
    "upgrade": {},
    "effects": [
     {
-     "Unsupported": "AttackFromDeckToHandAction"
+     "MoveTypeToHand": "ATTACK"
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "AttackFromDeckToHandAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Swift Strike",
@@ -10040,13 +10025,10 @@
    },
    "effects": [
     {
-     "Unsupported": "DrawPileToHandAction"
+     "MoveTypeToHand": "ATTACK"
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "DrawPileToHandAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "AscendersBane",
