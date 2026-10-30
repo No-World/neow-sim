@@ -186,6 +186,7 @@ pub enum Intent {
     AttackDebuff,
     Defend,
     Escape,
+    Sleep,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -202,6 +203,9 @@ pub enum MonsterKind {
     Looter,
     SlaverBlue,
     SlaverRed,
+    GremlinNob,
+    Lagavulin,
+    Sentry,
 }
 
 /// 通用怪物状态（M2 覆盖：大颚虫、邪教徒；M3 走数据驱动定义表）
@@ -308,6 +312,30 @@ impl MonsterState {
                     (stab, 1, scrape, 0, 0, 0, 0),
                 )
             }
+            MonsterKind::GremlinNob => {
+                let (lo, hi) = if ascension >= 2 { (85, 90) } else { (82, 86) };
+                let bash = if ascension >= 2 { 8 } else { 6 };
+                let rush = if ascension >= 2 { 16 } else { 14 };
+                (hp_rng.random_start_end(lo, hi), (rush, 2, bash, 0, 2, 0, 0))
+            }
+            MonsterKind::Lagavulin => {
+                let (lo, hi) = if ascension >= 2 {
+                    (112, 115)
+                } else {
+                    (109, 111)
+                };
+                let dmg = if ascension >= 3 { 20 } else { 18 };
+                let debuff = if ascension >= 18 { 2 } else { 1 };
+                (
+                    hp_rng.random_start_end(lo, hi),
+                    (dmg, debuff, 0, 8, 0, 0, 0),
+                )
+            }
+            MonsterKind::Sentry => {
+                let (lo, hi) = if ascension >= 2 { (39, 45) } else { (38, 42) };
+                let beam = if ascension >= 3 { 10 } else { 9 };
+                (hp_rng.random_start_end(lo, hi), (beam, 2, 0, 0, 0, 0, 0))
+            }
         };
         Self {
             kind,
@@ -391,6 +419,23 @@ impl MonsterState {
                 1 => Intent::Attack,
                 _ => Intent::AttackDebuff,
             },
+            MonsterKind::GremlinNob => match self.next_move {
+                1 => Intent::Attack,
+                2 => Intent::AttackDebuff,
+                3 => Intent::Buff,
+                _ => Intent::Attack,
+            },
+            MonsterKind::Lagavulin => match self.next_move {
+                1 => Intent::Debuff,
+                3 => Intent::Attack,
+                5 => Intent::Sleep,
+                _ => Intent::Attack,
+            },
+            MonsterKind::Sentry => match self.next_move {
+                3 => Intent::Debuff,
+                4 => Intent::Attack,
+                _ => Intent::Attack,
+            },
         }
     }
 
@@ -435,6 +480,19 @@ impl MonsterState {
                     _ => None,
                 }
             }
+            MonsterKind::GremlinNob => match self.next_move {
+                1 => Some(self.dark_strike_dmg),
+                2 => Some(self.thrash_dmg),
+                _ => None,
+            },
+            MonsterKind::Lagavulin => match self.next_move {
+                3 => Some(self.dark_strike_dmg),
+                _ => None,
+            },
+            MonsterKind::Sentry => match self.next_move {
+                4 => Some(self.dark_strike_dmg),
+                _ => None,
+            },
         }
     }
 }

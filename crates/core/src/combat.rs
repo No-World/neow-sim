@@ -1161,6 +1161,56 @@ impl Combat {
         }
     }
 
+    fn gremlin_nob_get_move(&mut self, i: usize, _num: i32) -> u8 {
+        // 首回合恒 Bellow
+        if self.monsters[i].first_move {
+            return 3;
+        }
+        // 之后：33%以下 Skull Bash（攻+易伤），否则 Bull Rush
+        // 简化：交替 Rush/Bash
+        let h = &self.monsters[i].move_history;
+        let last_bash = h.last() == Some(&2);
+        let last2_rush = h.len() >= 2 && h[h.len() - 1] == 1 && h[h.len() - 2] == 1;
+        if _num < 33 || last2_rush {
+            2
+        } else if last_bash {
+            1
+        } else {
+            2
+        }
+    }
+
+    fn lagavulin_get_move(&mut self, i: usize, _num: i32) -> u8 {
+        // Lagavulin：沉睡→攻击→攻击→减益→循环
+        if self.monsters[i].first_move {
+            return 5; // Sleep
+        }
+        let h = &self.monsters[i].move_history;
+        // 简化：醒来后 攻击→攻击→减益→循环
+        let recent: Vec<u8> = h.iter().rev().take(3).copied().collect();
+        if recent.first() == Some(&1) {
+            3 // 刚减益完→攻击
+        } else if recent.first() == Some(&3) && recent.get(1) == Some(&3) {
+            1 // 连续两轮攻击→减益
+        } else {
+            3 // 攻击或默认
+        }
+    }
+
+    fn sentry_get_move(&mut self, i: usize, _num: i32) -> u8 {
+        // Sentry：交替 Debuff/Attack
+        if self.monsters[i].first_move {
+            // 偶数位 Debuff 起手，奇数位 Attack 起手
+            return if i % 2 == 0 { 3 } else { 4 };
+        }
+        let h = &self.monsters[i].move_history;
+        if h.last() == Some(&4) {
+            3
+        } else {
+            4
+        }
+    }
+
     fn end_turn(&mut self) {
         self.turn_has_ended = true;
         // callEndOfTurnActions：玩家 powers 的 EOT，按插入序逐个结算：
@@ -1559,6 +1609,67 @@ impl Combat {
                         amount: m.ritual_amt,
                     });
                 }
+                _ => {}
+            },
+            MonsterKind::GremlinNob => match m.next_move {
+                1 => q.push(Q::MonsterDamage {
+                    src: i,
+                    base: m.dark_strike_dmg,
+                }),
+                2 => {
+                    q.push(Q::MonsterDamage {
+                        src: i,
+                        base: m.thrash_dmg,
+                    });
+                    q.push(Q::ApplyPowerToPlayerFromMonster {
+                        kind: PowerKind::Vulnerable,
+                        amount: m.bellow_str,
+                    });
+                }
+                3 => {
+                    // Bellow：获得力量（Anger 近似为直接 STR）
+                    q.push(Q::ApplyPowerToMonster {
+                        target: i,
+                        kind: PowerKind::Strength,
+                        amount: m.bellow_str,
+                    });
+                }
+                _ => {}
+            },
+            MonsterKind::Lagavulin => match m.next_move {
+                1 => {
+                    // Debuff：玩家 -1 力量 -1 敏捷
+                    q.push(Q::ApplyPowerToPlayerFromMonster {
+                        kind: PowerKind::Strength,
+                        amount: -m.ritual_amt,
+                    });
+                    q.push(Q::ApplyPowerToPlayerFromMonster {
+                        kind: PowerKind::Dexterity,
+                        amount: -m.ritual_amt,
+                    });
+                }
+                3 => q.push(Q::MonsterDamage {
+                    src: i,
+                    base: m.dark_strike_dmg,
+                }),
+                5 => {
+                    // Sleep：什么都不做
+                }
+                _ => {}
+            },
+            MonsterKind::Sentry => match m.next_move {
+                3 => {
+                    // Beam（Debuff版）：加 Dazed 到弃牌堆
+                    for _ in 0..m.ritual_amt {
+                        if let Some(c) = CardInst::new_by_class("Dazed") {
+                            q.push(Q::MakeDiscard(c));
+                        }
+                    }
+                }
+                4 => q.push(Q::MonsterDamage {
+                    src: i,
+                    base: m.dark_strike_dmg,
+                }),
                 _ => {}
             },
             MonsterKind::FungiBeast => match m.next_move {
@@ -2615,6 +2726,9 @@ impl Combat {
             MonsterKind::Looter => self.looter_get_move(i, num),
             MonsterKind::SlaverBlue => self.slaver_blue_get_move(i, num),
             MonsterKind::SlaverRed => self.slaver_red_get_move(i, num),
+            MonsterKind::GremlinNob => self.gremlin_nob_get_move(i, num),
+            MonsterKind::Lagavulin => self.lagavulin_get_move(i, num),
+            MonsterKind::Sentry => self.sentry_get_move(i, num),
         };
         self.monsters[i].first_move = false;
         self.monsters[i].move_history.push(mv);
