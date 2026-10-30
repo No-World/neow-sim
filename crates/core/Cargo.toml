@@ -1,0 +1,9 @@
+[package]
+name = "neow-sim-core"
+description = "Slay the Spire rules engine core (pure, deterministic, no I/O)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+# 保持零依赖：serde 等协议相关依赖只出现在 crates/py 绑定层
