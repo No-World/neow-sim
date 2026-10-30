@@ -197,6 +197,28 @@ def classify_action(cls: str, args: str, consts: dict, overrides: dict, lvars: d
             else:
                 n = {"Raw": "-x"}
         return {"OrbSlots": n}
+    if cls == "ModifyDamageAction":
+        n = expr(parts[1], consts, overrides, lvars) if len(parts) > 1 else 1
+        return {"ModifySelfDamage": n}
+    if cls == "ModifyBlockAction":
+        n = expr(parts[1], consts, overrides, lvars) if len(parts) > 1 else 1
+        return {"ModifySelfBlock": n}
+    if cls == "ReduceCostAction":
+        n = expr(parts[0], consts, overrides, lvars) if parts else 1
+        return [{"Damage": ["Enemy", "DamageBase"]}, {"ModifySelfCost": -n if isinstance(n, int) else n}]
+    if cls == "IncreaseMiscAction":
+        n = expr(parts[0], consts, overrides, lvars) if parts else 1
+        return {"ModifySelfDamage": n}
+    if cls == "GashAction":
+        n = expr(parts[1], consts, overrides, lvars) if len(parts) > 1 else 2
+        return {"ModifySelfDamage": n}
+    if cls == "RitualDaggerAction":
+        n = expr(parts[1], consts, overrides, lvars) if len(parts) > 1 else 3
+        return [{"Damage": ["Enemy", "DamageBase"]}, {"IfKillModifySelfDamage": n}]
+    if cls == "DoppelgangerAction":
+        return [{"NextTurnDraw": "Magic"}, {"NextTurnGainEnergy": "Magic"}]
+    if cls == "CollectAction":
+        return {"NextTurnGainEnergy": "XCost"}
     if cls == "EmptyDeckShuffleAction":
         return {"ShuffleDraw": 1}
     if cls == "EnlightenmentAction":

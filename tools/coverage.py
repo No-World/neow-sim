@@ -75,6 +75,9 @@ def effect_supported(e):
         return True
     if k in ("ShuffleDraw", "ForceEndTurn", "DiscardNonAttacks", "DiscardAllHand", "SetHandCostZero", "ExhaustHand"):
         return True
+    if k in ("ModifySelfDamage", "ModifySelfBlock", "ModifySelfCost", "IfKillModifySelfDamage",
+             "NextTurnDraw", "NextTurnGainEnergy"):
+        return expr_ok(e[k])
     if k in ("RemoveAllBlock", "SelectDrawPileToHand", "SetHandCostOne", "IfKillGainEnergy"):
         return True
     if k == "IfNoAttacksDraw":

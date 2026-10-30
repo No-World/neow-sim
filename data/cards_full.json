@@ -4,10 +4,10 @@
   "note": "use() 效果 DSL；Unsupported 需手移植"
  },
  "stats": {
-  "parsed": 281,
-  "parsed_branch": 58,
+  "parsed": 289,
+  "parsed_branch": 59,
   "no_use": 0,
-  "unsupported": 36
+  "unsupported": 27
  },
  "data": [
   {
@@ -1601,13 +1601,10 @@
      ]
     },
     {
-     "Unsupported": "ModifyDamageAction"
+     "ModifySelfDamage": "Magic"
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "ModifyDamageAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Reaper",
@@ -3163,13 +3160,13 @@
    "upgrade": {},
    "effects": [
     {
-     "Unsupported": "DoppelgangerAction"
+     "NextTurnDraw": "Magic"
+    },
+    {
+     "NextTurnGainEnergy": "Magic"
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "DoppelgangerAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Endless Agony",
@@ -3460,13 +3457,10 @@
      ]
     },
     {
-     "Unsupported": "ModifyDamageAction"
+     "ModifySelfDamage": -2
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "ModifyDamageAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Grand Finale",
@@ -4611,13 +4605,10 @@
    "upgrade": {},
    "effects": [
     {
-     "Unsupported": "CollectAction"
+     "NextTurnGainEnergy": "XCost"
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "CollectAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Conclude",
@@ -7077,13 +7068,10 @@
      ]
     },
     {
-     "Unsupported": "GashAction"
+     "ModifySelfDamage": "Magic"
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "GashAction"
-   ]
+   "status": "parsed_branch"
   },
   {
    "id": "Cold Snap",
@@ -7705,16 +7693,15 @@
    },
    "effects": [
     {
-     "Unsupported": "IncreaseMiscAction"
+     "ModifySelfDamage": {
+      "Raw": "this.uuid"
+     }
     },
     {
      "Block": "BlockBase"
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "IncreaseMiscAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Glacier",
@@ -8609,13 +8596,10 @@
      "Block": "BlockBase"
     },
     {
-     "Unsupported": "ModifyBlockAction"
+     "ModifySelfBlock": -1
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "ModifyBlockAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Storm",
@@ -8672,13 +8656,18 @@
      ]
     },
     {
-     "Unsupported": "ReduceCostAction"
+     "Damage": [
+      "Enemy",
+      "DamageBase"
+     ]
+    },
+    {
+     "ModifySelfCost": {
+      "Raw": "this.uuid"
+     }
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "ReduceCostAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Strike_B",
@@ -9773,13 +9762,18 @@
    },
    "effects": [
     {
-     "Unsupported": "RitualDaggerAction"
+     "Damage": [
+      "Enemy",
+      "DamageBase"
+     ]
+    },
+    {
+     "IfKillModifySelfDamage": {
+      "Raw": "new DamageInfo(p, this.damage, this.damageTypeForTurn)"
+     }
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "RitualDaggerAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Sadistic Nature",

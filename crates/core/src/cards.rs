@@ -34,6 +34,10 @@ pub const ENGINE_POWERS: &[&str] = &[
 pub struct CardInst {
     pub def: &'static CardDef,
     pub upgraded: bool,
+    /// 战斗内永久修改（Rampage/GlassKnife/Streamline 等自改效果）
+    pub damage_bonus: i32,
+    pub block_bonus: i32,
+    pub cost_delta: i32,
 }
 
 impl CardInst {
@@ -41,6 +45,9 @@ impl CardInst {
         Self {
             def: find_card(id).unwrap_or_else(|| panic!("未知卡牌 id: {id}")),
             upgraded: false,
+            damage_bonus: 0,
+            block_bonus: 0,
+            cost_delta: 0,
         }
     }
 
@@ -48,6 +55,9 @@ impl CardInst {
         crate::generated::find_card_by_class(cls).map(|def| Self {
             def,
             upgraded: false,
+            damage_bonus: 0,
+            block_bonus: 0,
+            cost_delta: 0,
         })
     }
 
@@ -58,12 +68,16 @@ impl CardInst {
     /// 支付费用：-2 不可打出（诅咒/状态），-1 为 X 费（支付全部能量）
     pub fn cost_pay(&self) -> i32 {
         let base = self.def.cost.unwrap_or(-2);
-        if self.upgraded {
-            if let Some(c) = self.def.upg_base_cost {
-                return c;
-            }
+        let cost = if self.upgraded {
+            self.def.upg_base_cost.unwrap_or(base)
+        } else {
+            base
+        };
+        if cost <= 0 {
+            cost
+        } else {
+            (cost + self.cost_delta).max(0)
         }
-        base
     }
 
     pub fn base_damage(&self) -> Option<i32> {
@@ -122,6 +136,12 @@ fn effect_supported(e: &Effect) -> bool {
         Effect::IfStanceBlock(_, x) => expr_ok(*x),
         Effect::IfDiscardedGainEnergy(x) => expr_ok(*x),
         Effect::DrawToHand(x) | Effect::IfIntentApplyWeak(x) => expr_ok(*x),
+        Effect::ModifySelfDamage(x)
+        | Effect::ModifySelfBlock(x)
+        | Effect::ModifySelfCost(x)
+        | Effect::IfKillModifySelfDamage(x)
+        | Effect::NextTurnDraw(x)
+        | Effect::NextTurnGainEnergy(x) => expr_ok(*x),
         Effect::RemoveAllBlock
         | Effect::SelectDrawPileToHand
         | Effect::SetHandCostOne

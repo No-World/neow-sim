@@ -91,6 +91,18 @@ def effect_rs(eff) -> str:
         return "Effect::EvokeLeftmost"
     if "EvokeNoRemove" in eff:
         return "Effect::EvokeNoRemove"
+    if "ModifySelfDamage" in eff:
+        return f"Effect::ModifySelfDamage({expr_rs(eff['ModifySelfDamage'])})"
+    if "ModifySelfBlock" in eff:
+        return f"Effect::ModifySelfBlock({expr_rs(eff['ModifySelfBlock'])})"
+    if "ModifySelfCost" in eff:
+        return f"Effect::ModifySelfCost({expr_rs(eff['ModifySelfCost'])})"
+    if "IfKillModifySelfDamage" in eff:
+        return f"Effect::IfKillModifySelfDamage({expr_rs(eff['IfKillModifySelfDamage'])})"
+    if "NextTurnDraw" in eff:
+        return f"Effect::NextTurnDraw({expr_rs(eff['NextTurnDraw'])})"
+    if "NextTurnGainEnergy" in eff:
+        return f"Effect::NextTurnGainEnergy({expr_rs(eff['NextTurnGainEnergy'])})"
     if "SetHandCostOne" in eff:
         return "Effect::SetHandCostOne"
     if "IfNoAttacksDraw" in eff:

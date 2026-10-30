@@ -135,6 +135,15 @@ enum Q {
     OrbSlots(i32),
     DoDrawToHand(i32),
     DoSetHandCostOne,
+    DoModifySelfDamage(i32),
+    DoModifySelfBlock(i32),
+    DoModifySelfCost(i32),
+    DoIfKillModifySelfDamage {
+        target: usize,
+        damage_gain: i32,
+    },
+    DoNextTurnDraw(i32),
+    DoNextTurnGainEnergy(i32),
     DoIfNoAttacksDraw(i32),
     DoIfKillGainEnergy {
         target: usize,
@@ -257,6 +266,8 @@ pub struct Combat {
     pub attacks_this_turn: i32,
     hand_cost_zero_this_turn: bool,
     hand_cost_max_one: bool,
+    pub next_turn_draw: i32,
+    pub next_turn_energy: i32,
     skip_monster_turn: bool,
     force_end_turn_after_queue: bool,
     pub discarded_this_turn: i32,
@@ -316,6 +327,8 @@ impl Combat {
             attacks_this_turn: 0,
             hand_cost_zero_this_turn: false,
             hand_cost_max_one: false,
+            next_turn_draw: 0,
+            next_turn_energy: 0,
             skip_monster_turn: false,
             force_end_turn_after_queue: false,
             discarded_this_turn: 0,
@@ -820,6 +833,27 @@ impl Combat {
                 target: ti,
                 base: self.eval(e, card, x_cost),
             }),
+            Effect::ModifySelfDamage(e) => {
+                q.push(Q::DoModifySelfDamage(self.eval(e, card, x_cost)));
+            }
+            Effect::ModifySelfBlock(e) => {
+                q.push(Q::DoModifySelfBlock(self.eval(e, card, x_cost)));
+            }
+            Effect::ModifySelfCost(e) => {
+                q.push(Q::DoModifySelfCost(self.eval(e, card, x_cost)));
+            }
+            Effect::IfKillModifySelfDamage(e) => {
+                q.push(Q::DoIfKillModifySelfDamage {
+                    target: ti,
+                    damage_gain: self.eval(e, card, x_cost),
+                });
+            }
+            Effect::NextTurnDraw(e) => {
+                q.push(Q::DoNextTurnDraw(self.eval(e, card, x_cost)));
+            }
+            Effect::NextTurnGainEnergy(e) => {
+                q.push(Q::DoNextTurnGainEnergy(self.eval(e, card, x_cost)));
+            }
             Effect::SetHandCostOne => q.push(Q::DoSetHandCostOne),
             Effect::IfNoAttacksDraw(e) => q.push(Q::DoIfNoAttacksDraw(self.eval(e, card, x_cost))),
             Effect::IfKillGainEnergy(e) => q.push(Q::DoIfKillGainEnergy {
@@ -1631,6 +1665,39 @@ impl Combat {
                     let c = self.player.hand.remove(i);
                     self.player.discard.push(c);
                 }
+            }
+            Q::DoModifySelfDamage(n) => {
+                // Rampage/GlassKnife：修改弃牌堆最后一张（=刚打出的卡）的伤害
+                if let Some(card) = self.player.discard.last_mut() {
+                    card.damage_bonus += n;
+                }
+            }
+            Q::DoModifySelfBlock(n) => {
+                if let Some(card) = self.player.discard.last_mut() {
+                    card.block_bonus += n;
+                }
+            }
+            Q::DoModifySelfCost(n) => {
+                if let Some(card) = self.player.discard.last_mut() {
+                    card.cost_delta += n;
+                }
+            }
+            Q::DoIfKillModifySelfDamage {
+                target,
+                damage_gain,
+            } => {
+                // RitualDagger：击杀时永久增加本卡伤害
+                if !self.alive(target) {
+                    if let Some(card) = self.player.discard.last_mut() {
+                        card.damage_bonus += damage_gain;
+                    }
+                }
+            }
+            Q::DoNextTurnDraw(n) => {
+                self.next_turn_draw += n;
+            }
+            Q::DoNextTurnGainEnergy(n) => {
+                self.next_turn_energy += n;
             }
             Q::DoSetHandCostOne => {
                 // Enlightenment：本回合手牌费用上限 1
@@ -2514,6 +2581,9 @@ mod tests {
             c.player.hand = vec![CardInst {
                 def,
                 upgraded: false,
+                damage_bonus: 0,
+                block_bonus: 0,
+                cost_delta: 0,
             }];
             for _ in 0..3 {
                 c.player.hand.push(CardInst::new("Strike_R"));
@@ -2724,6 +2794,9 @@ mod tests {
         c.player.hand = vec![CardInst {
             def,
             upgraded: false,
+            damage_bonus: 0,
+            block_bonus: 0,
+            cost_delta: 0,
         }];
         c.step(&Action::PlayCard {
             index: 0,

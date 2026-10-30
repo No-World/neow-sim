@@ -1156,10 +1156,10 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: Some(3),
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
+        status: "parsed",
         effects: &[
             Effect::Damage(Target::Enemy, Expr::DamageBase),
-            Effect::Unsupported("ModifyDamageAction"),
+            Effect::ModifySelfDamage(Expr::Magic),
         ],
     },
     CardDef {
@@ -2281,8 +2281,11 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &["exhaust"],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("DoppelgangerAction")],
+        status: "parsed",
+        effects: &[
+            Effect::NextTurnDraw(Expr::Magic),
+            Effect::NextTurnGainEnergy(Expr::Magic),
+        ],
     },
     CardDef {
         id: "Endless Agony",
@@ -2485,11 +2488,11 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
+        status: "parsed",
         effects: &[
             Effect::Damage(Target::Enemy, Expr::DamageBase),
             Effect::Damage(Target::Enemy, Expr::DamageBase),
-            Effect::Unsupported("ModifyDamageAction"),
+            Effect::ModifySelfDamage(Expr::N(-2)),
         ],
     },
     CardDef {
@@ -3326,8 +3329,8 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &["exhaust"],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("CollectAction")],
+        status: "parsed",
+        effects: &[Effect::NextTurnGainEnergy(Expr::XCost)],
     },
     CardDef {
         id: "Conclude",
@@ -5114,10 +5117,10 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
+        status: "parsed_branch",
         effects: &[
             Effect::Damage(Target::Enemy, Expr::DamageBase),
-            Effect::Unsupported("GashAction"),
+            Effect::ModifySelfDamage(Expr::Magic),
         ],
     },
     CardDef {
@@ -5556,9 +5559,9 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: Some(1),
         upg_base_cost: None,
         flags: &["exhaust"],
-        status: "unsupported",
+        status: "parsed",
         effects: &[
-            Effect::Unsupported("IncreaseMiscAction"),
+            Effect::ModifySelfDamage(Expr::Raw("this.uuid")),
             Effect::Block(Expr::BlockBase),
         ],
     },
@@ -6186,10 +6189,10 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
+        status: "parsed",
         effects: &[
             Effect::Block(Expr::BlockBase),
-            Effect::Unsupported("ModifyBlockAction"),
+            Effect::ModifySelfBlock(Expr::N(-1)),
         ],
     },
     CardDef {
@@ -6227,10 +6230,11 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
+        status: "parsed",
         effects: &[
             Effect::Damage(Target::Enemy, Expr::DamageBase),
-            Effect::Unsupported("ReduceCostAction"),
+            Effect::Damage(Target::Enemy, Expr::DamageBase),
+            Effect::ModifySelfCost(Expr::Raw("this.uuid")),
         ],
     },
     CardDef {
@@ -7020,8 +7024,13 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: Some(2),
         upg_base_cost: None,
         flags: &["exhaust"],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("RitualDaggerAction")],
+        status: "parsed",
+        effects: &[
+            Effect::Damage(Target::Enemy, Expr::DamageBase),
+            Effect::IfKillModifySelfDamage(Expr::Raw(
+                "new DamageInfo(p, this.damage, this.damageTypeForTurn)",
+            )),
+        ],
     },
     CardDef {
         id: "Sadistic Nature",

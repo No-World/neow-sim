@@ -150,6 +150,15 @@ pub enum Effect {
     IfKillGainEnergy(Expr),
     /// 将抽牌堆中指定类型全部移入手（DrawPileToHand/Violence）
     MoveTypeToHand(&'static str),
+    /// 永久修改本卡伤害（Rampage/GlassKnife/Gash/GeneticAlgorithm/Steam/Streamline）
+    ModifySelfDamage(Expr),
+    ModifySelfBlock(Expr),
+    ModifySelfCost(Expr),
+    /// 击杀时永久修改本卡伤害（RitualDagger）
+    IfKillModifySelfDamage(Expr),
+    /// 下回合抽牌（Doppelganger/Collect 延迟效果）
+    NextTurnDraw(Expr),
+    NextTurnGainEnergy(Expr),
     /// 未支持动作（值为 Java 动作类名）——手移植清单
     Unsupported(&'static str),
 }
