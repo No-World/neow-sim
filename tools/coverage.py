@@ -33,7 +33,7 @@ CLASS_NAMES = {c["class"] for c in cards["data"]}
 
 
 def expr_ok(a):
-    if a == "HandSize":
+    if a in ("HandSize", "DrawPileSize"):
         return True
     return not isinstance(a, dict)
 
@@ -75,6 +75,10 @@ def effect_supported(e):
         return True
     if k in ("ShuffleDraw", "ForceEndTurn", "DiscardNonAttacks", "DiscardAllHand", "SetHandCostZero", "ExhaustHand"):
         return True
+    if k in ("SkipEnemyTurn",):
+        return True
+    if k in ("IfStanceBlock", "VampireBlock", "ExecuteEnemy", "GainEnergyDrawPile"):
+        return expr_ok(e[k] if not isinstance(e[k], list) else e[k][1])
     if k == "VampireMaxHp":
         return expr_ok(e[k])
         return True

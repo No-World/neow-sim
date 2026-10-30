@@ -24,7 +24,7 @@ def expr_rs(e) -> str:
     if isinstance(e, str):
         return {"Magic": "Expr::Magic", "DamageBase": "Expr::DamageBase",
                 "BlockBase": "Expr::BlockBase", "CurrentBlock": "Expr::CurrentBlock",
-                "XCost": "Expr::XCost", "HandSize": "Expr::HandSize"}.get(e, f"Expr::Raw({s(e)})")
+                "XCost": "Expr::XCost", "HandSize": "Expr::HandSize", "DrawPileSize": "Expr::DrawPileSize"}.get(e, f"Expr::Raw({s(e)})")
     if isinstance(e, dict):
         if "Const" in e:
             return f"Expr::Const({s(e['Const'])})"
@@ -91,6 +91,17 @@ def effect_rs(eff) -> str:
         return "Effect::EvokeLeftmost"
     if "EvokeNoRemove" in eff:
         return "Effect::EvokeNoRemove"
+    if "IfStanceBlock" in eff:
+        stance, n = eff["IfStanceBlock"]
+        return f"Effect::IfStanceBlock({s(stance)}, {expr_rs(n)})"
+    if "SkipEnemyTurn" in eff:
+        return "Effect::SkipEnemyTurn"
+    if "VampireBlock" in eff:
+        return f"Effect::VampireBlock({expr_rs(eff['VampireBlock'])})"
+    if "ExecuteEnemy" in eff:
+        return f"Effect::ExecuteEnemy({expr_rs(eff['ExecuteEnemy'])})"
+    if "GainEnergyDrawPile" in eff:
+        return f"Effect::GainEnergyDrawPile({expr_rs(eff['GainEnergyDrawPile'])})"
     if "DiscardAllHand" in eff:
         return "Effect::DiscardAllHand"
     if "SetHandCostZero" in eff:

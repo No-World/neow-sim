@@ -197,6 +197,18 @@ def classify_action(cls: str, args: str, consts: dict, overrides: dict, lvars: d
             else:
                 n = {"Raw": "-x"}
         return {"OrbSlots": n}
+    if cls == "HaltAction":
+        # (target, amount, additionalAmt)：Wrath 时额外格挡
+        extra = expr(parts[2], consts, overrides, lvars) if len(parts) > 2 else 9
+        return {"IfStanceBlock": ["Wrath", extra]}
+    if cls == "SkipEnemiesTurnAction":
+        return {"SkipEnemyTurn": 1}
+    if cls == "WallopAction":
+        return {"VampireBlock": "DamageBase"}
+    if cls == "JudgementAction":
+        return {"ExecuteEnemy": "Magic"}
+    if cls == "AggregateEnergyAction":
+        return {"GainEnergyDrawPile": 2}
     if cls == "FiendFireAction":
         return {"Repeat": ["HandSize", [{"Damage": ["Enemy", "DamageBase"]}]]}
     if cls == "BladeFuryAction":

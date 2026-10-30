@@ -4,10 +4,10 @@
   "note": "use() 效果 DSL；Unsupported 需手移植"
  },
  "stats": {
-  "parsed": 253,
-  "parsed_branch": 54,
+  "parsed": 257,
+  "parsed_branch": 55,
   "no_use": 0,
-  "unsupported": 68
+  "unsupported": 63
  },
  "data": [
   {
@@ -5360,13 +5360,13 @@
    },
    "effects": [
     {
-     "Unsupported": "HaltAction"
+     "IfStanceBlock": [
+      "Wrath",
+      "Magic"
+     ]
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "HaltAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Indignation",
@@ -5438,13 +5438,10 @@
    },
    "effects": [
     {
-     "Unsupported": "JudgementAction"
+     "ExecuteEnemy": "Magic"
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "JudgementAction"
-   ]
+   "status": "parsed_branch"
   },
   {
    "id": "JustLucky",
@@ -6373,16 +6370,13 @@
    },
    "effects": [
     {
-     "Unsupported": "SkipEnemiesTurnAction"
+     "SkipEnemyTurn": 1
     },
     {
      "ForceEndTurn": 1
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "SkipEnemiesTurnAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Vigilance",
@@ -6428,13 +6422,10 @@
    },
    "effects": [
     {
-     "Unsupported": "WallopAction"
+     "VampireBlock": "DamageBase"
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "WallopAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "WaveOfTheHand",
@@ -6659,13 +6650,10 @@
    },
    "effects": [
     {
-     "Unsupported": "AggregateEnergyAction"
+     "GainEnergyDrawPile": 2
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "AggregateEnergyAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "All For One",

@@ -119,6 +119,11 @@ fn effect_supported(e: &Effect) -> bool {
         | Effect::SetHandCostZero
         | Effect::ExhaustHand => true,
         Effect::VampireMaxHp(x) => expr_ok(*x),
+        Effect::IfStanceBlock(_, x) => expr_ok(*x),
+        Effect::SkipEnemyTurn => true,
+        Effect::VampireBlock(x) => expr_ok(*x),
+        Effect::ExecuteEnemy(x) => expr_ok(*x),
+        Effect::GainEnergyDrawPile(x) => expr_ok(*x),
         Effect::IfIntentAttack(x) => expr_ok(*x),
         Effect::GainBlock(x)
         | Effect::VampireDamageAll(x)

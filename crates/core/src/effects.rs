@@ -30,6 +30,8 @@ pub enum Expr {
     /// 源码常量名（数值在提取表已解析时不再出现）
     /// 当前手牌数（运行时求值）
     HandSize,
+    /// 当前抽牌堆数（运行时求值）
+    DrawPileSize,
     Const(&'static str),
     /// 未解析表达式（待手移植）
     Raw(&'static str),
@@ -98,6 +100,16 @@ pub enum Effect {
     SetHandCostZero,
     /// 伤害 + 击杀时增加最大生命（FeedAction）
     VampireMaxHp(Expr),
+    /// 在指定姿态时获得额外格挡（HaltAction：Wrath 时+9）
+    IfStanceBlock(&'static str, Expr),
+    /// 跳过怪物回合（Vault：skipMonsterTurn=true）
+    SkipEnemyTurn,
+    /// 伤害+获得格挡=实际伤害（WallopAction）
+    VampireBlock(Expr),
+    /// 目标HP≤阈值时立即击杀（JudgementAction：处决）
+    ExecuteEnemy(Expr),
+    /// 抽牌堆数÷N 的能量（AggregateEnergyAction）
+    GainEnergyDrawPile(Expr),
     /// 未支持动作（值为 Java 动作类名）——手移植清单
     Unsupported(&'static str),
 }

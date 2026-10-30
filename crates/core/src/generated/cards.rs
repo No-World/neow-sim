@@ -3877,8 +3877,8 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("HaltAction")],
+        status: "parsed",
+        effects: &[Effect::IfStanceBlock("Wrath", Expr::Magic)],
     },
     CardDef {
         id: "Indignation",
@@ -3934,8 +3934,8 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: Some(10),
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("JudgementAction")],
+        status: "parsed_branch",
+        effects: &[Effect::ExecuteEnemy(Expr::Magic)],
     },
     CardDef {
         id: "JustLucky",
@@ -4606,11 +4606,8 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: Some(2),
         flags: &["exhaust"],
-        status: "unsupported",
-        effects: &[
-            Effect::Unsupported("SkipEnemiesTurnAction"),
-            Effect::ForceEndTurn,
-        ],
+        status: "parsed",
+        effects: &[Effect::SkipEnemyTurn, Effect::ForceEndTurn],
     },
     CardDef {
         id: "Vigilance",
@@ -4647,8 +4644,8 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("WallopAction")],
+        status: "parsed",
+        effects: &[Effect::VampireBlock(Expr::DamageBase)],
     },
     CardDef {
         id: "WaveOfTheHand",
@@ -4813,8 +4810,8 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: Some(-1),
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("AggregateEnergyAction")],
+        status: "parsed",
+        effects: &[Effect::GainEnergyDrawPile(Expr::N(2))],
     },
     CardDef {
         id: "All For One",

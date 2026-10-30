@@ -105,6 +105,22 @@ enum Q {
     ShuffleDraw,
     GainBlock(i32),
     DoDiscardAllHand,
+    DoIfStanceBlock {
+        stance: crate::state::Stance,
+        block: i32,
+    },
+    DoSkipEnemyTurn,
+    DoVampireBlock {
+        target: usize,
+        base: i32,
+    },
+    DoExecuteEnemy {
+        target: usize,
+        cutoff: i32,
+    },
+    DoGainEnergyDrawPile {
+        divide: i32,
+    },
     DoSetHandCostZero,
     DoExhaustHand,
     VampireMaxHp {
@@ -186,6 +202,7 @@ pub struct Combat {
     pending_queue: Option<Vec<Q>>,
     pub attacks_this_turn: i32,
     hand_cost_zero_this_turn: bool,
+    skip_monster_turn: bool,
     force_end_turn_after_queue: bool,
     pub turn: i32,
     pub turn_has_ended: bool,
@@ -241,6 +258,7 @@ impl Combat {
             pending_queue: None,
             attacks_this_turn: 0,
             hand_cost_zero_this_turn: false,
+            skip_monster_turn: false,
             force_end_turn_after_queue: false,
             turn: 1,
             turn_has_ended: false,
@@ -431,6 +449,7 @@ impl Combat {
             Expr::CurrentBlock => self.player.creature.block,
             Expr::XCost => x_cost,
             Expr::HandSize => self.player.hand.len() as i32,
+            Expr::DrawPileSize => self.player.draw.len() as i32,
             Expr::Const(_) | Expr::Raw(_) => unreachable!("can_play 已过滤不可求值表达式"),
         }
     }
@@ -632,6 +651,26 @@ impl Combat {
             Effect::EvokeNoRemove => q.push(Q::EvokeNoRemove),
             Effect::OrbSlots(e) => q.push(Q::OrbSlots(self.eval(e, card, x_cost))),
             Effect::ShuffleDraw => q.push(Q::ShuffleDraw),
+            Effect::IfStanceBlock(sid, e) => {
+                if let Some(st) = crate::state::Stance::from_id(sid) {
+                    q.push(Q::DoIfStanceBlock {
+                        stance: st,
+                        block: self.eval(e, card, x_cost),
+                    });
+                }
+            }
+            Effect::SkipEnemyTurn => q.push(Q::DoSkipEnemyTurn),
+            Effect::VampireBlock(e) => q.push(Q::DoVampireBlock {
+                target: ti,
+                base: self.eval(e, card, x_cost),
+            }),
+            Effect::ExecuteEnemy(e) => q.push(Q::DoExecuteEnemy {
+                target: ti,
+                cutoff: self.eval(e, card, x_cost),
+            }),
+            Effect::GainEnergyDrawPile(e) => q.push(Q::DoGainEnergyDrawPile {
+                divide: self.eval(e, card, x_cost).max(1),
+            }),
             Effect::DiscardAllHand => q.push(Q::DoDiscardAllHand),
             Effect::SetHandCostZero => q.push(Q::DoSetHandCostZero),
             Effect::VampireMaxHp(e) => {
@@ -847,18 +886,23 @@ impl Combat {
                 m.creature.block = 0;
             }
         }
-        // 怪物序列（MonsterGroup.queueMonsters 列表序）
-        for i in 0..self.monsters.len() {
-            if !self.alive(i) {
-                continue;
+        // Vault：跳过怪物回合
+        if self.skip_monster_turn {
+            self.skip_monster_turn = false;
+        } else {
+            // 怪物序列（MonsterGroup.queueMonsters 列表序）
+            for i in 0..self.monsters.len() {
+                if !self.alive(i) {
+                    continue;
+                }
+                let mut q = self.monster_turn(i);
+                q.push(Q::RollMove(i));
+                self.drain(q);
+                if self.over {
+                    return;
+                }
             }
-            let mut q = self.monster_turn(i);
-            q.push(Q::RollMove(i));
-            self.drain(q);
-            if self.over {
-                return;
-            }
-        }
+        } // end skip_monster_turn
         self.end_of_round_powers();
         if self.over {
             return;
@@ -1324,6 +1368,44 @@ impl Combat {
                 let mut pile = std::mem::take(&mut self.player.draw);
                 card_group_shuffle(&mut pile, &mut self.rng.shuffle);
                 self.player.draw = pile;
+            }
+            Q::DoIfStanceBlock { stance, block } => {
+                if self.player.stance == stance {
+                    self.player.creature.block += block;
+                }
+            }
+            Q::DoSkipEnemyTurn => {
+                // Vault：本回合怪物不行动
+                self.skip_monster_turn = true;
+            }
+            Q::DoVampireBlock { target, base } => {
+                if self.alive(target) {
+                    let d = calc_player_card_damage(
+                        base,
+                        DamageType::Normal,
+                        &self.player.creature.powers,
+                        &self.monsters[target].creature.powers,
+                        self.player.stance,
+                    );
+                    self.monsters[target].creature.apply_damage(d);
+                    // Wallop：获得格挡 = 实际伤害
+                    self.player.creature.block += d;
+                    if self.monsters[target].creature.is_dead() {
+                        self.on_monster_death(target);
+                    }
+                }
+            }
+            Q::DoExecuteEnemy { target, cutoff } => {
+                if self.alive(target) && self.monsters[target].creature.hp <= cutoff {
+                    self.monsters[target].creature.hp = 0;
+                    self.on_monster_death(target);
+                }
+            }
+            Q::DoGainEnergyDrawPile { divide } => {
+                let n = self.player.draw.len() as i32 / divide;
+                if n > 0 {
+                    self.player.energy += n;
+                }
             }
             Q::DoDiscardAllHand => {
                 let cards = std::mem::take(&mut self.player.hand);
