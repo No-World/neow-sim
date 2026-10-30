@@ -213,6 +213,7 @@ pub enum MonsterKind {
     Sentry,
     Guardian,
     SlimeBoss,
+    Hexaghost,
 }
 
 /// 通用怪物状态（M2 覆盖：大颚虫、邪教徒；M3 走数据驱动定义表）
@@ -232,6 +233,8 @@ pub struct MonsterState {
     // 邪教徒
     pub dark_strike_dmg: i32,
     pub ritual_amt: i32,
+    /// Hexaghost：Inferno 后灼烙升级标志（0/1）
+    pub burn_upgraded: i32,
 }
 
 impl MonsterState {
@@ -354,6 +357,20 @@ impl MonsterState {
                 let slam = if ascension >= 2 { 38 } else { 35 };
                 (hp, (slam, 10, 3, 0, 0, 0, 0))
             }
+            // 六火亡魂：字段映射 —— chomp=火焰冲撞/撞，thrash=地狱火(每段)，
+            // thrash_block=煽燃力量，bellow_str=灼烙灼伤数，bellow_block=分割者段伤
+            //（激活回合锁定=玩家 HP/12+1），dark_strike=灼烙伤 6，ritual=已激活球数
+            MonsterKind::Hexaghost => {
+                // Boss 血量提升在 A9（构造器：>=9 → 264，否则 250）
+                let hp = if ascension >= 9 { 264 } else { 250 };
+                if ascension >= 19 {
+                    (hp, (6, 3, 3, 2, 0, 6, 0))
+                } else if ascension >= 4 {
+                    (hp, (6, 3, 2, 1, 0, 6, 0))
+                } else {
+                    (hp, (5, 2, 2, 1, 0, 6, 0))
+                }
+            }
         };
         Self {
             kind,
@@ -368,6 +385,8 @@ impl MonsterState {
             bellow_block: fields.4,
             dark_strike_dmg: fields.5,
             ritual_amt: fields.6,
+            // Hexaghost：灼烙是否升级（Inferno 后置 1；其余怪构 0）
+            burn_upgraded: 0,
         }
     }
 
@@ -469,6 +488,12 @@ impl MonsterState {
                 4 => Intent::Debuff,
                 _ => Intent::Attack,
             },
+            MonsterKind::Hexaghost => match self.next_move {
+                5 => Intent::Unknown,          // Activate
+                3 => Intent::DefendBuff,       // Inflame
+                4 | 6 => Intent::AttackDebuff, // Sear / Inferno
+                _ => Intent::Attack,           // Divider / Tackle
+            },
         }
     }
 
@@ -535,6 +560,13 @@ impl MonsterState {
             },
             MonsterKind::SlimeBoss => match self.next_move {
                 1 => Some(self.dark_strike_dmg),
+                _ => None,
+            },
+            MonsterKind::Hexaghost => match self.next_move {
+                1 => Some(self.bellow_block),    // Divider：激活时锁定的段伤
+                2 => Some(self.chomp_dmg),       // Tackle
+                4 => Some(self.dark_strike_dmg), // Sear = 6
+                6 => Some(self.thrash_dmg),      // Inferno 每段
                 _ => None,
             },
         }

@@ -321,6 +321,10 @@ enum Q {
     DoSmokeEscape,
     /// 邪教徒药水：玩家侧仪式
     DoPlayerRitual(i32),
+    /// Inferno 的 BurnIncreaseAction：升级弃/抽牌堆全部灼伤
+    UpgradeAllBurnPiles,
+    /// 灼伤回合末自伤（THORNS 管线：无力量/虚弱/易伤乘区；格挡吸收；无形截断）
+    PlayerFlatDamage(i32),
 }
 
 /// 探素卡池（returnTrulyRandomCardInCombat(type) / Colorless 变体）
@@ -1833,6 +1837,21 @@ impl Combat {
                 }
             }
         }
+        // 不可打出状态牌的回合末自动结算（游戏路径：EOT 静默打出 → Burn.use
+        // 的 dontTriggerOnUseCard 分支）：灼伤 = magicNumber 直伤
+        let burn_dmgs: Vec<i32> = self
+            .player
+            .hand
+            .iter()
+            .filter(|c| c.def.id == "Burn")
+            .map(|c| c.magic().unwrap_or(2))
+            .collect();
+        for dmg in burn_dmgs {
+            self.exec(Q::PlayerFlatDamage(dmg));
+            if self.over {
+                return;
+            }
+        }
         // DiscardAtEndOfTurn：无保留卡（retain）与 Runic Pyramid/Equilibrium 例外
         let hand = std::mem::take(&mut self.player.hand);
         self.player.discard.extend(hand);
@@ -1852,8 +1871,14 @@ impl Combat {
                 if !self.alive(i) {
                     continue;
                 }
+                let executed = self.monsters[i].next_move;
                 let mut q = self.monster_turn(i);
-                q.push(Q::RollMove(i));
+                // Hexaghost 的 Activate 在 takeTurn 内 setMove(DIVIDER)，
+                // 不追加 RollMoveAction —— 不消耗 aiRng（流序对拍关键）
+                let skip_roll = self.monsters[i].kind == MonsterKind::Hexaghost && executed == 5;
+                if !skip_roll {
+                    q.push(Q::RollMove(i));
+                }
                 self.drain(q);
                 if self.over {
                     return;
@@ -2265,6 +2290,96 @@ impl Combat {
                 }
                 _ => {}
             },
+            // 六火亡魂：开场 Activate → 分割者（锁定玩家 HP/12+1 ×6）→ 六球循环
+            // Sear/Tackle/Sear/Inflame/Tackle/Sear → Inferno；每招后激活一球（计数+1），
+            // Divider/Inferno 后重置；Sear 的灼伤是否升级由 Inferno 置位（burnUpgraded）
+            MonsterKind::Hexaghost => {
+                let (nm, tackle, inferno, str_amt, burn_n, burn_up) = (
+                    m.next_move,
+                    m.chomp_dmg,
+                    m.thrash_dmg,
+                    m.thrash_block,
+                    m.bellow_str,
+                    m.burn_upgraded,
+                );
+                match nm {
+                    5 => {
+                        // Activate：分割者段伤 = 玩家当前 HP/12 + 1（整除，此刻锁定）；
+                        // takeTurn 内直接 setMove(DIVIDER)——不追加 RollMove（end_turn 处门控）
+                        let div = self.player.creature.hp / 12 + 1;
+                        self.monsters[i].bellow_block = div;
+                        self.monsters[i].move_history.push(1);
+                        self.monsters[i].next_move = 1;
+                    }
+                    1 => {
+                        // Divider：6 段锁定伤害；随后全部熄灭（球计数归零）
+                        for _ in 0..6 {
+                            q.push(Q::MonsterDamage {
+                                src: i,
+                                base: self.monsters[i].bellow_block,
+                            });
+                        }
+                        self.monsters[i].ritual_amt = 0;
+                    }
+                    2 => {
+                        // Tackle：火焰冲撞 ×2；激活一球
+                        for _ in 0..2 {
+                            q.push(Q::MonsterDamage {
+                                src: i,
+                                base: tackle,
+                            });
+                        }
+                        self.monsters[i].ritual_amt += 1;
+                    }
+                    3 => {
+                        // Inflame（Strengthen）：12 格挡 + 力量；激活一球
+                        q.push(Q::MonsterBlock {
+                            target: i,
+                            amount: 12,
+                        });
+                        q.push(Q::ApplyPowerToMonster {
+                            target: i,
+                            kind: PowerKind::Strength,
+                            amount: str_amt,
+                        });
+                        self.monsters[i].ritual_amt += 1;
+                    }
+                    4 => {
+                        // Sear：6 伤 + burn_n 张灼伤入弃牌堆（已升级则升级版）；激活一球
+                        q.push(Q::MonsterDamage {
+                            src: i,
+                            base: m.dark_strike_dmg,
+                        });
+                        for _ in 0..burn_n {
+                            if let Some(mut c) = CardInst::new_by_class("Burn") {
+                                c.upgraded = burn_up == 1;
+                                q.push(Q::MakeDiscard(c));
+                            }
+                        }
+                        self.monsters[i].ritual_amt += 1;
+                    }
+                    6 => {
+                        // Inferno：6 段 + 升级弃/抽堆全部灼伤 + 3 张升级灼伤入弃堆
+                        // + 置位 burnUpgraded；随后全部熄灭
+                        for _ in 0..6 {
+                            q.push(Q::MonsterDamage {
+                                src: i,
+                                base: inferno,
+                            });
+                        }
+                        q.push(Q::UpgradeAllBurnPiles);
+                        for _ in 0..3 {
+                            if let Some(mut c) = CardInst::new_by_class("Burn") {
+                                c.upgraded = true;
+                                q.push(Q::MakeDiscard(c));
+                            }
+                        }
+                        self.monsters[i].burn_upgraded = 1;
+                        self.monsters[i].ritual_amt = 0;
+                    }
+                    _ => {}
+                }
+            }
             MonsterKind::FungiBeast => match m.next_move {
                 1 => q.push(Q::MonsterDamage {
                     src: i,
@@ -3346,6 +3461,39 @@ impl Combat {
                     false,
                 );
             }
+            Q::UpgradeAllBurnPiles => {
+                // BurnIncreaseAction：升级弃牌堆与抽牌堆的全部灼伤（手牌不动）
+                for c in self.player.discard.iter_mut() {
+                    if c.def.id == "Burn" {
+                        c.upgraded = true;
+                    }
+                }
+                for c in self.player.draw.iter_mut() {
+                    if c.def.id == "Burn" {
+                        c.upgraded = true;
+                    }
+                }
+            }
+            Q::PlayerFlatDamage(n) => {
+                // Burn.use（dontTriggerOnUseCard）：THORNS 直伤 —— 无乘区；
+                // 无形 atDamageFinalReceive 截断 >1 → 1；格挡吸收；可触发瓶中精灵
+                let mut d = n.max(0);
+                if self
+                    .player
+                    .creature
+                    .powers
+                    .iter()
+                    .any(|p| p.kind == PowerKind::IntangiblePlayer)
+                    && d > 1
+                {
+                    d = 1;
+                }
+                self.player.creature.apply_damage(d);
+                if self.player.creature.is_dead() && !self.fairy_rescue() {
+                    self.over = true;
+                    self.won = false;
+                }
+            }
         }
     }
 
@@ -3515,6 +3663,21 @@ impl Combat {
         }
     }
 
+    /// Hexaghost.getMove：激活后按已激活球数定招（全程不用 num，无随机）；
+    /// 首招（未激活）Activate —— first_move 即 activated 标志
+    fn hexaghost_get_move(&mut self, i: usize) -> u8 {
+        if self.monsters[i].first_move {
+            return 5; // Activate
+        }
+        match self.monsters[i].ritual_amt {
+            // orbActiveCount：0/2/5=灼烙，1/4=冲撞，3=煽燃，6=地狱火
+            0 | 2 | 5 => 4,
+            1 | 4 => 2,
+            3 => 3,
+            _ => 6,
+        }
+    }
+
     /// 意图决策（逐行对照各怪 getMove；num = aiRng.random(99)）
     fn roll_move(&mut self, i: usize) {
         let num = self.rng.ai.random_range(99);
@@ -3548,6 +3711,7 @@ impl Combat {
             MonsterKind::Sentry => self.sentry_get_move(i, num),
             MonsterKind::Guardian => self.guardian_get_move(i),
             MonsterKind::SlimeBoss => self.slime_boss_get_move(i),
+            MonsterKind::Hexaghost => self.hexaghost_get_move(i),
         };
         self.monsters[i].first_move = false;
         self.monsters[i].move_history.push(mv);
@@ -3723,6 +3887,7 @@ fn decay_powers(powers: &mut Vec<Power>) {
 mod tests {
     use super::*;
     use crate::generated::CARDS;
+    use crate::state::Intent;
 
     fn force_hand(c: &mut Combat, ids: &[&str]) {
         let old = std::mem::take(&mut c.player.hand);
@@ -5170,5 +5335,222 @@ mod tests {
         };
         assert_eq!(play(3), play(3));
         assert_ne!(play(3), play(4));
+    }
+
+    // ══════════════ 六火亡魂（Hexaghost.java 对照） ══════════════
+
+    fn hexa() -> Combat {
+        let mut c = Combat::new_with(9, 20, &[MonsterKind::Hexaghost]);
+        c.player.creature.max_hp = 500;
+        c.player.creature.hp = 500;
+        c.player.hand.clear();
+        c
+    }
+
+    fn pamount_monster(c: &Combat, k: PowerKind) -> Option<i32> {
+        c.monsters[0]
+            .creature
+            .powers
+            .iter()
+            .find(|p| p.kind == k)
+            .map(|p| p.amount)
+    }
+
+    /// 全周期：Activate(无伤) → Divider(锁定 HP/12+1 ×6) →
+    /// Sear/Tackle/Sear/Inflame/Tackle/Sear → Inferno(升级全场灼伤+塞 3 张) → 循环。
+    /// 灼伤会被洗回抽牌堆抽上手，回合末自伤计入动态期望（burn_dmg）。
+    #[test]
+    fn hexaghost_full_cycle() {
+        let mut c = hexa();
+        assert_eq!(c.monsters[0].creature.max_hp, 264, "A9+ Boss 血量");
+        // A20 档：冲撞 6 / 地狱火 3 / 力量 3 / 灼伤 2 张
+        assert_eq!(
+            (
+                c.monsters[0].chomp_dmg,
+                c.monsters[0].thrash_dmg,
+                c.monsters[0].thrash_block,
+                c.monsters[0].bellow_str
+            ),
+            (6, 3, 3, 2)
+        );
+        assert_eq!(c.monsters[0].intent(), Intent::Unknown, "开场 Activate");
+
+        // 走一整轮并验证：hp 差 = 怪物伤害 + 手中灼伤自伤；顺带返回步后 hp
+        let step = |c: &mut Combat, monster_dmg: i32| -> i32 {
+            let burn_dmg: i32 = c
+                .player
+                .hand
+                .iter()
+                .filter(|x| x.def.id == "Burn")
+                .map(|x| x.magic().unwrap_or(2))
+                .sum();
+            let hp0 = c.player.creature.hp;
+            c.step(&Action::EndTurn);
+            assert!(!c.over, "测试期望存活");
+            assert_eq!(c.player.creature.hp, hp0 - monster_dmg - burn_dmg);
+            c.player.creature.hp
+        };
+        let burns = |c: &Combat| {
+            c.player
+                .discard
+                .iter()
+                .chain(c.player.draw.iter())
+                .chain(c.player.hand.iter())
+                .filter(|x| x.def.id == "Burn")
+                .count()
+        };
+
+        // T1：Activate —— 无伤害，锁定分割者段伤 = 500/12+1 = 42
+        step(&mut c, 0);
+        assert_eq!(c.monsters[0].next_move, 1);
+        assert_eq!(c.monsters[0].intent(), Intent::Attack);
+        assert_eq!(c.intent_damage(0), Some(42));
+
+        // T2：Divider 6×42 = 252
+        step(&mut c, 6 * 42);
+        assert_eq!(c.monsters[0].next_move, 4, "熄灭后首招 Sear");
+
+        // T3：Sear 6 伤 + 2 灼伤
+        step(&mut c, 6);
+        assert_eq!(burns(&c), 2);
+        assert_eq!(c.monsters[0].next_move, 2);
+
+        // T4：Tackle ×2（无力量，6×2=12）
+        step(&mut c, 12);
+        assert_eq!(c.monsters[0].next_move, 4);
+
+        // T5：Sear
+        step(&mut c, 6);
+        assert_eq!(burns(&c), 4);
+        assert_eq!(c.monsters[0].next_move, 3);
+
+        // T6：Inflame —— 12 格挡 + 3 力量（不对玩家造成伤害）
+        step(&mut c, 0);
+        assert_eq!(c.monsters[0].creature.block, 12);
+        assert_eq!(pamount_monster(&c, PowerKind::Strength), Some(3));
+        assert_eq!(c.monsters[0].next_move, 2);
+
+        // T7：Tackle ×2（力量后 9×2=18；煽燃的 12 格挡在怪物自身）
+        step(&mut c, 18);
+        assert_eq!(c.monsters[0].next_move, 4);
+
+        // T8：Sear（煽燃后 6+3=9；灼伤累计 6）
+        step(&mut c, 9);
+        assert_eq!(burns(&c), 6);
+        assert_eq!(c.monsters[0].next_move, 6, "六球满 → Inferno");
+
+        // T9：Inferno 6 段 ×(3+3)=36 + 升级全部灼伤 + 塞 3 张升级灼伤 + 置位
+        step(&mut c, 36);
+        assert_eq!(burns(&c), 9, "6 升级 + 3 新增");
+        assert!(
+            c.player
+                .discard
+                .iter()
+                .chain(c.player.draw.iter())
+                .chain(c.player.hand.iter())
+                .filter(|x| x.def.id == "Burn")
+                .all(|x| x.upgraded),
+            "全场灼伤已升级"
+        );
+        assert_eq!(c.monsters[0].burn_upgraded, 1);
+        assert_eq!(c.monsters[0].next_move, 4, "熄灭后循环回 Sear");
+
+        // T10：Sear（力量仍在：9 伤，现在塞升级灼伤）
+        let upgraded_burns = c
+            .player
+            .discard
+            .iter()
+            .chain(c.player.draw.iter())
+            .chain(c.player.hand.iter())
+            .filter(|x| x.def.id == "Burn" && x.upgraded)
+            .count();
+        step(&mut c, 9);
+        assert_eq!(
+            c.player
+                .discard
+                .iter()
+                .chain(c.player.draw.iter())
+                .chain(c.player.hand.iter())
+                .filter(|x| x.def.id == "Burn" && x.upgraded)
+                .count(),
+            upgraded_burns + 2
+        );
+    }
+
+    /// 分割者伤害在 Activate 时锁定；玩家中途死亡则中断后续段
+    #[test]
+    fn hexaghost_divider_locked() {
+        let mut c = hexa();
+        assert_eq!(c.intent_damage(0), None, "Activate 前（Unknown）无基础伤");
+        c.step(&Action::EndTurn); // Activate：锁定 500/12+1=42
+        c.player.creature.hp = 100; // 模拟回合内掉血
+        c.step(&Action::EndTurn); // Divider 仍每段 42；100 只撑住 2 段，第 3 段致死
+        assert!(c.over && !c.won);
+        assert_eq!(c.player.creature.hp, 100 - 3 * 42);
+    }
+
+    /// 灼伤回合末自伤：THORNS 直伤（无乘区）+ 格挡吸收 + 升级版伤害 4
+    /// （怪物设为咆哮，隔离玩家伤害以专测灼伤）
+    #[test]
+    fn burn_eot_triggers() {
+        let mut c = Combat::new(5);
+        c.monsters[0].next_move = 2; // 咆哮：不对玩家造成伤害
+        force_hand(&mut c, &["Burn"]);
+        let mut b2 = CardInst::new("Burn");
+        b2.upgraded = true;
+        c.player.hand.push(b2);
+        c.player.creature.hp = 50;
+        c.player.creature.block = 5;
+        c.step(&Action::EndTurn);
+        // 2（格挡 5→3）+ 4（格挡 3→0，扣 1 血）
+        assert_eq!(c.player.creature.block, 0);
+        assert_eq!(c.player.creature.hp, 49);
+        // 灼伤随弃牌阶段入手弃牌堆
+        assert_eq!(
+            c.player
+                .discard
+                .iter()
+                .filter(|x| x.def.id == "Burn")
+                .count(),
+            2
+        );
+    }
+
+    /// 无形对灼伤的截断（atDamageFinalReceive 不分类型）
+    #[test]
+    fn burn_eot_intangible() {
+        let mut c = Combat::new(5);
+        c.monsters[0].next_move = 2; // 隔离：咆哮不对玩家造成伤害
+        force_hand(&mut c, &["Burn"]);
+        apply_power(
+            &mut c.player.creature.powers,
+            PowerKind::IntangiblePlayer,
+            1,
+            false,
+            false,
+        );
+        c.player.creature.hp = 50;
+        c.step(&Action::EndTurn);
+        assert_eq!(c.player.creature.hp, 49, "2 伤截断为 1");
+    }
+
+    /// 同种子整局重放一致
+    #[test]
+    fn hexaghost_replay_deterministic() {
+        let play = |seed: u64| {
+            let mut c = Combat::new_with(seed, 20, &[MonsterKind::Hexaghost]);
+            c.player.creature.max_hp = 999;
+            c.player.creature.hp = 999;
+            c.player.hand.clear();
+            for _ in 0..12 {
+                if c.over {
+                    break;
+                }
+                c.step(&Action::EndTurn);
+            }
+            c.state_hash()
+        };
+        assert_eq!(play(21), play(21));
+        assert_ne!(play(21), play(22));
     }
 }
