@@ -2222,4 +2222,80 @@ mod tests {
             "引出 = 5+2专注 = 7"
         );
     }
+
+    /// 虱子：蜷缩触发（首次受到非致死伤害时获得格挡）
+    #[test]
+    fn louse_curl_up_triggers() {
+        let mut c = Combat::new_with(1, 0, &[MonsterKind::LouseNormal]);
+        // 蜷缩值在 3-7 范围内
+        let curl = c.monsters[0]
+            .creature
+            .powers
+            .iter()
+            .find(|p| p.kind == PowerKind::CurlUp)
+            .map(|p| p.amount)
+            .expect("虱子战前应有蜷缩");
+        assert!(curl >= 3 && curl <= 7);
+        // 打击触发蜷缩
+        let hp0 = c.monsters[0].creature.hp;
+        force_hand(&mut c, &["Strike_R"]);
+        c.step(&Action::PlayCard {
+            index: 0,
+            target: Some(0),
+        });
+        let hp_loss = hp0 - c.monsters[0].creature.hp;
+        assert_eq!(hp_loss, (6 - curl).max(0), "6伤-蜷缩{curl}");
+        assert!(!c.monsters[0]
+            .creature
+            .powers
+            .iter()
+            .any(|p| p.kind == PowerKind::CurlUp));
+    }
+
+    /// 菌兽：死亡时孢子云施加易伤
+    #[test]
+    fn fungi_beast_spore_cloud_on_death() {
+        let mut c = Combat::new_with(2, 0, &[MonsterKind::FungiBeast]);
+        // 菌兽血量 22-28，打击 ×4（6×4=24 伤，可能杀不死）
+        // 直接设血量为 5 确保一击致死
+        c.monsters[0].creature.hp = 5;
+        c.monsters[0].creature.max_hp = 5;
+        force_hand(&mut c, &["Strike_R"]);
+        c.step(&Action::PlayCard {
+            index: 0,
+            target: Some(0),
+        });
+        assert!(c.over, "菌兽死亡");
+        assert!(c.won);
+        // 孢子云：死亡时对玩家施加 2 层易伤
+        assert!(
+            pamount(&c, PowerKind::Vulnerable).is_some(),
+            "孢子云应施加易伤"
+        );
+    }
+
+    /// 菌兽生长：每回合开始 AI 概率决策
+    #[test]
+    fn fungi_beast_bite_and_grow() {
+        let mut c = Combat::new_with(3, 0, &[MonsterKind::FungiBeast]);
+        let hp0 = c.player.creature.hp;
+        c.step(&Action::EndTurn);
+        let dmg_taken = hp0 - c.player.creature.hp;
+        // 菌兽招式：咬（6伤）或生长（+3力），或两者都可能
+        assert!(
+            dmg_taken == 0 || dmg_taken == 6,
+            "咬 6 或生长 0，实际 {dmg_taken}"
+        );
+        // 如果是生长，怪物应有力量
+        if dmg_taken == 0 {
+            assert!(
+                c.monsters[0]
+                    .creature
+                    .powers
+                    .iter()
+                    .any(|p| p.kind == PowerKind::Strength),
+                "生长应给力量"
+            );
+        }
+    }
 }
