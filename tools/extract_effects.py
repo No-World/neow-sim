@@ -18,7 +18,7 @@ PERFORMATIVE = {
     "WaitAction", "VFXAction", "SFXAction", "SetAnimationAction", "AnimateHopAction",
     "AnimateSlowAttackAction", "AnimateFastAttackAction", "AnimateAttackAction",
     "ShakeScreenAction", "TextAboveCreatureAction", "RelicAboveCreatureAction",
-    "TalkAction", "BlingAction", "AnimateOrbAction",
+    "TalkAction", "BlingAction", "AnimateOrbAction", "NotStanceCheckAction",
 }
 
 POWER_IDS = {
@@ -197,6 +197,17 @@ def classify_action(cls: str, args: str, consts: dict, overrides: dict, lvars: d
             else:
                 n = {"Raw": "-x"}
         return {"OrbSlots": n}
+    if cls == "SpotWeaknessAction":
+        # (targetMonster, damageIncrease)：意图有伤害时获得力量
+        n = expr(parts[1], consts, overrides, lvars) if len(parts) > 1 else 3
+        return {"IfIntentAttack": n}
+    if cls == "UnloadAction":
+        return {"DiscardNonAttacks": 1}
+    if cls == "BouncingFlaskAction":
+        # (target, poisonAmt, times)：随机敌人中毒×N次
+        amt = expr(parts[1], consts, overrides, lvars) if len(parts) > 1 else 3
+        times = expr(parts[2], consts, overrides, lvars) if len(parts) > 2 else amt
+        return {"Repeat": [times, [{"ApplyPower": ["RandomEnemy", "Poison", amt]}]]}
     if cls == "DoubleYourBlockAction":
         return {"GainBlock": "CurrentBlock"}
     if cls == "PressEndTurnButtonAction":

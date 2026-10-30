@@ -71,7 +71,10 @@ def effect_supported(e):
         return orb in ("Frost", "Lightning", "Dark", "Plasma") and expr_ok(cnt)
     if k in ("EvokeLeftmost", "EvokeNoRemove"):
         return True
-    if k in ("ShuffleDraw", "ForceEndTurn"):
+    if k in ("ShuffleDraw", "ForceEndTurn", "DiscardNonAttacks"):
+        return True
+    if k == "IfIntentAttack":
+        return expr_ok(e[k])
         return True
     if k in ("GainBlock", "VampireDamageAll", "DamageIfPoisoned", "ExhaustNonAttacks", "DamagePerAttack"):
         return expr_ok(e[k])

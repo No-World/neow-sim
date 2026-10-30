@@ -35,7 +35,7 @@ def expr_rs(e) -> str:
 
 def target_rs(t: str) -> str:
     return {"Enemy": "Target::Enemy", "AllEnemies": "Target::AllEnemies",
-            "Self": "Target::SelfC", "Unknown": "Target::Unknown"}.get(t, "Target::Unknown")
+            "Self": "Target::SelfC", "Unknown": "Target::Unknown", "RandomEnemy": "Target::RandomEnemy"}.get(t, "Target::Unknown")
 
 
 def effect_rs(eff) -> str:
@@ -91,6 +91,10 @@ def effect_rs(eff) -> str:
         return "Effect::EvokeLeftmost"
     if "EvokeNoRemove" in eff:
         return "Effect::EvokeNoRemove"
+    if "IfIntentAttack" in eff:
+        return f"Effect::IfIntentAttack({expr_rs(eff['IfIntentAttack'])})"
+    if "DiscardNonAttacks" in eff:
+        return "Effect::DiscardNonAttacks"
     if "GainBlock" in eff:
         return f"Effect::GainBlock({expr_rs(eff['GainBlock'])})"
     if "ForceEndTurn" in eff:

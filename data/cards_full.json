@@ -4,10 +4,10 @@
   "note": "use() 效果 DSL；Unsupported 需手移植"
  },
  "stats": {
-  "parsed": 244,
-  "parsed_branch": 52,
+  "parsed": 249,
+  "parsed_branch": 53,
   "no_use": 0,
-  "unsupported": 79
+  "unsupported": 73
  },
  "data": [
   {
@@ -1913,13 +1913,12 @@
    },
    "effects": [
     {
-     "Unsupported": "SpotWeaknessAction"
+     "IfIntentAttack": {
+      "Const": "m"
+     }
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "SpotWeaknessAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Strike_R",
@@ -2572,13 +2571,21 @@
    },
    "effects": [
     {
-     "Unsupported": "BouncingFlaskAction"
+     "Repeat": [
+      "Magic",
+      [
+       {
+        "ApplyPower": [
+         "RandomEnemy",
+         "Poison",
+         3
+        ]
+       }
+      ]
+     ]
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "BouncingFlaskAction"
-   ]
+   "status": "parsed_branch"
   },
   {
    "id": "Bullet Time",
@@ -4347,13 +4354,10 @@
      ]
     },
     {
-     "Unsupported": "UnloadAction"
+     "DiscardNonAttacks": 1
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "UnloadAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Well Laid Plans",
@@ -4973,16 +4977,10 @@
      "Block": "BlockBase"
     },
     {
-     "Unsupported": "NotStanceCheckAction"
-    },
-    {
      "ChangeStance": "Neutral"
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "NotStanceCheckAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "EmptyFist",
@@ -5008,16 +5006,10 @@
      ]
     },
     {
-     "Unsupported": "NotStanceCheckAction"
-    },
-    {
      "ChangeStance": "Neutral"
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "NotStanceCheckAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "EmptyMind",
@@ -5040,16 +5032,10 @@
      "Draw": "Magic"
     },
     {
-     "Unsupported": "NotStanceCheckAction"
-    },
-    {
      "ChangeStance": "Neutral"
     }
    ],
-   "status": "unsupported",
-   "unsupported": [
-    "NotStanceCheckAction"
-   ]
+   "status": "parsed"
   },
   {
    "id": "Eruption",

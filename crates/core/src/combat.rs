@@ -104,6 +104,11 @@ enum Q {
     OrbSlots(i32),
     ShuffleDraw,
     GainBlock(i32),
+    IfIntentAttack {
+        target: usize,
+        str_gain: i32,
+    },
+    DoDiscardNonAttacks,
     ForceEndTurn,
     VampireDamageAll {
         base: i32,
@@ -616,6 +621,11 @@ impl Combat {
             Effect::EvokeNoRemove => q.push(Q::EvokeNoRemove),
             Effect::OrbSlots(e) => q.push(Q::OrbSlots(self.eval(e, card, x_cost))),
             Effect::ShuffleDraw => q.push(Q::ShuffleDraw),
+            Effect::IfIntentAttack(e) => q.push(Q::IfIntentAttack {
+                target: ti,
+                str_gain: self.eval(e, card, x_cost),
+            }),
+            Effect::DiscardNonAttacks => q.push(Q::DoDiscardNonAttacks),
             Effect::GainBlock(e) => q.push(Q::GainBlock(self.eval(e, card, x_cost))),
             Effect::ForceEndTurn => q.push(Q::ForceEndTurn),
             Effect::VampireDamageAll(e) => q.push(Q::VampireDamageAll {
@@ -1291,6 +1301,38 @@ impl Combat {
                 let mut pile = std::mem::take(&mut self.player.draw);
                 card_group_shuffle(&mut pile, &mut self.rng.shuffle);
                 self.player.draw = pile;
+            }
+            Q::IfIntentAttack { target, str_gain } => {
+                // SpotWeaknessAction：意图基伤 >= 0 时获得力量
+                let has_attack_intent = self.monsters[target]
+                    .move_base_damage()
+                    .map(|d| d >= 0)
+                    .unwrap_or(false)
+                    || self.monsters[target].next_move != 2; // 非纯Buff意图
+                if has_attack_intent {
+                    apply_power(
+                        &mut self.player.creature.powers,
+                        PowerKind::Strength,
+                        str_gain,
+                        false,
+                        false,
+                    );
+                }
+            }
+            Q::DoDiscardNonAttacks => {
+                // UnloadAction：弃掉所有非攻击手牌
+                let indices: Vec<usize> = self
+                    .player
+                    .hand
+                    .iter()
+                    .enumerate()
+                    .filter(|(_, c)| c.def.card_type != "ATTACK")
+                    .map(|(i, _)| i)
+                    .collect();
+                for &i in indices.iter().rev() {
+                    let c = self.player.hand.remove(i);
+                    self.player.discard.push(c);
+                }
             }
             Q::GainBlock(n) => {
                 self.player.creature.block += n;

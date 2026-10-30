@@ -112,7 +112,8 @@ fn effect_supported(e: &Effect) -> bool {
         Effect::Channel(orb, x, _) => expr_ok(*x) && crate::state::OrbKind::from_id(orb).is_some(),
         Effect::EvokeLeftmost | Effect::EvokeNoRemove => true,
         Effect::OrbSlots(x) => expr_ok(*x),
-        Effect::ShuffleDraw | Effect::ForceEndTurn => true,
+        Effect::ShuffleDraw | Effect::ForceEndTurn | Effect::DiscardNonAttacks => true,
+        Effect::IfIntentAttack(x) => expr_ok(*x),
         Effect::GainBlock(x)
         | Effect::VampireDamageAll(x)
         | Effect::DamageIfPoisoned(x)

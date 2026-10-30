@@ -9,6 +9,7 @@ pub enum Target {
     Enemy,
     AllEnemies,
     SelfC,
+    RandomEnemy,
     Unknown,
 }
 
@@ -85,6 +86,10 @@ pub enum Effect {
     ExhaustNonAttacks(Expr),
     /// 按本回合已打攻击牌数 × N 次伤害（DamagePerAttackPlayedAction/Finisher）
     DamagePerAttack(Expr),
+    /// 目标意图为攻击时获得力量（SpotWeaknessAction）
+    IfIntentAttack(Expr),
+    /// 弃掉所有非攻击手牌（UnloadAction/Unload）
+    DiscardNonAttacks,
     /// 未支持动作（值为 Java 动作类名）——手移植清单
     Unsupported(&'static str),
 }

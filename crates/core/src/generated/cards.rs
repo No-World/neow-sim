@@ -1381,8 +1381,8 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: Some(1),
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("SpotWeaknessAction")],
+        status: "parsed",
+        effects: &[Effect::IfIntentAttack(Expr::Const("m"))],
     },
     CardDef {
         id: "Strike_R",
@@ -1857,8 +1857,15 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: Some(1),
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
-        effects: &[Effect::Unsupported("BouncingFlaskAction")],
+        status: "parsed_branch",
+        effects: &[Effect::Repeat(
+            Expr::Magic,
+            &[Effect::ApplyPower(
+                Target::RandomEnemy,
+                "Poison",
+                Expr::N(3),
+            )],
+        )],
     },
     CardDef {
         id: "Bullet Time",
@@ -3125,10 +3132,10 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
+        status: "parsed",
         effects: &[
             Effect::Damage(Target::Enemy, Expr::DamageBase),
-            Effect::Unsupported("UnloadAction"),
+            Effect::DiscardNonAttacks,
         ],
     },
     CardDef {
@@ -3587,10 +3594,9 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
+        status: "parsed",
         effects: &[
             Effect::Block(Expr::BlockBase),
-            Effect::Unsupported("NotStanceCheckAction"),
             Effect::ChangeStance("Neutral"),
         ],
     },
@@ -3610,10 +3616,9 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: None,
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
+        status: "parsed",
         effects: &[
             Effect::Damage(Target::Enemy, Expr::DamageBase),
-            Effect::Unsupported("NotStanceCheckAction"),
             Effect::ChangeStance("Neutral"),
         ],
     },
@@ -3633,12 +3638,8 @@ pub static CARDS: &[CardDef] = &[
         upg_magic: Some(1),
         upg_base_cost: None,
         flags: &[],
-        status: "unsupported",
-        effects: &[
-            Effect::Draw(Expr::Magic),
-            Effect::Unsupported("NotStanceCheckAction"),
-            Effect::ChangeStance("Neutral"),
-        ],
+        status: "parsed",
+        effects: &[Effect::Draw(Expr::Magic), Effect::ChangeStance("Neutral")],
     },
     CardDef {
         id: "Eruption",
