@@ -1676,7 +1676,7 @@ impl Combat {
         // Sentry：交替 Debuff/Attack
         if self.monsters[i].first_move {
             // 偶数位 Debuff 起手，奇数位 Attack 起手
-            return if i % 2 == 0 { 3 } else { 4 };
+            return if i & 1 == 0 { 3 } else { 4 };
         }
         let h = &self.monsters[i].move_history;
         if h.last() == Some(&4) {
