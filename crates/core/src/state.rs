@@ -187,6 +187,8 @@ pub enum Intent {
     Defend,
     Escape,
     Sleep,
+    Unknown,
+    AttackBuff,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -206,6 +208,8 @@ pub enum MonsterKind {
     GremlinNob,
     Lagavulin,
     Sentry,
+    Guardian,
+    SlimeBoss,
 }
 
 /// 通用怪物状态（M2 覆盖：大颚虫、邪教徒；M3 走数据驱动定义表）
@@ -336,6 +340,17 @@ impl MonsterState {
                 let beam = if ascension >= 3 { 10 } else { 9 };
                 (hp_rng.random_start_end(lo, hi), (beam, 2, 0, 0, 0, 0, 0))
             }
+            MonsterKind::Guardian => {
+                let hp = if ascension >= 2 { 250 } else { 240 };
+                let bash = if ascension >= 2 { 36 } else { 32 };
+                let roll = if ascension >= 2 { 10 } else { 9 };
+                (hp, (bash, roll, 5, 8, 9, 2, 4))
+            }
+            MonsterKind::SlimeBoss => {
+                let hp = if ascension >= 2 { 150 } else { 140 };
+                let slam = if ascension >= 2 { 38 } else { 35 };
+                (hp, (slam, 10, 3, 0, 0, 0, 0))
+            }
         };
         Self {
             kind,
@@ -436,6 +451,21 @@ impl MonsterState {
                 4 => Intent::Attack,
                 _ => Intent::Attack,
             },
+            MonsterKind::Guardian => match self.next_move {
+                2 => Intent::Attack,
+                3 => Intent::Attack,
+                4 => Intent::AttackBuff,
+                5 => Intent::Attack,
+                6 => Intent::Defend,
+                7 => Intent::Debuff,
+                _ => Intent::Defend,
+            },
+            MonsterKind::SlimeBoss => match self.next_move {
+                1 => Intent::Attack,
+                2 => Intent::Unknown,
+                4 => Intent::Debuff,
+                _ => Intent::Attack,
+            },
         }
     }
 
@@ -491,6 +521,17 @@ impl MonsterState {
             },
             MonsterKind::Sentry => match self.next_move {
                 4 => Some(self.dark_strike_dmg),
+                _ => None,
+            },
+            MonsterKind::Guardian => match self.next_move {
+                2 => Some(self.dark_strike_dmg),
+                3 => Some(self.thrash_dmg),
+                4 => Some(self.thrash_block),
+                5 => Some(self.bellow_str),
+                _ => None,
+            },
+            MonsterKind::SlimeBoss => match self.next_move {
+                1 => Some(self.dark_strike_dmg),
                 _ => None,
             },
         }

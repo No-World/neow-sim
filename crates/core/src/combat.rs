@@ -1211,6 +1211,33 @@ impl Combat {
         }
     }
 
+    fn guardian_get_move(&mut self, i: usize) -> u8 {
+        // Guardian 固定循环: Charge Up(6) → Fierce Bash(2) → Vent Steam(7) → Whirlwind(5) → repeat
+        if self.monsters[i].first_move {
+            return 6;
+        }
+        match self.monsters[i].move_history.last() {
+            Some(&6) => 2,
+            Some(&2) => 7,
+            Some(&7) => 5,
+            Some(&5) => 6,
+            _ => 6,
+        }
+    }
+
+    fn slime_boss_get_move(&mut self, i: usize) -> u8 {
+        // SlimeBoss 固定循环: Goop(4) → Prepare(2) → Slam(1) → repeat
+        if self.monsters[i].first_move {
+            return 4;
+        }
+        match self.monsters[i].move_history.last() {
+            Some(&4) => 2,
+            Some(&2) => 1,
+            Some(&1) => 4,
+            _ => 4,
+        }
+    }
+
     fn end_turn(&mut self) {
         self.turn_has_ended = true;
         // callEndOfTurnActions：玩家 powers 的 EOT，按插入序逐个结算：
@@ -1670,6 +1697,80 @@ impl Combat {
                     src: i,
                     base: m.dark_strike_dmg,
                 }),
+                _ => {}
+            },
+            MonsterKind::Guardian => match m.next_move {
+                6 => {
+                    // Charge Up: 获得格挡
+                    q.push(Q::MonsterBlock {
+                        target: i,
+                        amount: m.bellow_block,
+                    });
+                }
+                2 => {
+                    // Fierce Bash: 重击
+                    q.push(Q::MonsterDamage {
+                        src: i,
+                        base: m.dark_strike_dmg,
+                    });
+                }
+                7 => {
+                    // Vent Steam: 虚弱+易伤
+                    q.push(Q::ApplyPowerToPlayerFromMonster {
+                        kind: PowerKind::Weak,
+                        amount: 2,
+                    });
+                    q.push(Q::ApplyPowerToPlayerFromMonster {
+                        kind: PowerKind::Vulnerable,
+                        amount: 2,
+                    });
+                }
+                5 => {
+                    // Whirlwind: 5伤×4
+                    for _ in 0..m.ritual_amt {
+                        q.push(Q::MonsterDamage {
+                            src: i,
+                            base: m.bellow_str,
+                        });
+                    }
+                }
+                4 => {
+                    // Twin Slam: 8伤×2
+                    for _ in 0..2 {
+                        q.push(Q::MonsterDamage {
+                            src: i,
+                            base: m.thrash_block,
+                        });
+                    }
+                }
+                3 => {
+                    // Roll Attack: 9伤
+                    q.push(Q::MonsterDamage {
+                        src: i,
+                        base: m.thrash_dmg,
+                    });
+                }
+                _ => {}
+            },
+            MonsterKind::SlimeBoss => match m.next_move {
+                4 => {
+                    // Goop: 3张粘液入弃牌堆
+                    for _ in 0..m.thrash_dmg {
+                        if let Some(c) = CardInst::new_by_class("Slimed") {
+                            q.push(Q::MakeDiscard(c));
+                        }
+                    }
+                }
+                2 => {
+                    // Prepare: 什么都不做
+                }
+                1 => {
+                    // Slam: 35伤
+                    q.push(Q::MonsterDamage {
+                        src: i,
+                        base: m.dark_strike_dmg,
+                    });
+                }
                 _ => {}
             },
             MonsterKind::FungiBeast => match m.next_move {
@@ -2729,6 +2830,8 @@ impl Combat {
             MonsterKind::GremlinNob => self.gremlin_nob_get_move(i, num),
             MonsterKind::Lagavulin => self.lagavulin_get_move(i, num),
             MonsterKind::Sentry => self.sentry_get_move(i, num),
+            MonsterKind::Guardian => self.guardian_get_move(i),
+            MonsterKind::SlimeBoss => self.slime_boss_get_move(i),
         };
         self.monsters[i].first_move = false;
         self.monsters[i].move_history.push(mv);
