@@ -746,7 +746,6 @@ impl Combat {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
