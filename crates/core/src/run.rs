@@ -507,6 +507,69 @@ mod tests {
         }
     }
 
+    /// RunState 冒烟：Act 2 全流程（战斗/休息/宝箱占位/Boss→转幕→胜利）
+    #[test]
+    fn run_state_smoke_act2() {
+        let mut run = RunState::new(7, 20);
+        // 跳到 Act 2（直接重建）
+        run.act = 2;
+        run.map = generate_dungeon(2, 20, &mut run.rng.map);
+        run.pos = (0, 0);
+        run.populate_act();
+        run.player.hp = 9999;
+        run.player.max_hp = 9999;
+        assert!(!run.encounter_list.is_empty());
+        assert!(!run.elite_list.is_empty());
+        assert!(!run.boss.is_empty());
+        // 沿第一条边走完 0..14 行，每层进房结算
+        for _ in 0..MAP_HEIGHT {
+            run.choose_node(0);
+            run.enter_room();
+            if let Some(c) = run.combat.as_mut() {
+                for m in c.monsters.iter_mut() {
+                    m.creature.hp = 0;
+                }
+                c.over = true;
+                c.won = true;
+            }
+            run.settle_combat(10);
+        }
+        assert_eq!(run.pos.0, MAP_HEIGHT - 1, "到达行 14");
+        // 行 14 → Boss 战（简化路径：直接 boss 战）
+        let boss = run.boss;
+        let mut c = crate::combat::Combat::new_with(run.seed, run.ascension, boss);
+        c.player.creature.hp = run.player.hp;
+        c.player.creature.max_hp = run.player.max_hp;
+        c.gold = run.player.gold;
+        for m in c.monsters.iter_mut() {
+            m.creature.hp = 0;
+        }
+        c.over = true;
+        c.won = true;
+        run.combat = Some(c);
+        run.settle_combat(100);
+        assert_eq!(run.act, 3, "Act 2 Boss 胜 → Act 3");
+        assert!(!run.over);
+        assert!(run.floor >= (MAP_HEIGHT - 1) as u32, "走了 14 层");
+        assert!(run.player.gold > 99, "战斗金币累计");
+    }
+
+    /// 遭遇序列：防重复规则 + 权重 roll 确定性
+    #[test]
+    fn encounter_list_deterministic() {
+        let a = RunState::new(42, 20);
+        let b = RunState::new(42, 20);
+        assert_eq!(
+            a.encounter_list.len(),
+            b.encounter_list.len(),
+            "弱 2 + 强 12 = 14"
+        );
+        assert_eq!(a.encounter_list, b.encounter_list);
+        assert_eq!(a.elite_list, b.elite_list);
+        let c = RunState::new(43, 20);
+        assert_ne!(a.encounter_list, c.encounter_list);
+    }
+
     #[test]
     fn map_room_counts_reasonable() {
         // A20：精英 ~ round(count×0.08×1.6)；商店/休息/事件按概率
@@ -530,5 +593,579 @@ mod tests {
         assert!((1..=4).contains(&shops), "商店数 {shops}");
         assert!(rests >= 2, "休息数 {rests}（含行14）");
         assert!(events >= 3, "事件数 {events}");
+    }
+}
+
+// ═══════════════ 遭遇池（MonsterHelper + 各幕 generateXxxEnemies）═══════════════
+
+use crate::state::MonsterKind;
+
+/// MonsterInfo：名字 + 权重（roll 前归一化）
+pub struct EncInfo {
+    pub name: &'static str,
+    pub weight: f32,
+    /// 遭遇组合（按出场序）
+    pub kinds: &'static [MonsterKind],
+}
+
+/// MonsterInfo.roll：累积权重命中（roll ∈ [0,1)）
+pub fn enc_roll(list: &[EncInfo], roll: f32) -> &'static str {
+    let total: f32 = list.iter().map(|e| e.weight).sum();
+    let mut cur = 0.0f32;
+    for e in list {
+        cur += e.weight / total;
+        if roll < cur {
+            return e.name;
+        }
+    }
+    list.last().map(|e| e.name).unwrap_or("ERROR")
+}
+
+pub fn enc_kinds(list: &[EncInfo], name: &str) -> &'static [MonsterKind] {
+    list.iter()
+        .find(|e| e.name == name)
+        .map(|e| e.kinds)
+        .unwrap_or(&[])
+}
+
+/// Act 1 遭遇池（Exordium）。
+/// ⚠️ 已知偏差：Large Slime / Lots of Slimes 未实现（AcidSlime_L/SpikeSlime_L
+/// 待补），暂从池中移除并在此登记——对拍前必须恢复（docs/parity-spec.md 偏差表）
+pub fn act1_pools() -> (Vec<EncInfo>, Vec<EncInfo>, Vec<EncInfo>) {
+    use MonsterKind::*;
+    let weak = vec![
+        EncInfo {
+            name: "Cultist",
+            weight: 2.0,
+            kinds: &[Cultist],
+        },
+        EncInfo {
+            name: "Jaw Worm",
+            weight: 2.0,
+            kinds: &[JawWorm],
+        },
+        EncInfo {
+            name: "2 Louse",
+            weight: 2.0,
+            kinds: &[LouseNormal, LouseDefensive],
+        },
+        EncInfo {
+            name: "Small Slimes",
+            weight: 2.0,
+            kinds: &[AcidSlimeS, SpikeSlimeS],
+        },
+    ];
+    let strong = vec![
+        EncInfo {
+            name: "Blue Slaver",
+            weight: 2.0,
+            kinds: &[SlaverBlue],
+        },
+        EncInfo {
+            name: "Gremlin Gang",
+            weight: 1.0,
+            kinds: &[GremlinThief, GremlinWarrior, GremlinFat],
+        },
+        EncInfo {
+            name: "Looter",
+            weight: 2.0,
+            kinds: &[Looter],
+        },
+        // Large Slime (2.0) / Lots of Slimes (1.0)：未实现，偏差登记
+        EncInfo {
+            name: "Exordium Thugs",
+            weight: 1.5,
+            kinds: &[Looter, Looter, SlaverBlue],
+        },
+        EncInfo {
+            name: "Exordium Wildlife",
+            weight: 1.5,
+            kinds: &[FungiBeast, LouseNormal],
+        },
+        EncInfo {
+            name: "Red Slaver",
+            weight: 1.0,
+            kinds: &[SlaverRed],
+        },
+        EncInfo {
+            name: "3 Louse",
+            weight: 2.0,
+            kinds: &[LouseNormal, LouseDefensive, LouseNormal],
+        },
+        EncInfo {
+            name: "2 Fungi Beasts",
+            weight: 2.0,
+            kinds: &[FungiBeast, FungiBeast],
+        },
+    ];
+    let elites = vec![
+        EncInfo {
+            name: "Gremlin Nob",
+            weight: 1.0,
+            kinds: &[GremlinNob],
+        },
+        EncInfo {
+            name: "Lagavulin",
+            weight: 1.0,
+            kinds: &[Lagavulin],
+        },
+        EncInfo {
+            name: "3 Sentries",
+            weight: 1.0,
+            kinds: &[Sentry, Sentry, Sentry],
+        },
+    ];
+    (weak, strong, elites)
+}
+
+pub fn act1_bosses() -> Vec<EncInfo> {
+    use MonsterKind::*;
+    vec![
+        EncInfo {
+            name: "The Guardian",
+            weight: 1.0,
+            kinds: &[Guardian],
+        },
+        EncInfo {
+            name: "Slime Boss",
+            weight: 1.0,
+            kinds: &[SlimeBoss],
+        },
+        EncInfo {
+            name: "Hexaghost",
+            weight: 1.0,
+            kinds: &[Hexaghost],
+        },
+    ]
+}
+
+/// Act 2 遭遇池（TheCity）——组合全量可组
+pub fn act2_pools() -> (Vec<EncInfo>, Vec<EncInfo>, Vec<EncInfo>) {
+    use MonsterKind::*;
+    let weak = vec![
+        EncInfo {
+            name: "Spheric Guardian",
+            weight: 2.0,
+            kinds: &[SphericGuardian],
+        },
+        EncInfo {
+            name: "Chosen",
+            weight: 2.0,
+            kinds: &[Chosen],
+        },
+        EncInfo {
+            name: "Shell Parasite",
+            weight: 2.0,
+            kinds: &[ShelledParasite],
+        },
+        EncInfo {
+            name: "3 Byrds",
+            weight: 2.0,
+            kinds: &[Byrd, Byrd, Byrd],
+        },
+        EncInfo {
+            name: "2 Thieves",
+            weight: 2.0,
+            kinds: &[Mugger, Mugger],
+        },
+    ];
+    let strong = vec![
+        EncInfo {
+            name: "Chosen and Byrds",
+            weight: 2.0,
+            kinds: &[Byrd, Chosen],
+        },
+        EncInfo {
+            name: "Sentry and Sphere",
+            weight: 2.0,
+            kinds: &[Sentry, SphericGuardian],
+        },
+        EncInfo {
+            name: "Snake Plant",
+            weight: 6.0,
+            kinds: &[SnakePlant],
+        },
+        EncInfo {
+            name: "Snecko",
+            weight: 4.0,
+            kinds: &[Snecko],
+        },
+        EncInfo {
+            name: "Centurion and Healer",
+            weight: 6.0,
+            kinds: &[Centurion, Healer],
+        },
+        EncInfo {
+            name: "Cultist and Chosen",
+            weight: 3.0,
+            kinds: &[Cultist, Chosen],
+        },
+        EncInfo {
+            name: "3 Cultists",
+            weight: 3.0,
+            kinds: &[Cultist, Cultist, Cultist],
+        },
+        EncInfo {
+            name: "Shelled Parasite and Fungi",
+            weight: 3.0,
+            kinds: &[ShelledParasite, FungiBeast],
+        },
+    ];
+    let elites = vec![
+        EncInfo {
+            name: "Gremlin Leader",
+            weight: 1.0,
+            kinds: &[GremlinThief, GremlinFat, GremlinLeader],
+        },
+        EncInfo {
+            name: "Slavers",
+            weight: 1.0,
+            kinds: &[SlaverBlue, SlaverRed, Taskmaster],
+        },
+        EncInfo {
+            name: "Book of Stabbing",
+            weight: 1.0,
+            kinds: &[BookOfStabbing],
+        },
+    ];
+    (weak, strong, elites)
+}
+
+pub fn act2_bosses() -> Vec<EncInfo> {
+    use MonsterKind::*;
+    vec![
+        EncInfo {
+            name: "Bronze Automaton",
+            weight: 1.0,
+            kinds: &[BronzeAutomaton],
+        },
+        EncInfo {
+            name: "The Collector",
+            weight: 1.0,
+            kinds: &[TheCollector],
+        },
+        EncInfo {
+            name: "Champ",
+            weight: 1.0,
+            kinds: &[Champ],
+        },
+    ]
+}
+
+/// Act 3 遭遇池（TheBeyond）——组合全量可组
+pub fn act3_pools() -> (Vec<EncInfo>, Vec<EncInfo>, Vec<EncInfo>) {
+    use MonsterKind::*;
+    let weak = vec![
+        EncInfo {
+            name: "3 Darklings",
+            weight: 2.0,
+            kinds: &[Darkling, Darkling, Darkling],
+        },
+        EncInfo {
+            name: "Orb Walker",
+            weight: 2.0,
+            kinds: &[OrbWalker],
+        },
+        EncInfo {
+            name: "3 Shapes",
+            weight: 2.0,
+            kinds: &[Repulsor, Repulsor, Repulsor],
+        },
+    ];
+    let strong = vec![
+        EncInfo {
+            name: "Spire Growth",
+            weight: 1.0,
+            kinds: &[SpireGrowth],
+        },
+        EncInfo {
+            name: "Transient",
+            weight: 1.0,
+            kinds: &[Transient],
+        },
+        EncInfo {
+            name: "4 Shapes",
+            weight: 1.0,
+            kinds: &[Repulsor, Repulsor, Repulsor, Repulsor],
+        },
+        EncInfo {
+            name: "Maw",
+            weight: 1.0,
+            kinds: &[Maw],
+        },
+        EncInfo {
+            name: "Sphere and 2 Shapes",
+            weight: 1.0,
+            kinds: &[SphericGuardian, Repulsor, Repulsor],
+        },
+        EncInfo {
+            name: "Jaw Worm Horde",
+            weight: 1.0,
+            kinds: &[JawWorm, JawWorm, JawWorm],
+        },
+        EncInfo {
+            name: "Writhing Mass",
+            weight: 1.0,
+            kinds: &[WrithingMass],
+        },
+    ];
+    let elites = vec![
+        EncInfo {
+            name: "Giant Head",
+            weight: 2.0,
+            kinds: &[GiantHead],
+        },
+        EncInfo {
+            name: "Nemesis",
+            weight: 2.0,
+            kinds: &[Nemesis],
+        },
+        EncInfo {
+            name: "Reptomancer",
+            weight: 2.0,
+            kinds: &[Reptomancer],
+        },
+    ];
+    (weak, strong, elites)
+}
+
+pub fn act3_bosses() -> Vec<EncInfo> {
+    use MonsterKind::*;
+    vec![
+        EncInfo {
+            name: "Awakened One",
+            weight: 1.0,
+            kinds: &[AwakenedOne],
+        },
+        EncInfo {
+            name: "Donu and Deca",
+            weight: 1.0,
+            kinds: &[Deca, Donu],
+        },
+        EncInfo {
+            name: "Time Eater",
+            weight: 1.0,
+            kinds: &[TimeEater],
+        },
+    ]
+}
+
+// ═══════════════ RunState：整局状态机骨架 ═══════════════
+
+use crate::combat::Combat;
+use crate::rng::RngStreams;
+
+/// 局内玩家元状态（局外层）
+#[derive(Clone, Debug)]
+pub struct RunPlayer {
+    pub hp: i32,
+    pub max_hp: i32,
+    pub gold: i32,
+}
+
+/// 整局状态：幕/层/遭遇序列/当前战斗
+pub struct RunState {
+    pub seed: u64,
+    pub ascension: i32,
+    pub act: u8,
+    pub map: GameMap,
+    pub pos: (usize, usize), // 当前节点 (y, x)
+    pub player: RunPlayer,
+    pub rng: RngStreams,
+    /// 幕内遭遇序列（populateMonsterList 产物：前 1-2 个弱怪，其余强怪）
+    pub encounter_list: Vec<&'static [MonsterKind]>,
+    pub encounter_idx: usize,
+    pub elite_list: Vec<&'static [MonsterKind]>,
+    pub elite_idx: usize,
+    pub boss: &'static [MonsterKind],
+    pub combat: Option<Combat>,
+    pub floor: u32,
+    pub over: bool,
+    pub won: bool,
+}
+
+impl RunState {
+    /// 开新局：生成 Act 1 地图 + 遭遇序列（populateMonsterList 语义：
+    /// 弱怪 2 / 强怪 12 / 精英 10；首强怪排除表；不与上一个/上上个重复）
+    pub fn new(seed: u64, ascension: i32) -> Self {
+        let mut rng = RngStreams::new(seed);
+        let map = generate_dungeon(1, ascension, &mut rng.map);
+        let mut s = Self {
+            seed,
+            ascension,
+            act: 1,
+            map,
+            pos: (0, 0),
+            player: RunPlayer {
+                hp: if ascension >= 6 { 72 } else { 80 },
+                max_hp: 80,
+                gold: 99,
+            },
+            rng,
+            encounter_list: Vec::new(),
+            encounter_idx: 0,
+            elite_list: Vec::new(),
+            elite_idx: 0,
+            boss: &[],
+            combat: None,
+            floor: 0,
+            over: false,
+            won: false,
+        };
+        s.populate_act();
+        s
+    }
+
+    fn act_pools(&self) -> (Vec<EncInfo>, Vec<EncInfo>, Vec<EncInfo>, Vec<EncInfo>) {
+        match self.act {
+            1 => {
+                let (w, s, e) = act1_pools();
+                (w, s, e, act1_bosses())
+            }
+            2 => {
+                let (w, s, e) = act2_pools();
+                (w, s, e, act2_bosses())
+            }
+            _ => {
+                let (w, s, e) = act3_pools();
+                (w, s, e, act3_bosses())
+            }
+        }
+    }
+
+    /// populateMonsterList：弱怪 2；强怪 12（含首怪排除表）；精英 10；Boss 洗牌取 1
+    fn populate_act(&mut self) {
+        let (weak, strong, elites, bosses) = self.act_pools();
+        // 弱怪 2（相邻不重复由列表语义：前 2 个弱怪可以相同？源码同样走防重逻辑）
+        let mut list: Vec<&'static str> = Vec::new();
+        while list.len() < 2 {
+            let name = enc_roll(&weak, self.rng.monster.random_float());
+            if list.last() != Some(&name) || list.is_empty() {
+                if !list.is_empty() && name == list[list.len() - 1] {
+                    continue; // 与上一个相同 → 重掷
+                }
+                list.push(name);
+            }
+        }
+        // 强怪 12：防上/上上重复
+        while list.len() < 14 {
+            let name = enc_roll(&strong, self.rng.monster.random_float());
+            let n = list.len();
+            if n >= 1 && name == list[n - 1] {
+                continue;
+            }
+            if n >= 2 && name == list[n - 2] {
+                continue;
+            }
+            list.push(name);
+        }
+        self.encounter_list = list
+            .iter()
+            .map(|&n| enc_kinds(&weak, n).if_empty(enc_kinds(&strong, n)))
+            .collect();
+        // 精英 10（相邻不重复）
+        let mut elist: Vec<&'static str> = Vec::new();
+        while elist.len() < 10 {
+            let name = enc_roll(&elites, self.rng.monster.random_float());
+            if !elist.is_empty() && name == elist[elist.len() - 1] {
+                continue;
+            }
+            elist.push(name);
+        }
+        self.elite_list = elist.iter().map(|&n| enc_kinds(&elites, n)).collect();
+        // Boss：Collections.shuffle(bossList, new Random(monsterRng.randomLong())) 取 0
+        let boss_name = bosses[0].name;
+        self.boss = enc_kinds(&bosses, boss_name);
+        // TODO(M3 后续)：Boss 洗牌按源码（monsterRng.randomLong 种子化 JavaRandom）
+    }
+
+    /// 选择下一节点（行动空间 = 当前节点边）。
+    /// 行 14 的边是 Boss 哨兵：不再前进，位置保持（Boss 房由 enter_room 进入）
+    pub fn choose_node(&mut self, edge_idx: usize) {
+        let (y, x) = self.pos;
+        if y + 1 >= MAP_HEIGHT {
+            return;
+        }
+        let next_x = self.map.rows[y][x].edges[edge_idx];
+        self.pos = (y + 1, next_x);
+        self.floor += 1;
+    }
+
+    /// 进入当前节点的房间（战斗类生成 Combat；非战斗类本批为占位）。
+    /// 行 14 房间显示为休息房，但真游戏在 Boss 前强制打 Boss——本批以
+    /// choose_node 消耗 Boss 哨兵边后由测试显式调 boss 战（简化，登记偏差）
+    pub fn enter_room(&mut self) {
+        let (y, x) = self.pos;
+        let room = self.map.rows[y][x].room;
+        match room {
+            Some(RoomKind::Monster) | Some(RoomKind::Elite) => {
+                let kinds = if room == Some(RoomKind::Elite) {
+                    let k = self.elite_list[self.elite_idx];
+                    self.elite_idx += 1;
+                    k
+                } else {
+                    let k =
+                        self.encounter_list[self.encounter_idx.min(self.encounter_list.len() - 1)];
+                    self.encounter_idx += 1;
+                    k
+                };
+                let mut c = Combat::new_with(self.seed, self.ascension, kinds);
+                // 局外状态带入（HP/金币）
+                c.player.creature.hp = self.player.hp;
+                c.player.creature.max_hp = self.player.max_hp;
+                c.gold = self.player.gold;
+                self.combat = Some(c);
+            }
+            Some(RoomKind::Rest) => {
+                // 睡觉：回 30% 最大生命（RestRoom.onUseCard 简化——锻造后续批）
+                let heal = (self.player.max_hp as f32 * 0.3) as i32;
+                self.player.hp = (self.player.hp + heal).min(self.player.max_hp);
+            }
+            Some(RoomKind::Boss) => {
+                let mut c = Combat::new_with(self.seed, self.ascension, self.boss);
+                c.player.creature.hp = self.player.hp;
+                c.player.creature.max_hp = self.player.max_hp;
+                c.gold = self.player.gold;
+                self.combat = Some(c);
+            }
+            _ => {
+                // 事件/商店/宝箱：占位（下批实现）
+            }
+        }
+    }
+
+    /// 战斗结束回收（结算 HP/金币；胜利推进——幕末转幕）
+    pub fn settle_combat(&mut self, gold_reward: i32) {
+        if let Some(c) = self.combat.take() {
+            self.player.hp = c.player.creature.hp.max(0);
+            self.player.gold = c.gold + if c.won { gold_reward } else { 0 };
+            if c.won && self.pos.0 == MAP_HEIGHT - 1 {
+                // 幕 Boss 战胜利 → 下一幕（本批：3 幕打完即整局胜利）
+                if self.act >= 3 {
+                    self.over = true;
+                    self.won = true;
+                } else {
+                    self.act += 1;
+                    self.map = generate_dungeon(self.act, self.ascension, &mut self.rng.map);
+                    self.pos = (0, 0);
+                    self.encounter_idx = 0;
+                    self.elite_idx = 0;
+                    self.populate_act();
+                }
+            }
+        }
+    }
+}
+
+trait IfEmpty {
+    fn if_empty(self, other: &'static [MonsterKind]) -> &'static [MonsterKind];
+}
+impl IfEmpty for &'static [MonsterKind] {
+    fn if_empty(self, other: &'static [MonsterKind]) -> &'static [MonsterKind] {
+        if self.is_empty() {
+            other
+        } else {
+            self
+        }
     }
 }
