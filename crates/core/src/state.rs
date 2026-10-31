@@ -262,6 +262,17 @@ pub enum MonsterKind {
     // —— 补缺（Act 1 偏差清除）——
     AcidSlimeL,
     SpikeSlimeL,
+    // —— 补缺（事件战斗 + Act3 形体组合）——
+    /// 红面罩之孖：尖头小怪（固定 5×2 双段普攻）
+    BanditPointy,
+    /// 红面罩首领：嘲讽(空转) → 痛苦斩(伤+虚弱) → 交叉斩 循环（A17 交叉斩连打）
+    BanditLeader,
+    /// 红面罩熊：熊抱(敏捷-X) → 扑击(伤+自挡) → 撕咬 循环
+    BanditBear,
+    /// 荆棘形体：战前荆棘 3/4(A17+3)，普攻 7/9 或荆棘+2（5 次增益后恒普攻）
+    Spiker,
+    /// 爆炸形体：普攻 9/11 两回合后待机，第 3 回合自爆 30 伤（不计击杀）
+    Exploder,
 }
 
 /// 通用怪物状态（M2 覆盖：大颚虫、邪教徒；M3 走数据驱动定义表）
@@ -923,6 +934,86 @@ impl MonsterState {
                     ),
                 )
             }
+            // ── 红面罩三人组（BanditPointy/Leader/Bear.java 逐行）──
+            // 字段映射：chomp=主伤，dark_strike=次伤/段数，thrash=三号伤，
+            // thrash_block=自挡，bellow_str=敏捷减益/荆棘计数，bellow_block=荆棘基数,
+            // ritual_amt=虚弱量/段数
+            MonsterKind::BanditPointy => {
+                let hp = if ascension >= 7 { 34 } else { 30 }; // setHp 定值（无掷）
+                (
+                    hp,
+                    (
+                        if ascension >= 2 { 6 } else { 5 }, // chomp=普攻伤
+                        0,
+                        0,
+                        0,
+                        0,
+                        2, // dark_strike=双段
+                        0,
+                    ),
+                )
+            }
+            MonsterKind::BanditLeader => {
+                let (lo, hi) = if ascension >= 7 { (37, 41) } else { (35, 39) };
+                (
+                    hp_rng.random_start_end(lo, hi),
+                    (
+                        if ascension >= 2 { 17 } else { 15 }, // chomp=交叉斩
+                        if ascension >= 2 { 12 } else { 10 }, // thrash=痛苦斩
+                        0,
+                        0,
+                        0,
+                        0,
+                        if ascension >= 17 { 3 } else { 2 }, // ritual=虚弱量
+                    ),
+                )
+            }
+            MonsterKind::BanditBear => {
+                let (lo, hi) = if ascension >= 7 { (40, 44) } else { (38, 42) };
+                (
+                    hp_rng.random_start_end(lo, hi),
+                    (
+                        if ascension >= 2 { 20 } else { 18 }, // chomp=撕咬
+                        0,
+                        9,                                     // thrash_block=扑击自挡
+                        if ascension >= 17 { -4 } else { -2 }, // bellow_str=熊抱敏捷减益
+                        0,
+                        if ascension >= 2 { 10 } else { 9 }, // dark_strike=扑击
+                        0,
+                    ),
+                )
+            }
+            // ── 古形体（Spiker/Exploder.java 逐行）──
+            MonsterKind::Spiker => {
+                let (lo, hi) = if ascension >= 7 { (44, 60) } else { (42, 56) };
+                (
+                    hp_rng.random_start_end(lo, hi),
+                    (
+                        if ascension >= 2 { 9 } else { 7 }, // chomp=普攻伤
+                        0,
+                        0,
+                        0, // bellow_str=已用增益数（prebattle 归零）
+                        if ascension >= 2 { 4 } else { 3 }, // bellow_block=战前荆棘基数
+                        0,
+                        2, // ritual=荆棘增益量
+                    ),
+                )
+            }
+            MonsterKind::Exploder => {
+                let (lo, hi) = if ascension >= 7 { (30, 35) } else { (30, 30) };
+                (
+                    hp_rng.random_start_end(lo, hi),
+                    (
+                        if ascension >= 2 { 11 } else { 9 }, // chomp=普攻伤
+                        0,
+                        0,
+                        0,
+                        30, // bellow_block=自爆伤（ExplosivePower）
+                        0,
+                        0,
+                    ),
+                )
+            }
         };
         Self {
             kind,
@@ -1239,6 +1330,25 @@ impl MonsterState {
                 4 => Intent::Debuff,       // 脆舔
                 _ => Intent::Unknown,      // 分裂
             },
+            MonsterKind::BanditPointy => Intent::Attack, // 恒 5×2 双段
+            MonsterKind::BanditLeader => match self.next_move {
+                1 => Intent::Attack,       // 交叉斩
+                3 => Intent::AttackDebuff, // 痛苦斩（伤+虚弱）
+                _ => Intent::Unknown,      // 嘲讽空转
+            },
+            MonsterKind::BanditBear => match self.next_move {
+                1 => Intent::Attack,       // 撕咬
+                2 => Intent::Debuff,       // 熊抱（STRONG_DEBUFF）
+                _ => Intent::AttackDefend, // 扑击（伤+自挡）
+            },
+            MonsterKind::Spiker => match self.next_move {
+                1 => Intent::Attack,
+                _ => Intent::Buff, // 荆棘+2
+            },
+            MonsterKind::Exploder => match self.next_move {
+                1 => Intent::Attack,
+                _ => Intent::Unknown, // 待机（第三回合自爆）
+            },
         }
     }
 
@@ -1489,6 +1599,28 @@ impl MonsterState {
                 _ => None,
             },
             MonsterKind::SpikeSlimeL => match self.next_move {
+                1 => Some(self.chomp_dmg),
+                _ => None,
+            },
+            MonsterKind::BanditPointy => match self.next_move {
+                1 => Some(self.chomp_dmg),
+                _ => None,
+            },
+            MonsterKind::BanditLeader => match self.next_move {
+                1 => Some(self.chomp_dmg),  // 交叉斩
+                3 => Some(self.thrash_dmg), // 痛苦斩
+                _ => None,
+            },
+            MonsterKind::BanditBear => match self.next_move {
+                1 => Some(self.chomp_dmg),       // 撕咬
+                3 => Some(self.dark_strike_dmg), // 扑击
+                _ => None,
+            },
+            MonsterKind::Spiker => match self.next_move {
+                1 => Some(self.chomp_dmg),
+                _ => None,
+            },
+            MonsterKind::Exploder => match self.next_move {
                 1 => Some(self.chomp_dmg),
                 _ => None,
             },

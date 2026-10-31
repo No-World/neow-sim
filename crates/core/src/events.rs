@@ -1171,18 +1171,18 @@ impl RunState {
                         if let Some(k) = self.roll_relic_kind() {
                             self.rewards.push(RewardItem::Relic(k));
                         }
-                        let kinds = match ev.enemy {
+                        let kinds: &[MonsterKind] = match ev.enemy {
                             0 => {
                                 use MonsterKind as M;
-                                &[M::Sentry, M::Sentry, M::Sentry] as &[MonsterKind]
+                                &[M::Sentry, M::Sentry, M::Sentry]
                             }
                             1 => {
                                 use MonsterKind as M;
-                                &[M::GremlinNob] as &[MonsterKind]
+                                &[M::GremlinNob]
                             }
                             _ => {
                                 use MonsterKind as M;
-                                &[M::Lagavulin] as &[MonsterKind]
+                                &[M::Lagavulin]
                             }
                         };
                         self.start_event_combat(kinds);
@@ -1272,10 +1272,16 @@ impl RunState {
             }
             EventKind::Mushrooms => {
                 if idx == 0 {
-                    // ⚠️ 偏差：Mushroomer 未实现——战利直接发放，无战斗
+                    // The Mushroom Lair = 3×真菌兽（MonsterHelper 逐行）；
+                    // 奖励预置：金币 20-30 + 奥德姆蘑菇（已持有则跳过，源码给 Circlet）
                     let g = self.rng.misc.random_start_end(20, 30);
                     self.rewards.push(RewardItem::Gold(g));
-                    self.relics.push(RelicInst::new(RelicKind::OddMushroom));
+                    let has = self.relics.iter().any(|r| r.kind == RelicKind::OddMushroom);
+                    if !has {
+                        self.rewards.push(RewardItem::Relic(RelicKind::OddMushroom));
+                    }
+                    use crate::state::MonsterKind as M;
+                    self.start_event_combat(&[M::FungiBeast, M::FungiBeast, M::FungiBeast]);
                 } else {
                     self.player.hp = (self.player.hp + ev.heal_amt).min(self.player.max_hp);
                     self.deck.push(CardInst::new("Parasite"));
@@ -1570,14 +1576,19 @@ impl RunState {
             EventKind::MaskedBandits => {
                 if idx == 0 {
                     self.player.gold = 0;
+                    ev.screen = 1;
                 } else {
-                    // ⚠️ 偏差：BanditPointy/Leader/Bear 行为层未实现——
-                    // 战利直发（金币 25-35 + 红面具），无战斗实体
+                    // Masked Bandits = 尖头小怪 + 首领 + 熊（MonsterHelper 逐行）；
+                    // 奖励预置：金币 25-35 + 红面具（已持有则跳过，源码给 Circlet）
                     let g = self.rng.misc.random_start_end(25, 35);
                     self.rewards.push(RewardItem::Gold(g));
-                    self.relics.push(RelicInst::new(RelicKind::RedMask));
+                    let has = self.relics.iter().any(|r| r.kind == RelicKind::RedMask);
+                    if !has {
+                        self.rewards.push(RewardItem::Relic(RelicKind::RedMask));
+                    }
+                    use crate::state::MonsterKind as M;
+                    self.start_event_combat(&[M::BanditPointy, M::BanditLeader, M::BanditBear]);
                 }
-                ev.screen = 1;
             }
             EventKind::Nest => {
                 if idx == 0 {
@@ -1659,11 +1670,12 @@ impl RunState {
                     0 => {
                         // Boss 三选一（偏差：miscRng uniform 替代 JavaRandom 洗牌）
                         use crate::state::MonsterKind as M;
-                        let boss = match self.rng.misc.random_start_end(0, 2) {
-                            0 => &[M::Guardian] as &[crate::state::MonsterKind],
-                            1 => &[M::Hexaghost] as &[crate::state::MonsterKind],
-                            _ => &[M::SlimeBoss] as &[crate::state::MonsterKind],
-                        };
+                        let boss: &[crate::state::MonsterKind] =
+                            match self.rng.misc.random_start_end(0, 2) {
+                                0 => &[M::Guardian],
+                                1 => &[M::Hexaghost],
+                                _ => &[M::SlimeBoss],
+                            };
                         self.rewards.push(RewardItem::Gold(ev.gold));
                         if let Some(k) = self.roll_relic_kind() {
                             self.rewards.push(RewardItem::Relic(k));
@@ -2013,7 +2025,7 @@ impl RunState {
     }
 
     /// 事件战斗：以怪物房同款种子派生 + 事件标记（胜利后事件收尾）
-    fn start_event_combat(&mut self, kinds: &'static [MonsterKind]) {
+    fn start_event_combat(&mut self, kinds: &[MonsterKind]) {
         self.event_combat = true;
         let relics: Vec<_> = self.relics.clone();
         self.combat = Some(Combat::new_run_battle(
@@ -2458,7 +2470,8 @@ mod tests {
         assert!(run.relics.iter().any(|r| r.kind == RelicKind::WarpedTongs));
     }
 
-    /// Mushrooms：逃走 = 回 20 + Parasite；开战 = 金币+遗物（偏差：无战斗实体）
+    /// Mushrooms：逃走 = 回 20 + Parasite；开战 = 蘑菇屋（3×真菌兽）真战斗，
+    /// 奖励预置（金币 20-30 + 奥德姆蘑菇入奖励待领）
     #[test]
     fn mushrooms() {
         let mut run = with_event(13, 0, EventKind::Mushrooms);
@@ -2468,8 +2481,13 @@ mod tests {
         assert!(run.deck.iter().any(|c| c.def.id == "Parasite"));
         let mut run = with_event(13, 0, EventKind::Mushrooms);
         run.choose_event_option(0);
-        assert!(run.relics.iter().any(|r| r.kind == RelicKind::OddMushroom));
+        assert!(run.combat.is_some(), "真战斗：3×真菌兽");
+        assert_eq!(run.combat.as_ref().unwrap().monsters.len(), 3);
         assert!(run.rewards.iter().any(|r| matches!(r, RewardItem::Gold(_))));
+        assert!(run
+            .rewards
+            .iter()
+            .any(|r| matches!(r, RewardItem::Relic(_))));
     }
 
     /// Scrap Ooze：到达时伤害 3（A15 5），失败 +10% 概率 +1 伤

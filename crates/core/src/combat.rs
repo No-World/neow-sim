@@ -403,6 +403,10 @@ pub(crate) enum Q {
         acid: bool,
         hp: i32,
     },
+    /// 爆炸形体自爆：先自灭（真死路径）再对玩家 30 THORNS 伤（不可格挡）
+    ExploderBlast {
+        src: usize,
+    },
 }
 
 /// 探素卡池（returnTrulyRandomCardInCombat(type) / Colorless 变体）
@@ -740,6 +744,19 @@ fn self_monster_prebattle(c: &mut Combat) {
                     false,
                     false,
                 );
+            }
+            // 荆棘形体：战前荆棘 3/4（A17 再 +3；usePreBattleAction）。
+            // bellow_str 复用为增益计次（thornsCount，>5 后恒普攻，起 0）
+            MonsterKind::Spiker => {
+                let thorns = c.monsters[i].bellow_block + if c.ascension >= 17 { 3 } else { 0 };
+                apply_power(
+                    &mut c.monsters[i].creature.powers,
+                    PowerKind::Thorns,
+                    thorns,
+                    false,
+                    false,
+                );
+                c.monsters[i].bellow_str = 0;
             }
             _ => {}
         }
@@ -4168,6 +4185,82 @@ impl Combat {
                 }),
                 _ => {}
             },
+            // ── 红面罩三人组（BanditPointy/Leader/Bear.java takeTurn 逐行；
+            // 无 RollMove——序列由 takeTurn 内 SetMoveAction 驱动，
+            // 引擎在 get_move 以 move_history 等价推演）──
+            MonsterKind::BanditPointy => {
+                // 双段普攻（takeTurn 两次 DamageAction）
+                for _ in 0..m.dark_strike_dmg {
+                    q.push(Q::MonsterDamage {
+                        src: i,
+                        base: m.chomp_dmg,
+                    });
+                }
+            }
+            MonsterKind::BanditLeader => match m.next_move {
+                3 => {
+                    // 痛苦斩：伤 + 虚弱
+                    q.push(Q::MonsterDamage {
+                        src: i,
+                        base: m.thrash_dmg,
+                    });
+                    q.push(Q::ApplyPowerToPlayerFromMonster {
+                        kind: PowerKind::Weak,
+                        amount: m.ritual_amt,
+                    });
+                }
+                1 => q.push(Q::MonsterDamage {
+                    src: i,
+                    base: m.chomp_dmg,
+                }),
+                _ => {} // 2 嘲讽：空转
+            },
+            MonsterKind::BanditBear => match m.next_move {
+                2 => q.push(Q::ApplyPowerToPlayerFromMonster {
+                    kind: PowerKind::Dexterity,
+                    amount: m.bellow_str, // 负值（-2 / A17 -4）
+                }),
+                3 => {
+                    // 扑击：伤 + 自挡 9
+                    q.push(Q::MonsterDamage {
+                        src: i,
+                        base: m.dark_strike_dmg,
+                    });
+                    q.push(Q::MonsterBlock {
+                        target: i,
+                        amount: m.thrash_block,
+                    });
+                }
+                _ => q.push(Q::MonsterDamage {
+                    src: i,
+                    base: m.chomp_dmg,
+                }),
+            },
+            // ── 古形体 ──
+            MonsterKind::Spiker => match m.next_move {
+                1 => q.push(Q::MonsterDamage {
+                    src: i,
+                    base: m.chomp_dmg,
+                }),
+                _ => {
+                    // 荆棘 +2（thornsCount 计次在入队时；>5 后恒普攻）
+                    let amt = m.ritual_amt;
+                    q.push(Q::ApplyPowerToMonster {
+                        target: i,
+                        kind: PowerKind::Thorns,
+                        amount: amt,
+                    });
+                    self.monsters[i].bellow_str += 1;
+                }
+            },
+            MonsterKind::Exploder => match m.next_move {
+                1 => q.push(Q::MonsterDamage {
+                    src: i,
+                    base: m.chomp_dmg,
+                }),
+                // 待机回合 = ExplosivePower 走到 1：自爆 30（THORNS，不可格挡）
+                _ => q.push(Q::ExploderBlast { src: i }),
+            },
             MonsterKind::FungiBeast => match m.next_move {
                 1 => q.push(Q::MonsterDamage {
                     src: i,
@@ -4319,6 +4412,8 @@ impl Combat {
     /// 死亡判定/瓶中精灵仍在调用点处理。
     pub(crate) fn player_deal_damage(&mut self, dmg: i32, ty: DamageType) -> i32 {
         let mut d = dmg.max(0);
+        // AbstractCreature.decrementBlock：仅 HP_LOSS 无视格挡
+        // （THORNS 型可被格挡——荆棘/自爆/亡律均可挡）
         if ty != DamageType::HpLoss {
             let cr = &mut self.player.creature;
             if d > cr.block {
@@ -4350,7 +4445,24 @@ impl Combat {
                             self.monsters[target].creature.block += amt;
                         }
                     }
+                    // 怪物荆棘（Spiker 系）：ThornsPower.onAttacked ——
+                    // 玩家 NORMAL 攻击命中（output>0，含致死）→ 反弹 THORNS 伤
+                    // （无视格挡；不递归——THORNS 型不再触发对方荆棘）
+                    let thorns = self.monsters[target]
+                        .creature
+                        .powers
+                        .iter()
+                        .find(|pw| pw.kind == PowerKind::Thorns)
+                        .map(|pw| pw.amount)
+                        .unwrap_or(0);
                     self.hit_monster(target, dmg, DamageType::Normal);
+                    if dmg > 0 && thorns > 0 && !self.over {
+                        self.player_deal_damage(thorns, DamageType::Thorns);
+                        if self.player.creature.is_dead() && !self.fairy_rescue() {
+                            self.over = true;
+                            self.won = false;
+                        }
+                    }
                 }
             }
             Q::MonsterDamage { src, base } => {
@@ -5572,6 +5684,21 @@ impl Combat {
             Q::SnakeDaggerSuicide { src } => {
                 // LoseHPAction(this, currentHealth)：自灭（真死路径）
                 if self.alive(src) {
+                    self.monsters[src].creature.hp = 0;
+                    self.on_monster_death(src);
+                }
+            }
+            Q::ExploderBlast { src } => {
+                // ExplosivePower.duringTurn（amount=1）：SuicideAction → 30 伤
+                // （THORNS 型可被格挡；玩家先结算伤害避免胜利吞伤——
+                // 真游戏队列中两动作都会结算）
+                if self.alive(src) {
+                    self.player_deal_damage(30, DamageType::Thorns);
+                    if self.player.creature.is_dead() && !self.fairy_rescue() {
+                        self.over = true;
+                        self.won = false;
+                        return;
+                    }
                     self.monsters[src].creature.hp = 0;
                     self.on_monster_death(src);
                 }
@@ -7047,6 +7174,49 @@ impl Combat {
 
     /// SpikeSlime_L.getMove：A17 分段 <30/else（非 A17 <30/else）；
     /// 上次脆舔→冲撞；连续两次冲撞→脆舔；否则冲撞
+    /// 红面罩首领（BanditLeader.getMove 恒 2 + takeTurn SetMoveAction 驱动）：
+    /// 无历史 → 2 嘲讽；2 → 3 痛苦斩；3 → 1 交叉斩；1 → 3（A17 除非连打两次 1）
+    fn bandit_leader_get_move(&mut self, i: usize) -> u8 {
+        let h = &self.monsters[i].move_history;
+        match h.last().copied() {
+            None => 2,
+            Some(2) => 3,
+            Some(3) => 1,
+            _ => {
+                let last2_both_slash = h.len() >= 2 && h[h.len() - 1] == 1 && h[h.len() - 2] == 1;
+                if self.ascension >= 17 && !last2_both_slash {
+                    1
+                } else {
+                    3
+                }
+            }
+        }
+    }
+
+    /// 红面罩熊：无历史 → 2 熊抱；2 → 3 扑击；3 → 1 撕咬；1 → 3（3↔1 循环）
+    fn bandit_bear_get_move(&mut self, i: usize) -> u8 {
+        match self.monsters[i].move_history.last().copied() {
+            None => 2,
+            Some(2) => 3,
+            Some(3) => 1,
+            _ => 3,
+        }
+    }
+
+    /// 荆棘形体（Spiker.getMove）：增益超 5 次 → 恒普攻；
+    /// num<50 且上次非普攻 → 普攻；否则荆棘+2
+    fn spiker_get_move(&mut self, i: usize, num: i32) -> u8 {
+        let m = &self.monsters[i];
+        if m.bellow_str > 5 {
+            return 1;
+        }
+        if num < 50 && m.move_history.last() != Some(&1) {
+            1
+        } else {
+            2
+        }
+    }
+
     fn spike_slime_l_get_move(&mut self, i: usize, num: i32) -> u8 {
         let m = &self.monsters[i];
         let last = m.move_history.last().copied();
@@ -7168,6 +7338,19 @@ impl Combat {
             MonsterKind::CorruptHeart => self.corrupt_heart_get_move(i),
             MonsterKind::AcidSlimeL => self.acid_slime_l_get_move(i, num),
             MonsterKind::SpikeSlimeL => self.spike_slime_l_get_move(i, num),
+            // ── 补缺第二批（红面罩三人组 + 古形体）──
+            MonsterKind::BanditPointy => 1, // getMove 恒普攻（5×2）
+            MonsterKind::BanditLeader => self.bandit_leader_get_move(i),
+            MonsterKind::BanditBear => self.bandit_bear_get_move(i),
+            MonsterKind::Spiker => self.spiker_get_move(i, num),
+            MonsterKind::Exploder => {
+                // turnCount < 2 恒普攻；之后待机（第三回合自爆）
+                if self.monsters[i].move_history.len() < 2 {
+                    1
+                } else {
+                    2
+                }
+            }
         };
         self.monsters[i].first_move = false;
         self.monsters[i].move_history.push(mv);
@@ -10091,5 +10274,285 @@ mod tests {
         };
         assert_eq!(play(21), play(21));
         assert_ne!(play(21), play(22));
+    }
+
+    // ── 怪物补缺：红面罩三人组 + 古形体 ──────────────
+
+    /// 红面罩三人组：出生数值（A0/A7）与固定序列
+    #[test]
+    fn bandit_trio_numbers_and_sequence() {
+        let c = Combat::new_with(
+            1,
+            0,
+            &[
+                MonsterKind::BanditPointy,
+                MonsterKind::BanditLeader,
+                MonsterKind::BanditBear,
+            ],
+        );
+        assert_eq!(c.monsters[0].creature.max_hp, 30, "尖头 HP 30 定值");
+        assert!(
+            (35..=39).contains(&c.monsters[1].creature.max_hp),
+            "首领 HP 35-39"
+        );
+        assert!(
+            (38..=42).contains(&c.monsters[2].creature.max_hp),
+            "熊 HP 38-42"
+        );
+        // 初始意图：尖头=攻，首领=嘲讽(2)，熊=熊抱(2)
+        assert_eq!(c.monsters[0].next_move, 1);
+        assert_eq!(c.monsters[1].next_move, 2);
+        assert_eq!(c.monsters[2].next_move, 2);
+        // A2 数值：尖头 6，首领斩 17/12，熊 20/10
+        let c2 = Combat::new_with(
+            1,
+            2,
+            &[
+                MonsterKind::BanditPointy,
+                MonsterKind::BanditLeader,
+                MonsterKind::BanditBear,
+            ],
+        );
+        assert_eq!(c2.monsters[0].chomp_dmg, 6);
+        assert_eq!(c2.monsters[1].chomp_dmg, 17);
+        assert_eq!(c2.monsters[1].thrash_dmg, 12);
+        assert_eq!(c2.monsters[2].chomp_dmg, 20);
+        assert_eq!(c2.monsters[2].dark_strike_dmg, 10);
+    }
+
+    /// 红面罩实战推演：首领嘲讽空转 → 痛苦斩(10+虚弱2) → 交叉斩(15) 循环；
+    /// 熊：熊抱(-2敏捷) → 扑击(9+自挡9) → 撕咬(18) 循环；尖头每回合 5×2
+    #[test]
+    fn bandit_trio_take_turn_flow() {
+        let mut c = Combat::new_with(
+            7,
+            0,
+            &[
+                MonsterKind::BanditPointy,
+                MonsterKind::BanditLeader,
+                MonsterKind::BanditBear,
+            ],
+        );
+        c.player.creature.hp = 200;
+        c.player.creature.max_hp = 200;
+        let hp0 = c.player.creature.hp;
+        // 回合 1：尖头 5×2 + 首领空转 + 熊熊抱
+        c.step(&Action::EndTurn);
+        assert_eq!(c.player.creature.hp, hp0 - 10, "尖头 5×2");
+        let dex: i32 = c
+            .player
+            .creature
+            .powers
+            .iter()
+            .find(|p| p.kind == PowerKind::Dexterity)
+            .map(|p| p.amount)
+            .unwrap_or(0);
+        assert_eq!(dex, -2, "熊抱 -2 敏捷");
+        assert_eq!(c.monsters[2].creature.block, 0);
+        // 回合 2：首领痛苦斩 10 + 虚弱 2；熊扑击 9 + 自挡 9
+        let hp1 = c.player.creature.hp;
+        c.step(&Action::EndTurn);
+        assert_eq!(
+            c.player.creature.hp,
+            hp1 - 10 - 9 - 5 - 5,
+            "首领 10 + 熊 9 + 尖头 10"
+        );
+        let weak: i32 = c
+            .player
+            .creature
+            .powers
+            .iter()
+            .find(|p| p.kind == PowerKind::Weak)
+            .map(|p| p.amount)
+            .unwrap_or(0);
+        assert_eq!(weak, 2, "痛苦斩虚弱 2");
+        assert_eq!(c.monsters[2].creature.block, 9, "熊扑击自挡");
+        // 回合 3：首领交叉斩 15；熊撕咬 18
+        let hp2 = c.player.creature.hp;
+        c.step(&Action::EndTurn);
+        assert_eq!(
+            c.player.creature.hp,
+            hp2 - 15 - 18 - 10,
+            "交叉斩+撕咬+尖头（虚弱已过回合）"
+        );
+    }
+
+    /// A17：首领交叉斩可连打（1→1→3）；熊抱 -4 敏捷
+    #[test]
+    fn bandit_trio_a17() {
+        let mut c = Combat::new_with(7, 17, &[MonsterKind::BanditLeader, MonsterKind::BanditBear]);
+        c.player.creature.hp = 500;
+        c.player.creature.max_hp = 500;
+        c.step(&Action::EndTurn); // 首领嘲讽 + 熊抱
+        let dex: i32 = c
+            .player
+            .creature
+            .powers
+            .iter()
+            .find(|p| p.kind == PowerKind::Dexterity)
+            .map(|p| p.amount)
+            .unwrap_or(0);
+        assert_eq!(dex, -4, "A17 熊抱 -4");
+        c.step(&Action::EndTurn); // 痛苦斩 + 扑击
+        assert_eq!(c.monsters[0].next_move, 1);
+        c.step(&Action::EndTurn); // 交叉斩 1 → A17 继续 1
+        assert_eq!(c.monsters[0].move_history.last(), Some(&1));
+        assert_eq!(c.monsters[0].next_move, 1, "A17 连打交叉斩");
+        c.step(&Action::EndTurn); // 又一次 1 → next 3
+        assert_eq!(c.monsters[0].next_move, 3, "连打两次后回痛苦斩");
+        assert_eq!(c.monsters[0].ritual_amt, 3, "A17 虚弱量 3");
+    }
+
+    /// 荆棘形体：战前荆棘 3（A2 4 / A17 +3）；攻击命中反弹 THORNS（不可格挡）
+    #[test]
+    fn spiker_thorns_reflect() {
+        let c = Combat::new_with(3, 0, &[MonsterKind::Spiker]);
+        let thorns: i32 = c.monsters[0]
+            .creature
+            .powers
+            .iter()
+            .find(|p| p.kind == PowerKind::Thorns)
+            .map(|p| p.amount)
+            .unwrap_or(0);
+        assert_eq!(thorns, 3);
+        let c2 = Combat::new_with(3, 2, &[MonsterKind::Spiker]);
+        let t2: i32 = c2.monsters[0]
+            .creature
+            .powers
+            .iter()
+            .find(|p| p.kind == PowerKind::Thorns)
+            .map(|p| p.amount)
+            .unwrap_or(0);
+        assert_eq!(t2, 4, "A2 荆棘 4");
+        let c3 = Combat::new_with(3, 17, &[MonsterKind::Spiker]);
+        let t3: i32 = c3.monsters[0]
+            .creature
+            .powers
+            .iter()
+            .find(|p| p.kind == PowerKind::Thorns)
+            .map(|p| p.amount)
+            .unwrap_or(0);
+        assert_eq!(t3, 7, "A17 荆棘 4+3");
+        // 反弹：打出打击（6 伤）→ 玩家受 3 点 THORNS 伤（可被格挡：先扣后穿）
+        let mut c = Combat::new_with(3, 0, &[MonsterKind::Spiker]);
+        c.player.creature.block = 2;
+        let hp0 = c.player.creature.hp;
+        let idx = c
+            .player
+            .hand
+            .iter()
+            .position(|cd| cd.def.id == "Strike_R")
+            .unwrap();
+        c.step(&Action::PlayCard {
+            index: idx,
+            target: Some(0),
+        });
+        assert_eq!(c.player.creature.block, 0, "荆棘先扣格挡");
+        assert_eq!(c.player.creature.hp, hp0 - 1, "穿透 1 点");
+        assert_eq!(
+            c.monsters[0].creature.hp + 6,
+            c.monsters[0].creature.max_hp,
+            "打击命中 6"
+        );
+        // 无格挡：全额 3 点
+        let mut c = Combat::new_with(3, 0, &[MonsterKind::Spiker]);
+        let hp0 = c.player.creature.hp;
+        let idx = c
+            .player
+            .hand
+            .iter()
+            .position(|cd| cd.def.id == "Strike_R")
+            .unwrap();
+        c.step(&Action::PlayCard {
+            index: idx,
+            target: Some(0),
+        });
+        assert_eq!(c.player.creature.hp, hp0 - 3, "无格挡全额 3 点");
+    }
+
+    /// 爆炸形体：两回合普攻 9/11，第三回合自爆 30（THORNS 型可格挡）并自灭
+    #[test]
+    fn exploder_blast() {
+        let mut c = Combat::new_with(3, 0, &[MonsterKind::Exploder]);
+        c.player.creature.hp = 100;
+        c.player.creature.max_hp = 100;
+        let hp0 = c.player.creature.hp;
+        c.step(&Action::EndTurn); // 回合 1：普攻 9
+        assert_eq!(c.player.creature.hp, hp0 - 9);
+        assert_eq!(c.monsters[0].next_move, 1);
+        c.step(&Action::EndTurn); // 回合 2：普攻 9
+        assert_eq!(c.monsters[0].next_move, 2, "第三回合待机");
+        let hp1 = c.player.creature.hp;
+        c.step(&Action::EndTurn); // 回合 3：自爆 30（THORNS，无格挡时全额）
+        assert_eq!(c.player.creature.hp, hp1 - 30, "自爆 30");
+        assert_eq!(c.monsters[0].creature.hp, 0, "自灭");
+        assert!(c.over && c.won, "战斗胜利");
+    }
+
+    /// 形体组合重掷：进入 3/4 Shapes 房间时从 [Repulsor×2,Exploder×2,Spiker×2] 抽
+    #[test]
+    fn shapes_composition_reroll() {
+        use crate::run::{RoomKind, RunState};
+        for seed in [5u64, 11, 23, 77, 2024] {
+            let mut run = RunState::new(seed, 0);
+            // 直接把遭遇列表改成 3 Shapes 签名
+            run.encounter_list = vec![&[
+                MonsterKind::Repulsor,
+                MonsterKind::Repulsor,
+                MonsterKind::Repulsor,
+            ]];
+            run.encounter_idx = 0;
+            run.map.rows[1][3].room = Some(RoomKind::Monster);
+            run.pos = (1, 3);
+            run.enter_room();
+            let c = run.combat.as_ref().expect("战斗已开");
+            assert_eq!(c.monsters.len(), 3);
+            for m in &c.monsters {
+                assert!(
+                    matches!(
+                        m.kind,
+                        MonsterKind::Repulsor | MonsterKind::Exploder | MonsterKind::Spiker
+                    ),
+                    "形体池成员"
+                );
+            }
+        }
+    }
+
+    /// 红面罩事件战斗接入：Masked Bandits 开打三怪
+    #[test]
+    fn masked_bandits_event_combat() {
+        use crate::events::{EventKind, PendingPick};
+        use crate::run::RunState;
+        let mut run = RunState::new(9, 0);
+        run.floor = 10;
+        run.event = Some(crate::events::EventState {
+            kind: EventKind::MaskedBandits,
+            screen: 0,
+            done: false,
+            heal_amt: 0,
+            damage: 0,
+            maxhp_loss: 0,
+            gold: 0,
+            gold_loss: 0,
+            chance: 0,
+            counter: 0,
+            enemy: 0,
+            bag: Vec::new(),
+            pending: Vec::<PendingPick>::new(),
+            library: Vec::new(),
+            costs: [0; 3],
+        });
+        run.choose_event_option(1); // 战斗
+        assert!(run.combat.is_some());
+        let c = run.combat.as_ref().unwrap();
+        assert_eq!(c.monsters.len(), 3, "尖头+首领+熊");
+        assert!(matches!(c.monsters[0].kind, MonsterKind::BanditPointy));
+        assert!(matches!(c.monsters[1].kind, MonsterKind::BanditLeader));
+        assert!(matches!(c.monsters[2].kind, MonsterKind::BanditBear));
+        assert!(run.rewards.iter().any(|r| matches!(
+            r,
+            crate::run::RewardItem::Relic(crate::relics::RelicKind::RedMask)
+        )));
     }
 }

@@ -1118,7 +1118,10 @@ pub fn act2_bosses() -> Vec<EncInfo> {
     ]
 }
 
-/// Act 3 遭遇池（TheBeyond）——组合全量可组
+/// Act 3 遭遇池（TheBeyond）——组合全量可组。
+/// ⚠️ 形体组合（3/4 Shapes、Sphere and 2 Shapes）源码在 spawnShapes 逐槽
+/// 从 [Repulsor×2, Exploder×2, Spiker×2] 无放回抽（miscRng），静态表记
+/// Repulsor 全体；实际组合在 enter_room 时重掷（见 reroll_shapes）
 pub fn act3_pools() -> (Vec<EncInfo>, Vec<EncInfo>, Vec<EncInfo>) {
     use MonsterKind::*;
     let weak = vec![
@@ -1425,21 +1428,44 @@ impl RunState {
         self.rest_available = false;
         match room {
             Some(RoomKind::Monster) | Some(RoomKind::Elite) => {
-                let kinds = if room == Some(RoomKind::Elite) {
+                let kinds: Vec<MonsterKind> = if room == Some(RoomKind::Elite) {
                     let k = self.elite_list[self.elite_idx];
                     self.elite_idx += 1;
-                    k
+                    k.to_vec()
                 } else {
                     let k =
                         self.encounter_list[self.encounter_idx.min(self.encounter_list.len() - 1)];
                     self.encounter_idx += 1;
-                    k
+                    // spawnShapes：全 Repulsor 表记 = 形体组合签名 →
+                    // 逐槽从 [Repulsor×2, Exploder×2, Spiker×2] 无放回重掷（miscRng）
+                    let n = k.len();
+                    let is_shapes = n >= 3 && k.iter().all(|m| *m == MonsterKind::Repulsor);
+                    if is_shapes {
+                        let mut pool = vec![
+                            MonsterKind::Repulsor,
+                            MonsterKind::Repulsor,
+                            MonsterKind::Exploder,
+                            MonsterKind::Exploder,
+                            MonsterKind::Spiker,
+                            MonsterKind::Spiker,
+                        ];
+                        let mut picked = Vec::with_capacity(n);
+                        for _ in 0..n {
+                            let j = (self.rng.misc.random_range(pool.len() as i32 - 1).max(0)
+                                as usize)
+                                .min(pool.len() - 1);
+                            picked.push(pool.remove(j));
+                        }
+                        picked
+                    } else {
+                        k.to_vec()
+                    }
                 };
                 let relics: Vec<_> = self.relics.clone();
                 self.combat = Some(Combat::new_run_battle(
                     self.seed ^ (self.floor as u64 + 1) << 32,
                     self.ascension,
-                    kinds,
+                    &kinds,
                     relics,
                     self.deck.clone(),
                     self.potions.clone(),
