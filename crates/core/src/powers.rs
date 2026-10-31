@@ -90,6 +90,18 @@ pub enum PowerKind {
     Angry,
     /// 静滞（Stasis：铜球吸走的一张玩家卡的标记；死亡时归还手牌）
     Stasis,
+    // —— Act 3 怪物系 ——
+    /// 消逝（Fading：自身回合开始层数-1，归零时自灭；Transient）
+    Fading,
+    /// 变形（Shifting：受方每次受击 力量 -伤害值，同时累积回复力量；
+    /// Transient 越打越弱，回合末力量回归）
+    Shifting,
+    /// 力量回复（GainStrength：轮末 力量 +amount 后移除）
+    GainStrength,
+    /// 紧缠（Constricted：玩家回合末受到 amount 点 THORNS 直伤；SpireGrowth）
+    Constricted,
+    /// 反应（Reactive：受方每次非致死受击 → 重掷招式（消耗 aiRng）；WrithingMass）
+    Reactive,
 }
 
 impl PowerKind {
@@ -103,6 +115,7 @@ impl PowerKind {
                 | PowerKind::Poison
                 | PowerKind::Hex
                 | PowerKind::Confusion
+                | PowerKind::Constricted
         )
     }
 }
@@ -185,6 +198,11 @@ impl Power {
             PowerKind::Confusion => "Confusion",
             PowerKind::Angry => "Angry",
             PowerKind::Stasis => "Stasis",
+            PowerKind::Fading => "Fading",
+            PowerKind::Shifting => "Shifting",
+            PowerKind::GainStrength => "GainStrength",
+            PowerKind::Constricted => "Constricted",
+            PowerKind::Reactive => "Reactive",
         }
     }
 

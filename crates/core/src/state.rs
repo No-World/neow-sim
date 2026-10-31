@@ -238,6 +238,14 @@ pub enum MonsterKind {
     TorchHead,
     TheCollector,
     Champ,
+    // —— Act 3（TheBeyond）普通遭遇 ——
+    Darkling,
+    Repulsor,
+    OrbWalker,
+    SpireGrowth,
+    Transient,
+    Maw,
+    WrithingMass,
 }
 
 /// 通用怪物状态（M2 覆盖：大颚虫、邪教徒；M3 走数据驱动定义表）
@@ -264,6 +272,8 @@ pub struct MonsterState {
     pub escaped: bool,
     /// 铜球静滞：吸走的那张玩家卡（死亡时归还手牌）
     pub stasis_card: Option<CardInst>,
+    /// 小暗灵半死状态（全员半死=真死；否则下回合复活半血）
+    pub half_dead: bool,
 }
 
 impl MonsterState {
@@ -688,6 +698,73 @@ impl MonsterState {
                 };
                 (hp, (slash, 10, slap, str_amt, forge, block_amt, 0))
             }
+            // ════════ Act 3（TheBeyond）普通遭遇 ══════════
+            // 小暗灵：chomp=撕咬(8/9)×2 thrash=噬咬(random 7-11/9-13) thrash_block=硬化12
+            // bellow_str=A17 硬化附力量2；halfDead 复活机制见 combat
+            MonsterKind::Darkling => {
+                let (lo, hi) = if ascension >= 7 { (50, 59) } else { (48, 56) };
+                let nip = if ascension >= 2 {
+                    hp_rng.random_start_end(9, 13)
+                } else {
+                    hp_rng.random_start_end(7, 11)
+                };
+                (
+                    hp_rng.random_start_end(lo, hi),
+                    (if ascension >= 2 { 9 } else { 8 }, nip, 12, 2, 0, 0, 0),
+                )
+            }
+            // 排斥体：chomp=攻击(11/13) thrash=晕眩卡数2
+            MonsterKind::Repulsor => {
+                let (lo, hi) = if ascension >= 7 { (31, 38) } else { (29, 35) };
+                (
+                    hp_rng.random_start_end(lo, hi),
+                    (if ascension >= 2 { 13 } else { 11 }, 2, 0, 0, 0, 0, 0),
+                )
+            }
+            // 天球行者：chomp=激光(10/11) thrash=利爪(15/16)；战前力量 3(5 A17)
+            MonsterKind::OrbWalker => {
+                let (lo, hi) = if ascension >= 7 { (92, 102) } else { (90, 96) };
+                (
+                    hp_rng.random_start_end(lo, hi),
+                    (
+                        if ascension >= 2 { 11 } else { 10 },
+                        if ascension >= 2 { 16 } else { 15 },
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                    ),
+                )
+            }
+            // 尖塔生长体：chomp=快击(16/18) thrash=重击(22/25) thrash_block=紧缠(10)
+            MonsterKind::SpireGrowth => {
+                let hp = if ascension >= 7 { 190 } else { 170 };
+                let (tackle, smash) = if ascension >= 2 { (18, 25) } else { (16, 22) };
+                (hp, (tackle, smash, 10, 0, 0, 0, 0))
+            }
+            // 转瞬即逝：chomp=起始死兆(30/40) thrash=每回合增量10；counter=count；
+            // 战前 Fading 5(6 A17) + Shifting
+            MonsterKind::Transient => (
+                999,
+                (if ascension >= 2 { 40 } else { 30 }, 10, 0, 0, 0, 0, 0),
+            ),
+            // 巨口：chomp=猛击(25/30) thrash=啃食5 thrash_block=咆哮时长3；
+            // bellow_str=流涎力量3；counter=turnCount 起 1
+            MonsterKind::Maw => (
+                300,
+                (if ascension >= 2 { 30 } else { 25 }, 5, 3, 3, 0, 0, 0),
+            ),
+            // 蠕动聚块：chomp=巨击(32/38) thrash=连击(7/9)×3 thrash_block=攻防(15/16)
+            // bellow_str=削弱攻击(10/12) bellow_block=弱易2；战前 Reactive+Malleable
+            MonsterKind::WrithingMass => {
+                let hp = if ascension >= 7 { 175 } else { 160 };
+                if ascension >= 2 {
+                    (hp, (38, 9, 16, 12, 2, 0, 0))
+                } else {
+                    (hp, (32, 7, 15, 10, 2, 0, 0))
+                }
+            }
         };
         Self {
             kind,
@@ -706,6 +783,7 @@ impl MonsterState {
             burn_upgraded: 0,
             escaped: false,
             stasis_card: None,
+            half_dead: false,
         }
     }
 
@@ -912,6 +990,39 @@ impl MonsterState {
                 6 => Intent::Debuff,   // 奚落
                 _ => Intent::Attack,   // 重斩
             },
+            MonsterKind::Darkling => match self.next_move {
+                2 => Intent::Defend,
+                3 => Intent::Attack,  // NIP
+                4 => Intent::Unknown, // 半死待复活
+                5 => Intent::Buff,    // REINCARNATE
+                _ => Intent::Attack,  // CHOMP ×2
+            },
+            MonsterKind::Repulsor => match self.next_move {
+                1 => Intent::Debuff, // DAZE
+                _ => Intent::Attack,
+            },
+            MonsterKind::OrbWalker => match self.next_move {
+                1 => Intent::AttackDebuff, // LASER（+灼伤）
+                _ => Intent::Attack,       // CLAW
+            },
+            MonsterKind::SpireGrowth => match self.next_move {
+                2 => Intent::Debuff, // CONSTRICT（STRONG_DEBUFF 归 Debuff）
+                _ => Intent::Attack,
+            },
+            MonsterKind::Transient => Intent::Attack,
+            MonsterKind::Maw => match self.next_move {
+                2 => Intent::Debuff, // ROAR
+                4 => Intent::Buff,   // DROOL
+                5 => Intent::Attack, // NOM ×N
+                _ => Intent::Attack, // SLAM
+            },
+            MonsterKind::WrithingMass => match self.next_move {
+                0 => Intent::Attack,       // BIG_HIT
+                1 => Intent::Attack,       // MULTI ×3
+                2 => Intent::AttackDefend, // ATTACK_BLOCK
+                3 => Intent::AttackDebuff, // ATTACK_DEBUFF
+                _ => Intent::Debuff,       // MEGA（寄生前置）
+            },
         }
     }
 
@@ -1068,6 +1179,39 @@ impl MonsterState {
                 1 => Some(self.chomp_dmg),
                 3 => Some(self.thrash_dmg),
                 4 => Some(self.thrash_block),
+                _ => None,
+            },
+            MonsterKind::Darkling => match self.next_move {
+                1 => Some(self.chomp_dmg),
+                3 => Some(self.thrash_dmg),
+                _ => None,
+            },
+            MonsterKind::Repulsor => match self.next_move {
+                2 => Some(self.chomp_dmg),
+                _ => None,
+            },
+            MonsterKind::OrbWalker => match self.next_move {
+                1 => Some(self.chomp_dmg),
+                2 => Some(self.thrash_dmg),
+                _ => None,
+            },
+            MonsterKind::SpireGrowth => match self.next_move {
+                1 => Some(self.chomp_dmg),
+                3 => Some(self.thrash_dmg),
+                _ => None,
+            },
+            // 转瞬即逝：起始死兆 + 已过回合数×10
+            MonsterKind::Transient => Some(self.chomp_dmg + self.burn_upgraded * self.thrash_dmg),
+            MonsterKind::Maw => match self.next_move {
+                3 => Some(self.chomp_dmg),
+                5 => Some(self.thrash_dmg),
+                _ => None,
+            },
+            MonsterKind::WrithingMass => match self.next_move {
+                0 => Some(self.chomp_dmg),
+                1 => Some(self.thrash_dmg),
+                2 => Some(self.thrash_block),
+                3 => Some(self.bellow_str),
                 _ => None,
             },
         }
