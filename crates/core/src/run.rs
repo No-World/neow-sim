@@ -507,6 +507,143 @@ mod tests {
         }
     }
 
+    /// 奖励管线：金币区间/药水怜悯/暴雪偏移/卡牌去重/稀有度
+    #[test]
+    fn rewards_pipeline() {
+        let mut run = RunState::new(11, 20);
+        run.map.rows[1][3].edges = vec![3]; // 确保有边（视为可达节点）
+        run.map.rows[1][3].room = Some(RoomKind::Monster);
+        run.pos = (1, 3);
+        // 模拟战斗胜利（注入局外遗物，settle 会回写）
+        run.combat = Some(Combat::new_run_battle(
+            1,
+            20,
+            &[MonsterKind::JawWorm],
+            run.relics.clone(),
+            run.deck.clone(),
+            run.potions.clone(),
+            80,
+            80,
+            99,
+        ));
+        if let Some(c) = run.combat.as_mut() {
+            for m in c.monsters.iter_mut() {
+                m.creature.hp = 0;
+            }
+            c.over = true;
+            c.won = true;
+        }
+        run.settle_combat(0);
+        // 奖励：金币 + 药水(概率) + 3 张卡
+        assert!(run.rewards.len() >= 4, "金币+3卡至少 4 项");
+        let golds: Vec<_> = run
+            .rewards
+            .iter()
+            .filter(|r| matches!(r, RewardItem::Gold(g) if (10..=20).contains(g)))
+            .collect();
+        assert_eq!(golds.len(), 1, "金币 10-20");
+        let cards: Vec<_> = run
+            .rewards
+            .iter()
+            .filter(|r| matches!(r, RewardItem::Card(_)))
+            .collect();
+        assert_eq!(cards.len(), 3, "3 张卡");
+        // 卡牌去重
+        if let [RewardItem::Card(a), RewardItem::Card(b), RewardItem::Card(c)] =
+            &run.rewards[run.rewards.len() - 3..]
+        {
+            assert!(a.def.id != b.def.id && b.def.id != c.def.id && a.def.id != c.def.id);
+        }
+        // 领取：金币 + 一张卡
+        let card_idx = run
+            .rewards
+            .iter()
+            .position(|r| matches!(r, RewardItem::Card(_)))
+            .unwrap();
+        let deck_before = run.deck.len();
+        run.take_reward(card_idx);
+        assert_eq!(run.deck.len(), deck_before + 1, "卡进主牌组");
+        run.take_all_rewards_skip_cards();
+        assert!(run.player.gold >= 99 + 10, "金币累计");
+    }
+
+    /// 精英奖励：遗物 + 金币 25-35；怜悯递增
+    #[test]
+    fn elite_rewards_relic() {
+        let mut run = RunState::new(13, 20);
+        run.pos = (5, 2);
+        run.map.rows[5][2].room = Some(RoomKind::Elite);
+        run.combat = Some(Combat::new_run_battle(
+            2,
+            20,
+            &[MonsterKind::GremlinNob],
+            run.relics.clone(),
+            run.deck.clone(),
+            run.potions.clone(),
+            999,
+            999,
+            99,
+        ));
+        if let Some(c) = run.combat.as_mut() {
+            for m in c.monsters.iter_mut() {
+                m.creature.hp = 0;
+            }
+            c.over = true;
+            c.won = true;
+        }
+        run.settle_combat(0);
+        let has_relic = run
+            .rewards
+            .iter()
+            .any(|r| matches!(r, RewardItem::Relic(_)));
+        assert!(has_relic, "精英掉遗物");
+        let gold_ok = run
+            .rewards
+            .iter()
+            .any(|r| matches!(r, RewardItem::Gold(g) if (25..=35).contains(g)));
+        assert!(gold_ok, "精英金币 25-35");
+        run.take_all_rewards_skip_cards();
+        assert!(run.relics.len() >= 2, "遗物入栏（含起始燃烧之血）");
+    }
+
+    /// 整局带牌组/药水/遗物流转：战内使用药水→局外同步；主牌组进战斗
+    #[test]
+    fn run_carries_deck_potions_relics() {
+        let mut run = RunState::new(17, 20);
+        // 拿一张打击进主牌组
+        run.deck.push(crate::cards::CardInst::new("Strike_R"));
+        let deck_n = run.deck.len();
+        run.relics.push(crate::relics::RelicInst::new(
+            crate::relics::RelicKind::Vajra,
+        ));
+        run.potions[0] = Some(crate::potions::PotionInst::new(
+            crate::potions::PotionKind::Fire,
+        ));
+        run.pos = (1, 2);
+        run.enter_room();
+        let c = run.combat.as_ref().unwrap();
+        // 战斗注入：抽牌堆 = 主牌组（洗后）+遗物生效
+        assert_eq!(
+            c.player.draw.len() + c.player.hand.len(),
+            deck_n,
+            "主牌组进战斗"
+        );
+        assert!(c
+            .player_relics
+            .iter()
+            .any(|r| r.kind == crate::relics::RelicKind::Vajra));
+        // 战内喝药水
+        let mut c = run.combat.take().unwrap();
+        c.step(&crate::combat::Action::UsePotion {
+            index: 0,
+            target: Some(0),
+        });
+        assert!(c.player.potions[0].is_none(), "战内喝掉");
+        run.combat = Some(c);
+        run.settle_combat(0);
+        assert!(run.potions[0].is_none(), "局外同步");
+    }
+
     /// RunState 冒烟：Act 2 全流程（战斗/休息/宝箱占位/Boss→转幕→胜利）
     #[test]
     fn run_state_smoke_act2() {
@@ -963,6 +1100,15 @@ pub struct RunPlayer {
     pub gold: i32,
 }
 
+/// 奖励类型（RewardItem.RewardType 子集）
+#[derive(Clone, Debug)]
+pub enum RewardItem {
+    Gold(i32),
+    Card(crate::cards::CardInst),
+    Potion(crate::potions::PotionKind),
+    Relic(crate::relics::RelicKind),
+}
+
 /// 整局状态：幕/层/遭遇序列/当前战斗
 pub struct RunState {
     pub seed: u64,
@@ -982,6 +1128,20 @@ pub struct RunState {
     pub floor: u32,
     pub over: bool,
     pub won: bool,
+    /// 主牌组（局外层权威，进战斗复制洗牌）
+    pub deck: Vec<crate::cards::CardInst>,
+    /// 药水栏 3 槽
+    pub potions: Vec<Option<crate::potions::PotionInst>>,
+    /// 已获遗物（实例带跨战计数）
+    pub relics: Vec<crate::relics::RelicInst>,
+    /// 暴雪稀有度偏移（起 5，普通-1 至 -40，稀有重置 5）
+    card_blizz: i32,
+    /// 药水怜悯（掉 40% 未中 +10，中 -10）
+    potion_pity: i32,
+    /// 当前房间奖励（待领取）
+    pub rewards: Vec<RewardItem>,
+    /// 房间结束后待结算：拿走的卡进主牌组等
+    pub pending_relic_tier_roll: bool,
 }
 
 impl RunState {
@@ -1011,6 +1171,15 @@ impl RunState {
             floor: 0,
             over: false,
             won: false,
+            deck: crate::cards::ironclad_starter(ascension),
+            potions: vec![None, None, None],
+            relics: vec![crate::relics::RelicInst::new(
+                crate::relics::RelicKind::BurningBlood,
+            )],
+            card_blizz: 5,
+            potion_pity: 0,
+            rewards: Vec::new(),
+            pending_relic_tier_roll: false,
         };
         s.populate_act();
         s
@@ -1091,12 +1260,12 @@ impl RunState {
         self.floor += 1;
     }
 
-    /// 进入当前节点的房间（战斗类生成 Combat；非战斗类本批为占位）。
-    /// 行 14 房间显示为休息房，但真游戏在 Boss 前强制打 Boss——本批以
-    /// choose_node 消耗 Boss 哨兵边后由测试显式调 boss 战（简化，登记偏差）
+    /// 进入当前节点的房间。战斗类经 `Combat::new_run_battle` 注入主牌组/药水栏/
+    /// 遗物栏/局外 HP 与金币；休息房回 30%；事件/商店/宝箱为占位（下一批）
     pub fn enter_room(&mut self) {
         let (y, x) = self.pos;
         let room = self.map.rows[y][x].room;
+        self.rewards.clear();
         match room {
             Some(RoomKind::Monster) | Some(RoomKind::Elite) => {
                 let kinds = if room == Some(RoomKind::Elite) {
@@ -1109,36 +1278,226 @@ impl RunState {
                     self.encounter_idx += 1;
                     k
                 };
-                let mut c = Combat::new_with(self.seed, self.ascension, kinds);
-                // 局外状态带入（HP/金币）
-                c.player.creature.hp = self.player.hp;
-                c.player.creature.max_hp = self.player.max_hp;
-                c.gold = self.player.gold;
-                self.combat = Some(c);
+                let relics: Vec<_> = self.relics.clone();
+                self.combat = Some(Combat::new_run_battle(
+                    self.seed ^ (self.floor as u64 + 1) << 32,
+                    self.ascension,
+                    kinds,
+                    relics,
+                    self.deck.clone(),
+                    self.potions.clone(),
+                    self.player.hp,
+                    self.player.max_hp,
+                    self.player.gold,
+                ));
+                // 战斗内喝掉的药水同步回局外
             }
             Some(RoomKind::Rest) => {
-                // 睡觉：回 30% 最大生命（RestRoom.onUseCard 简化——锻造后续批）
                 let heal = (self.player.max_hp as f32 * 0.3) as i32;
                 self.player.hp = (self.player.hp + heal).min(self.player.max_hp);
             }
             Some(RoomKind::Boss) => {
-                let mut c = Combat::new_with(self.seed, self.ascension, self.boss);
-                c.player.creature.hp = self.player.hp;
-                c.player.creature.max_hp = self.player.max_hp;
-                c.gold = self.player.gold;
-                self.combat = Some(c);
+                let relics: Vec<_> = self.relics.clone();
+                self.combat = Some(Combat::new_run_battle(
+                    self.seed ^ 0xDEAD_BEEF,
+                    self.ascension,
+                    self.boss,
+                    relics,
+                    self.deck.clone(),
+                    self.potions.clone(),
+                    self.player.hp,
+                    self.player.max_hp,
+                    self.player.gold,
+                ));
             }
-            _ => {
-                // 事件/商店/宝箱：占位（下批实现）
-            }
+            _ => {}
         }
     }
 
-    /// 战斗结束回收（结算 HP/金币；胜利推进——幕末转幕）
+    /// 战斗胜利后生成奖励（AbstractRoom.applyEvents → addGoldToRewards/
+    /// dropReward/addPotionToRewards/addCardToRewards 逐行对照）
+    pub fn generate_rewards(&mut self) {
+        let (y, _) = self.pos;
+        let room = self.map.rows[y][0].room.or(Some(RoomKind::Monster));
+        let _ = room;
+        let room = self.map.rows[y][self.pos.1].room;
+        // 1) 金币：普通 treasureRng.random(10,20)；精英 (25,35)
+        match room {
+            Some(RoomKind::Elite) => {
+                let g = self.rng.treasure.random_start_end(25, 35);
+                self.rewards.push(RewardItem::Gold(g));
+                // 3) 精英掉遗物：relicRng(0,99) <50 普通 >85 稀有 否则罕见
+                let roll = self.rng.relic.random_start_end(0, 99);
+                let _tier = if roll < 50 {
+                    "COMMON"
+                } else if roll > 85 {
+                    "RARE"
+                } else {
+                    "UNCOMMON"
+                };
+                // ⚠️ 偏差：已实现遗物池无 tier 元数据，从 50 只里随机取未持有者
+                let owned: Vec<_> = self.relics.iter().map(|r| r.kind).collect();
+                let pool: Vec<_> = Self::IMPLEMENTED_RELICS
+                    .iter()
+                    .copied()
+                    .filter(|k| !owned.contains(k))
+                    .collect();
+                if let Some(&k) =
+                    pool.get((self.rng.relic.random_range(pool.len() as i32 - 1).max(0)) as usize)
+                {
+                    self.rewards.push(RewardItem::Relic(k));
+                }
+            }
+            Some(RoomKind::Monster) => {
+                let g = self.rng.treasure.random_start_end(10, 20);
+                self.rewards.push(RewardItem::Gold(g));
+            }
+            _ => {}
+        }
+        // 2) 药水：40% + pity（掉-10 / 未掉+10）；奖励≥4 项则 0
+        let chance = if self.rewards.len() >= 3 {
+            0
+        } else {
+            (40 + self.potion_pity).clamp(0, 100)
+        };
+        if self.rng.potion.random_start_end(0, 99) < chance {
+            let pool = crate::potions::pool_for_class("Ironclad");
+            let k = crate::potions::return_random_potion(&pool, false, &mut self.rng.potion);
+            self.rewards.push(RewardItem::Potion(k));
+            self.potion_pity -= 10;
+        } else {
+            self.potion_pity += 10;
+        }
+        // 4) 卡牌奖励：3 张（Boss 恒稀有）
+        let boss = room == Some(RoomKind::Boss);
+        let mut cards: Vec<crate::cards::CardInst> = Vec::new();
+        for _ in 0..3 {
+            let rarity = self.roll_rarity(boss);
+            let card = self.pick_card(rarity, &cards);
+            cards.push(card);
+        }
+        self.rewards.extend(cards.into_iter().map(RewardItem::Card));
+    }
+
+    /// rollRarity：cardRng.random(99) + 暴雪偏移；<3 稀有 / <37 罕见 / 普通
+    /// （暴雪：起 5，普通 -1 至 -40，罕见不变，稀有重置 5）
+    fn roll_rarity(&mut self, boss: bool) -> &'static str {
+        if boss {
+            return "RARE";
+        }
+        let roll = self.rng.card.random_range(99) + self.card_blizz;
+        if roll < 3 {
+            self.card_blizz = 5;
+            "RARE"
+        } else if roll < 37 {
+            "UNCOMMON"
+        } else {
+            self.card_blizz = (self.card_blizz - 1).max(-40);
+            "COMMON"
+        }
+    }
+
+    /// getCard：按稀有度从铁甲色池均匀抽取（cardRng.random(size-1)），去重重掷
+    fn pick_card(
+        &mut self,
+        rarity: &'static str,
+        already: &[crate::cards::CardInst],
+    ) -> crate::cards::CardInst {
+        loop {
+            let pool: Vec<&'static crate::effects::CardDef> = crate::generated::CARDS
+                .iter()
+                .filter(|d| d.color == "RED" && d.rarity == rarity && d.status != "no_use")
+                .collect();
+            if pool.is_empty() {
+                // 兜底：任何稀有度（防数据空洞）
+                return crate::cards::CardInst::new("Strike_R");
+            }
+            let roll = self.rng.card.random_range(pool.len() as i32 - 1);
+            let def = pool[(roll.max(0) as usize).min(pool.len() - 1)];
+            if already.iter().any(|c| c.def.id == def.id) {
+                continue; // dupe → 重掷（消耗 cardRng，对照源码 while(containsDupe)）
+            }
+            return crate::cards::CardInst {
+                def,
+                upgraded: false,
+                damage_bonus: 0,
+                block_bonus: 0,
+                cost_delta: 0,
+            };
+        }
+    }
+
+    /// 领取奖励：金币即时；卡入主牌组；药水进空槽（满则弃）；遗物入栏
+    pub fn take_reward(&mut self, idx: usize) {
+        if idx >= self.rewards.len() {
+            return;
+        }
+        let item = self.rewards.remove(idx);
+        match item {
+            RewardItem::Gold(g) => self.player.gold += g,
+            RewardItem::Card(c) => self.deck.push(c),
+            RewardItem::Potion(k) => {
+                if let Some(slot) = self.potions.iter_mut().find(|s| s.is_none()) {
+                    *slot = Some(crate::potions::PotionInst::new(k));
+                } // 满槽：弃（简化：满槽领取前应由调用方先 discard）
+            }
+            RewardItem::Relic(k) => self.relics.push(crate::relics::RelicInst::new(k)),
+        }
+    }
+
+    /// 领取全部奖励（金币+遗物+药水，跳过全部卡）——机器人策略用
+    pub fn take_all_rewards_skip_cards(&mut self) {
+        let mut i = 0;
+        while i < self.rewards.len() {
+            if matches!(self.rewards[i], RewardItem::Card(_)) {
+                i += 1;
+                continue;
+            }
+            self.take_reward(i);
+        }
+        self.rewards.clear();
+    }
+
+    /// 已实现遗物池（奖励发放用；RelicKind 全集的子集——偏差：无 tier 元数据）
+    pub const IMPLEMENTED_RELICS: &[crate::relics::RelicKind] = &[
+        crate::relics::RelicKind::Vajra,
+        crate::relics::RelicKind::BronzeScales,
+        crate::relics::RelicKind::BloodVial,
+        crate::relics::RelicKind::Anchor,
+        crate::relics::RelicKind::BagOfMarbles,
+        crate::relics::RelicKind::OddlySmoothStone,
+        crate::relics::RelicKind::Akabeko,
+        crate::relics::RelicKind::Shuriken,
+        crate::relics::RelicKind::Kunai,
+        crate::relics::RelicKind::OrnamentalFan,
+        crate::relics::RelicKind::Lantern,
+        crate::relics::RelicKind::TungstenRod,
+        crate::relics::RelicKind::Torii,
+        crate::relics::RelicKind::HappyFlower,
+        crate::relics::RelicKind::Sundial,
+        crate::relics::RelicKind::ArtOfWar,
+        crate::relics::RelicKind::MercuryHourglass,
+        crate::relics::RelicKind::StoneCalendar,
+    ];
+
+    /// 战斗结束回收：HP/金币回写、药水栏/主牌组增量同步、遗物跨战计数保留、
+    /// 胜利生成奖励（金币由 generate_rewards 掷，本方法不再加 gold_reward）
     pub fn settle_combat(&mut self, gold_reward: i32) {
-        if let Some(c) = self.combat.take() {
+        if let Some(mut c) = self.combat.take() {
+            // 胜利遗物钩子（BurningBlood 回血 / FaceOfCleric MaxHP+1）
+            let max_hp_gain = if c.won { c.on_victory() } else { 0 };
             self.player.hp = c.player.creature.hp.max(0);
+            self.player.max_hp += max_hp_gain;
+            // 药水栏同步（战斗内使用/丢弃）
+            self.potions = c.player.potions.clone();
+            // 主牌组永久新增（OrbWalker 灼伤 / 寄生前置）
+            self.deck.extend(c.master_deck_additions.clone());
+            // 遗物实例回写（PenNib 跨战计数等）
+            self.relics = c.player_relics.clone();
             self.player.gold = c.gold + if c.won { gold_reward } else { 0 };
+            if c.won {
+                self.generate_rewards();
+            }
             if c.won && self.pos.0 == MAP_HEIGHT - 1 {
                 // 幕 Boss 战胜利 → 下一幕（本批：3 幕打完即整局胜利）
                 if self.act >= 3 {

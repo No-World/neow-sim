@@ -499,6 +499,248 @@ pub struct Combat {
 /// 项目默认状态：全解锁 + 进阶 20（评测基准，见 README/roadmap）
 pub const DEFAULT_ASCENSION: i32 = 20;
 
+/// 怪物战前 power（CurlUp/孢子云/球体壁垒…）+ 首招 roll_move。
+/// 从构造器抽出，供 new_with_relic_insts / new_run_battle 复用
+fn self_monster_prebattle(c: &mut Combat) {
+    for i in 0..c.monsters.len() {
+        match c.monsters[i].kind {
+            MonsterKind::LouseNormal => {
+                let curl = if c.ascension >= 17 {
+                    c.rng.monster_hp.random_start_end(9, 12)
+                } else if c.ascension >= 7 {
+                    c.rng.monster_hp.random_start_end(4, 8)
+                } else {
+                    c.rng.monster_hp.random_start_end(3, 7)
+                };
+                apply_power(
+                    &mut c.monsters[i].creature.powers,
+                    PowerKind::CurlUp,
+                    curl,
+                    false,
+                    false,
+                );
+            }
+            MonsterKind::FungiBeast => {
+                apply_power(
+                    &mut c.monsters[i].creature.powers,
+                    PowerKind::SporeCloud,
+                    2,
+                    false,
+                    false,
+                );
+            }
+            // 球形守护者：壁垒 + 神器 3 + 40 格挡（usePreBattleAction）
+            MonsterKind::SphericGuardian => {
+                apply_power(
+                    &mut c.monsters[i].creature.powers,
+                    PowerKind::Barricade,
+                    1,
+                    false,
+                    false,
+                );
+                apply_power(
+                    &mut c.monsters[i].creature.powers,
+                    PowerKind::Artifact,
+                    3,
+                    false,
+                    false,
+                );
+                c.monsters[i].creature.block = 40;
+            }
+            // 灼壳寄生生：多层护甲 14 + 14 格挡
+            MonsterKind::ShelledParasite => {
+                apply_power(
+                    &mut c.monsters[i].creature.powers,
+                    PowerKind::PlatedArmor,
+                    14,
+                    false,
+                    false,
+                );
+                c.monsters[i].creature.block = 14;
+            }
+            // 伯德鸟：飞行 3/4 层
+            MonsterKind::Byrd => {
+                let flight = c.monsters[i].bellow_str;
+                apply_power(
+                    &mut c.monsters[i].creature.powers,
+                    PowerKind::Flight,
+                    flight,
+                    false,
+                    false,
+                );
+            }
+            // 咬人蛇草：可延展 3（起效值 3，受击递增）
+            MonsterKind::SnakePlant => {
+                apply_power(
+                    &mut c.monsters[i].creature.powers,
+                    PowerKind::Malleable,
+                    3,
+                    false,
+                    false,
+                );
+            }
+            // 战鬼：愤怒 1（A17+ 2）
+            MonsterKind::GremlinWarrior => {
+                apply_power(
+                    &mut c.monsters[i].creature.powers,
+                    PowerKind::Angry,
+                    if c.ascension >= 17 { 2 } else { 1 },
+                    false,
+                    false,
+                );
+            }
+            // 巫鬼：currentCharge 起 1
+            MonsterKind::GremlinWizard => {
+                c.monsters[i].burn_upgraded = 1;
+            }
+            // 连击之书：stabCount 起 1
+            MonsterKind::BookOfStabbing => {
+                c.monsters[i].burn_upgraded = 1;
+            }
+            // 天球行者：力量 3（A17+ 5）
+            MonsterKind::OrbWalker => {
+                apply_power(
+                    &mut c.monsters[i].creature.powers,
+                    PowerKind::Strength,
+                    if c.ascension >= 17 { 5 } else { 3 },
+                    false,
+                    false,
+                );
+            }
+            // 转瞬即逝：Fading 5（A17+ 6）+ Shifting
+            MonsterKind::Transient => {
+                apply_power(
+                    &mut c.monsters[i].creature.powers,
+                    PowerKind::Fading,
+                    if c.ascension >= 17 { 6 } else { 5 },
+                    false,
+                    false,
+                );
+                apply_power(
+                    &mut c.monsters[i].creature.powers,
+                    PowerKind::Shifting,
+                    1,
+                    false,
+                    false,
+                );
+            }
+            // 巨首：自身 Slow 0（玩家出牌叠层）
+            MonsterKind::GiantHead => {
+                apply_power(
+                    &mut c.monsters[i].creature.powers,
+                    PowerKind::Slow,
+                    0,
+                    false,
+                    false,
+                );
+            }
+            // 觉醒者：再生 10(15 A19) + 好奇 1(2) + A4 力量 2
+            MonsterKind::AwakenedOne => {
+                let (regen, cur) = if c.ascension >= 19 { (15, 2) } else { (10, 1) };
+                apply_power(
+                    &mut c.monsters[i].creature.powers,
+                    PowerKind::RegenerateMonster,
+                    regen,
+                    false,
+                    false,
+                );
+                apply_power(
+                    &mut c.monsters[i].creature.powers,
+                    PowerKind::Curiosity,
+                    cur,
+                    false,
+                    false,
+                );
+                if c.ascension >= 4 {
+                    apply_power(
+                        &mut c.monsters[i].creature.powers,
+                        PowerKind::Strength,
+                        2,
+                        false,
+                        false,
+                    );
+                }
+            }
+            // 多努/德卡：神器 2（A19+ 3）
+            MonsterKind::Donu | MonsterKind::Deca => {
+                apply_power(
+                    &mut c.monsters[i].creature.powers,
+                    PowerKind::Artifact,
+                    if c.ascension >= 19 { 3 } else { 2 },
+                    false,
+                    false,
+                );
+            }
+            // 尖塔双子：A18+ 神器 2（否则 1）
+            MonsterKind::SpireShield | MonsterKind::SpireSpear => {
+                apply_power(
+                    &mut c.monsters[i].creature.powers,
+                    PowerKind::Artifact,
+                    if c.ascension >= 18 { 2 } else { 1 },
+                    false,
+                    false,
+                );
+            }
+            // 腐朽之心：无敌 300（A19+ 200）+ 亡律 1（A19+ 2）
+            MonsterKind::CorruptHeart => {
+                apply_power(
+                    &mut c.monsters[i].creature.powers,
+                    PowerKind::Invincible,
+                    if c.ascension >= 19 { 200 } else { 300 },
+                    false,
+                    false,
+                );
+                apply_power(
+                    &mut c.monsters[i].creature.powers,
+                    PowerKind::BeatOfDeath,
+                    if c.ascension >= 19 { 2 } else { 1 },
+                    false,
+                    false,
+                );
+            }
+            // 吞时者：TimeWarp（12 张牌终止回合）
+            MonsterKind::TimeEater => {
+                apply_power(
+                    &mut c.monsters[i].creature.powers,
+                    PowerKind::TimeWarp,
+                    0,
+                    false,
+                    false,
+                );
+            }
+            // 蠕动聚块：Reactive + Malleable 3
+            MonsterKind::WrithingMass => {
+                apply_power(
+                    &mut c.monsters[i].creature.powers,
+                    PowerKind::Reactive,
+                    1,
+                    false,
+                    false,
+                );
+                apply_power(
+                    &mut c.monsters[i].creature.powers,
+                    PowerKind::Malleable,
+                    3,
+                    false,
+                    false,
+                );
+            }
+            // 铜制自动机：神器 3
+            MonsterKind::BronzeAutomaton => {
+                apply_power(
+                    &mut c.monsters[i].creature.powers,
+                    PowerKind::Artifact,
+                    3,
+                    false,
+                    false,
+                );
+            }
+            _ => {}
+        }
+        c.roll_move(i);
+    }
+}
+
 impl Combat {
     /// 默认遭遇：单大颚虫，默认进阶（A20，全解锁）
     pub fn new(seed: u64) -> Self {
@@ -527,6 +769,71 @@ impl Combat {
             encounter,
             relics.iter().map(|k| RelicInst::new(*k)).collect(),
         )
+    }
+
+    /// M3 局外层战斗构造：注入主牌组/药水栏/HP/金币（替代铁甲起始组的默认路径）。
+    /// 与真游戏同序：怪 spawn（monsterHp）→ 战前 power → 洗主牌组（shuffle）→ 抽5
+    /// → 遗物战斗开始钩子
+    #[allow(clippy::too_many_arguments)]
+    pub fn new_run_battle(
+        seed: u64,
+        ascension: i32,
+        encounter: &[MonsterKind],
+        relics: Vec<RelicInst>,
+        deck: Vec<CardInst>,
+        potions: Vec<Option<crate::potions::PotionInst>>,
+        hp: i32,
+        max_hp: i32,
+        gold: i32,
+    ) -> Self {
+        let mut rng = RngStreams::new(seed);
+        let monsters: Vec<MonsterState> = encounter
+            .iter()
+            .map(|k| MonsterState::spawn(*k, ascension, &mut rng.monster_hp))
+            .collect();
+        let mut c = Combat {
+            player: PlayerState {
+                stance: crate::state::Stance::Neutral,
+                orbs: Vec::new(),
+                max_orbs: 3,
+                creature: Creature::new(hp, max_hp),
+                energy: 3,
+                hand: Vec::new(),
+                draw: deck,
+                discard: Vec::new(),
+                exhaust: Vec::new(),
+                potions,
+            },
+            monsters,
+            rng,
+            pending: None,
+            pending_queue: None,
+            attacks_this_turn: 0,
+            hand_cost_zero_this_turn: false,
+            hand_cost_max_one: false,
+            next_turn_draw: 0,
+            next_turn_energy: 0,
+            gold,
+            next_turn_copies: Vec::new(),
+            next_turn_copy_count: 0,
+            skip_monster_turn: false,
+            force_end_turn_after_queue: false,
+            discarded_this_turn: 0,
+            last_card_type: None,
+            turn: 1,
+            turn_has_ended: false,
+            over: false,
+            won: false,
+            escaped: false,
+            master_deck_additions: Vec::new(),
+            player_relics: relics,
+            ascension,
+        };
+        card_group_shuffle(&mut c.player.draw, &mut c.rng.shuffle);
+        c.draw_cards(5);
+        self_monster_prebattle(&mut c);
+        c.relics_battle_start();
+        c
     }
 
     /// 带计数器的遗物实例构造（Du-Vu Doll 诅咒数/Girya 举重次数/Pen Nib 跨战
@@ -591,243 +898,7 @@ impl Combat {
         };
         card_group_shuffle(&mut c.player.draw, &mut c.rng.shuffle);
         c.draw_cards(5);
-        for i in 0..c.monsters.len() {
-            match c.monsters[i].kind {
-                MonsterKind::LouseNormal => {
-                    let curl = if ascension >= 17 {
-                        c.rng.monster_hp.random_start_end(9, 12)
-                    } else if ascension >= 7 {
-                        c.rng.monster_hp.random_start_end(4, 8)
-                    } else {
-                        c.rng.monster_hp.random_start_end(3, 7)
-                    };
-                    apply_power(
-                        &mut c.monsters[i].creature.powers,
-                        PowerKind::CurlUp,
-                        curl,
-                        false,
-                        false,
-                    );
-                }
-                MonsterKind::FungiBeast => {
-                    apply_power(
-                        &mut c.monsters[i].creature.powers,
-                        PowerKind::SporeCloud,
-                        2,
-                        false,
-                        false,
-                    );
-                }
-                // 球形守护者：壁垒 + 神器 3 + 40 格挡（usePreBattleAction）
-                MonsterKind::SphericGuardian => {
-                    apply_power(
-                        &mut c.monsters[i].creature.powers,
-                        PowerKind::Barricade,
-                        1,
-                        false,
-                        false,
-                    );
-                    apply_power(
-                        &mut c.monsters[i].creature.powers,
-                        PowerKind::Artifact,
-                        3,
-                        false,
-                        false,
-                    );
-                    c.monsters[i].creature.block = 40;
-                }
-                // 灼壳寄生生：多层护甲 14 + 14 格挡
-                MonsterKind::ShelledParasite => {
-                    apply_power(
-                        &mut c.monsters[i].creature.powers,
-                        PowerKind::PlatedArmor,
-                        14,
-                        false,
-                        false,
-                    );
-                    c.monsters[i].creature.block = 14;
-                }
-                // 伯德鸟：飞行 3/4 层
-                MonsterKind::Byrd => {
-                    let flight = c.monsters[i].bellow_str;
-                    apply_power(
-                        &mut c.monsters[i].creature.powers,
-                        PowerKind::Flight,
-                        flight,
-                        false,
-                        false,
-                    );
-                }
-                // 咬人蛇草：可延展 3（起效值 3，受击递增）
-                MonsterKind::SnakePlant => {
-                    apply_power(
-                        &mut c.monsters[i].creature.powers,
-                        PowerKind::Malleable,
-                        3,
-                        false,
-                        false,
-                    );
-                }
-                // 战鬼：愤怒 1（A17+ 2）
-                MonsterKind::GremlinWarrior => {
-                    apply_power(
-                        &mut c.monsters[i].creature.powers,
-                        PowerKind::Angry,
-                        if c.ascension >= 17 { 2 } else { 1 },
-                        false,
-                        false,
-                    );
-                }
-                // 巫鬼：currentCharge 起 1
-                MonsterKind::GremlinWizard => {
-                    c.monsters[i].burn_upgraded = 1;
-                }
-                // 连击之书：stabCount 起 1
-                MonsterKind::BookOfStabbing => {
-                    c.monsters[i].burn_upgraded = 1;
-                }
-                // 天球行者：力量 3（A17+ 5）
-                MonsterKind::OrbWalker => {
-                    apply_power(
-                        &mut c.monsters[i].creature.powers,
-                        PowerKind::Strength,
-                        if c.ascension >= 17 { 5 } else { 3 },
-                        false,
-                        false,
-                    );
-                }
-                // 转瞬即逝：Fading 5（A17+ 6）+ Shifting
-                MonsterKind::Transient => {
-                    apply_power(
-                        &mut c.monsters[i].creature.powers,
-                        PowerKind::Fading,
-                        if c.ascension >= 17 { 6 } else { 5 },
-                        false,
-                        false,
-                    );
-                    apply_power(
-                        &mut c.monsters[i].creature.powers,
-                        PowerKind::Shifting,
-                        1,
-                        false,
-                        false,
-                    );
-                }
-                // 巨首：自身 Slow 0（玩家出牌叠层）
-                MonsterKind::GiantHead => {
-                    apply_power(
-                        &mut c.monsters[i].creature.powers,
-                        PowerKind::Slow,
-                        0,
-                        false,
-                        false,
-                    );
-                }
-                // 觉醒者：再生 10(15 A19) + 好奇 1(2) + A4 力量 2
-                MonsterKind::AwakenedOne => {
-                    let (regen, cur) = if c.ascension >= 19 { (15, 2) } else { (10, 1) };
-                    apply_power(
-                        &mut c.monsters[i].creature.powers,
-                        PowerKind::RegenerateMonster,
-                        regen,
-                        false,
-                        false,
-                    );
-                    apply_power(
-                        &mut c.monsters[i].creature.powers,
-                        PowerKind::Curiosity,
-                        cur,
-                        false,
-                        false,
-                    );
-                    if c.ascension >= 4 {
-                        apply_power(
-                            &mut c.monsters[i].creature.powers,
-                            PowerKind::Strength,
-                            2,
-                            false,
-                            false,
-                        );
-                    }
-                }
-                // 多努/德卡：神器 2（A19+ 3）
-                MonsterKind::Donu | MonsterKind::Deca => {
-                    apply_power(
-                        &mut c.monsters[i].creature.powers,
-                        PowerKind::Artifact,
-                        if c.ascension >= 19 { 3 } else { 2 },
-                        false,
-                        false,
-                    );
-                }
-                // 尖塔双子：A18+ 神器 2（否则 1）
-                MonsterKind::SpireShield | MonsterKind::SpireSpear => {
-                    apply_power(
-                        &mut c.monsters[i].creature.powers,
-                        PowerKind::Artifact,
-                        if c.ascension >= 18 { 2 } else { 1 },
-                        false,
-                        false,
-                    );
-                }
-                // 腐朽之心：无敌 300（A19+ 200）+ 亡律 1（A19+ 2）
-                MonsterKind::CorruptHeart => {
-                    apply_power(
-                        &mut c.monsters[i].creature.powers,
-                        PowerKind::Invincible,
-                        if c.ascension >= 19 { 200 } else { 300 },
-                        false,
-                        false,
-                    );
-                    apply_power(
-                        &mut c.monsters[i].creature.powers,
-                        PowerKind::BeatOfDeath,
-                        if c.ascension >= 19 { 2 } else { 1 },
-                        false,
-                        false,
-                    );
-                }
-                // 吞时者：TimeWarp（12 张牌终止回合）
-                MonsterKind::TimeEater => {
-                    apply_power(
-                        &mut c.monsters[i].creature.powers,
-                        PowerKind::TimeWarp,
-                        0,
-                        false,
-                        false,
-                    );
-                }
-                // 蠕动聚块：Reactive + Malleable 3
-                MonsterKind::WrithingMass => {
-                    apply_power(
-                        &mut c.monsters[i].creature.powers,
-                        PowerKind::Reactive,
-                        1,
-                        false,
-                        false,
-                    );
-                    apply_power(
-                        &mut c.monsters[i].creature.powers,
-                        PowerKind::Malleable,
-                        3,
-                        false,
-                        false,
-                    );
-                }
-                // 铜制自动机：神器 3
-                MonsterKind::BronzeAutomaton => {
-                    apply_power(
-                        &mut c.monsters[i].creature.powers,
-                        PowerKind::Artifact,
-                        3,
-                        false,
-                        false,
-                    );
-                }
-                _ => {}
-            }
-            c.roll_move(i);
-        }
+        self_monster_prebattle(&mut c);
         // 遗物战斗开始钩子（atPreBattle → atBattleStart → 首轮 atTurnStart；
         // AbstractRoom 战斗开始块时序，见 relics.rs 模块注释）
         c.relics_battle_start();
