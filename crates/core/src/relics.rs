@@ -165,6 +165,15 @@ pub enum RelicKind {
     /// （源码有战斗行为，行为层接入随怪物 Mushroomer 留待后续批次；
     /// 当前仅作为事件奖励发放）
     OddMushroom,
+    /// MutagenicStrength.java：药剂师事件——每场战斗开始 +3 力量、结束时 -1
+    /// （战斗行为待后续批次；当前仅作为事件奖励发放）
+    MutagenicStrength,
+    /// BloodyIdol.java：遗忘祭坛——金神像升级版（商店回血钩子未接，先入档）
+    BloodyIdol,
+    /// NlothsGift.java：尼洛斯交易战利（商店折扣钩子未接，先入档）
+    NlothsGift,
+    /// MarkOfTheBloom.java：心灵绽放——禁止一切治疗（局外钩子待接，先入档）
+    MarkOfTheBloom,
 }
 
 /// 全部已实现遗物（覆盖率统计 & 遍历用）
@@ -225,6 +234,10 @@ pub const ALL_RELICS: &[RelicKind] = &[
     WarpedTongs,
     SpiritPoop,
     OddMushroom,
+    MutagenicStrength,
+    BloodyIdol,
+    NlothsGift,
+    MarkOfTheBloom,
 ];
 
 impl RelicKind {
@@ -285,6 +298,10 @@ impl RelicKind {
             WarpedTongs => "Warped Tongs",
             SpiritPoop => "Spirit Poop",
             OddMushroom => "Odd Mushroom",
+            MutagenicStrength => "MutagenicStrength",
+            BloodyIdol => "Bloody Idol",
+            NlothsGift => "Nloth's Gift",
+            MarkOfTheBloom => "Mark of the Bloom",
         }
     }
 }

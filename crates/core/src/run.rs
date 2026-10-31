@@ -1263,8 +1263,8 @@ pub struct RunState {
     pub potions: Vec<Option<crate::potions::PotionInst>>,
     /// 已获遗物（实例带跨战计数）
     pub relics: Vec<crate::relics::RelicInst>,
-    /// 暴雪稀有度偏移（起 5，普通-1 至 -40，稀有重置 5）
-    card_blizz: i32,
+    /// 暴雪稀有度偏移（起 5，普通-1 至 -40，稀有重置 5；pub(crate)：商店/事件共用）
+    pub(crate) card_blizz: i32,
     /// 药水怜悯（掉 40% 未中 +10，中 -10）
     potion_pity: i32,
     /// 当前房间奖励（待领取）
@@ -1676,6 +1676,7 @@ impl RunState {
         if let Some(mut c) = self.combat.take() {
             let was_event_combat = self.event_combat;
             self.event_combat = false;
+            let won = c.won;
             // 胜利遗物钩子（BurningBlood 回血 / FaceOfCleric MaxHP+1）
             let max_hp_gain = if c.won { c.on_victory() } else { 0 };
             self.player.hp = c.player.creature.hp.max(0);
@@ -1691,10 +1692,8 @@ impl RunState {
                 self.generate_rewards();
             }
             if was_event_combat {
-                // 事件战斗（Dead Adventurer）：奖励已预置，战斗后事件收尾
-                if let Some(ev) = &mut self.event {
-                    ev.done = true;
-                }
+                // 事件战斗：奖励已预置；Colosseum 波次/其余收尾见 event_after_combat
+                self.event_after_combat(won);
             }
             if c.won && self.pos.0 == MAP_HEIGHT - 1 {
                 // 幕 Boss 战胜利 → 下一幕（本批：3 幕打完即整局胜利）

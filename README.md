@@ -17,6 +17,7 @@
     - [x] 药水系统 42/43（PotionSlot 占位除外；掉落采样原语就绪，接入奖励层待 M3）
     - [x] 商店（进货 AASSP/无色×2/遗物×3/药水×3 + 定价 + 删卡服务；遗物具体件取自己实现池——tier 池元数据待补）
     - [x] 事件第一批：框架（generateEvent 0.25 神龛分支/池内不重复/条件门槛）+ Act1 全量 11 只 + 通用神龛 5 只 + 一次性 7 只（Act2/3 专属与 Match and Keep! 待后续批次）
+    - [x] 事件第二批：Act2 全量 12 只（CursedTome 除外：Necronomicon 卡不在数据层）+ Act3 全量 6 只 + 城市专属一次性 5 只（Designer/Duplicator/Knowing Skull/N'loth/The Joust）；双波次战斗（Colosseum）与事件内多步选牌队列
     - [x] 休息房：睡觉 30% / 锻造升级（决策面属协议层）
 - [ ] **M4** 对拍通过：与 neow-bridge 黄金用例 100% 一致
 
