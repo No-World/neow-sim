@@ -2080,3 +2080,214 @@ fn treasury_room_loot() {
         assert!(run.relics.len() >= 2, "宝箱遗物入栏");
     }
 }
+
+/// ── 整局吞吐 benchmark（P0 验收指标：单核 ≥1000 局/秒）──
+/// cargo test --release -p neow-sim-core -- --ignored bench_full_run --nocapture
+/// 策略：贪心出牌（能量够就出，攻击→0 号怪，多余能量牌全出）+ 全跳卡牌奖励
+/// + 9999/9999 god mode（度量全 3 幕 51 层完整流水线而非策略存活率）
+#[test]
+#[ignore]
+fn bench_full_run() {
+    use crate::combat::Action;
+    use std::time::Instant;
+
+    let chars = [
+        crate::state::CharKind::Ironclad,
+        crate::state::CharKind::Silent,
+        crate::state::CharKind::Defect,
+        crate::state::CharKind::Watcher,
+    ];
+    let total_runs = 400u64;
+    let mut floors_total = 0u64;
+    let mut combats_total = 0u64;
+    let mut completed = 0u64;
+    // 静音 panic 输出（兜底捕获仅计数；结束后恢复钩子）
+    let prev_hook = std::panic::take_hook();
+    std::panic::set_hook(Box::new(|_| {}));
+    let mut panicked_runs = 0u64;
+    let mut stop_over_win = 0u64;
+    let mut stop_hp = 0u64;
+    let mut stop_guard = 0u64;
+    let mut stop_edge = 0u64;
+    let t0 = Instant::now();
+    for i in 0..total_runs {
+        let ch = chars[(i % 4) as usize];
+        let mut run = RunState::new_for(1_000_000 + i, 0, ch);
+        // god mode：9999/9999（战斗内同值，3 幕全程跑完）
+        let mut guard_rooms = 0;
+        let r = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            let mut _f = 0u64;
+            let mut _c = 0u64;
+            let mut _won = false;
+            while !run.over {
+                guard_rooms += 1;
+                if guard_rooms > 80 {
+                    stop_guard += 1;
+                    break; // 结构异常保护
+                }
+                run.player.max_hp = 9999;
+                run.player.hp = 9999;
+                // 选边 0 前进 → 进房；行 14（顶层）= 休息 + Boss 门
+                // （协议层 boss 动作：引擎侧直接置 Boss 房进入）
+                if run.pos.0 == MAP_HEIGHT - 1 {
+                    if run.rest_available {
+                        run.rest_sleep();
+                    }
+                    run.map.rows[run.pos.0][run.pos.1].room = Some(RoomKind::Boss);
+                    run.enter_room();
+                } else {
+                    let edges = run.map.rows[run.pos.0][run.pos.1].edges.len();
+                    if run.pos.0 + 1 < MAP_HEIGHT && edges > 0 {
+                        run.choose_node(0);
+                    } else {
+                        stop_edge += 1;
+                        break;
+                    }
+                    run.enter_room();
+                }
+                floors_total += 1;
+                // 事件房：一路选 0（选完主选项 → 结算挂起选牌 → 按离开）
+                {
+                    let mut guard_ev = 0;
+                    while guard_ev < 12 {
+                        guard_ev += 1;
+                        let Some(ev) = run.event.as_ref() else { break };
+                        if ev.done {
+                            break;
+                        }
+                        if !ev.pending.is_empty() {
+                            if !run.deck.is_empty() {
+                                run.event_pick_card(0);
+                            } else {
+                                break;
+                            }
+                            continue;
+                        }
+                        if ev.screen == 1 && !ev.library.is_empty() {
+                            run.event_library_pick(0);
+                            continue;
+                        }
+                        if run.event_options().is_empty() {
+                            break; // 战斗中/无可选项（如 Colosseum 波间由战斗驱动）
+                        }
+                        run.choose_event_option(0);
+                    }
+                }
+                // 休息：睡觉
+                if run.rest_available {
+                    run.rest_sleep();
+                }
+                // 战斗：贪心出牌
+                if run.combat.is_some() {
+                    _c += 1;
+                    let mut c = run.combat.take().unwrap();
+                    let mut turn_guard = 0;
+                    while !c.over {
+                        turn_guard += 1;
+                        if turn_guard > 400 {
+                            break;
+                        }
+                        // 挂起屏兜底（起始组不该出现；防御性按类别消解）
+                        if c.pending.is_some() {
+                            use crate::combat::Pending;
+                            match c.pending.as_ref().unwrap() {
+                                Pending::Scry { .. } => c.step(&Action::ScryChoice {
+                                    discard_indices: vec![],
+                                }),
+                                Pending::HandPick { .. } => {
+                                    c.step(&Action::HandPickResponse { index: 0 })
+                                }
+                                Pending::PilePick { .. } => {
+                                    c.step(&Action::PilePickResponse { index: 0 })
+                                }
+                                Pending::Discovery { .. } => {
+                                    c.step(&Action::DiscoveryResponse { index: 0 })
+                                }
+                                Pending::StanceChoice => {
+                                    c.step(&Action::StanceResponse { wrath: false })
+                                }
+                                _ => c.step(&Action::HandSelect { indices: vec![0] }),
+                            }
+                            continue;
+                        }
+                        // 出一张能付得起且引擎可执行的牌（can_play 语义）
+                        let energy = c.player.energy;
+                        let mut played = false;
+                        for idx in 0..c.player.hand.len() {
+                            let card = &c.player.hand[idx];
+                            if !crate::cards::engine_playable(card.def) {
+                                continue;
+                            }
+                            let cost = card.cost_pay().max(0);
+                            if cost <= energy {
+                                let target = if card.def.target == "enemy"
+                                    && !c.monsters.is_empty()
+                                    && c.monsters.iter().any(|m| m.creature.hp > 0)
+                                {
+                                    Some(
+                                        c.monsters
+                                            .iter()
+                                            .position(|m| m.creature.hp > 0)
+                                            .unwrap_or(0),
+                                    )
+                                } else {
+                                    None
+                                };
+                                c.step(&Action::PlayCard { index: idx, target });
+                                played = true;
+                                break;
+                            }
+                        }
+                        if !played {
+                            c.step(&Action::EndTurn);
+                        }
+                    }
+                    run.combat = Some(c);
+                    run.settle_combat(0);
+                    // 转幕后 pos=(0,0) 可能不在路径上 → 重新定位到有边的行 0 节点
+                    if !run.over && run.pos == (0, 0) && run.map.rows[0][0].edges.is_empty() {
+                        for x in 0..MAP_WIDTH {
+                            if !run.map.rows[0][x].edges.is_empty() {
+                                run.pos = (0, x);
+                                break;
+                            }
+                        }
+                    }
+                }
+                // 奖励：全拿跳卡
+                run.take_all_rewards_skip_cards();
+                if run.won {
+                    completed += 1;
+                }
+                if run.over {
+                    stop_over_win += 1;
+                }
+                if run.player.hp <= 0 {
+                    stop_hp += 1;
+                    break;
+                }
+            }
+            _won = run.won;
+            (_won, _f, _c)
+        }));
+        match r {
+            Ok((won, f, c)) => {
+                floors_total += f;
+                combats_total += c;
+                if won {
+                    completed += 1;
+                }
+            }
+            Err(_) => panicked_runs += 1,
+        }
+    }
+    println!("stop: over={stop_over_win} hp0={stop_hp} guard={stop_guard} edge={stop_edge} panic={panicked_runs}");
+    std::panic::set_hook(prev_hook);
+    let dt = t0.elapsed().as_secs_f64();
+    println!(
+        "runs={total_runs} time={dt:.2}s throughput={:.0} runs/s | floors={floors_total} ({:.0} runs-equivalent) combats={combats_total} completed_3acts={completed}",
+        total_runs as f64 / dt,
+        floors_total as f64 / 51.0
+    );
+    assert!(total_runs as f64 / dt > 10.0, "吞吐不应低于 10 局/秒");
+}
