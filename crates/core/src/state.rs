@@ -246,6 +246,15 @@ pub enum MonsterKind {
     Transient,
     Maw,
     WrithingMass,
+    // —— Act 3 精英/Boss 及召唤物 ——
+    GiantHead,
+    Nemesis,
+    Reptomancer,
+    SnakeDagger,
+    AwakenedOne,
+    Donu,
+    Deca,
+    TimeEater,
 }
 
 /// 通用怪物状态（M2 覆盖：大颚虫、邪教徒；M3 走数据驱动定义表）
@@ -765,6 +774,82 @@ impl MonsterState {
                     (hp, (32, 7, 15, 10, 2, 0, 0))
                 }
             }
+            // ════════ Act 3 精英/Boss 及召唤物 ══════════
+            // 巨首：chomp=计数打击13 thrash=死兆(30/40 A3) thrash_block=每层+5；
+            // counter=count 起 5；战前自身 Slow
+            MonsterKind::GiantHead => {
+                let hp = if ascension >= 8 { 520 } else { 500 };
+                (
+                    hp,
+                    (13, if ascension >= 3 { 40 } else { 30 }, 5, 0, 0, 0, 0),
+                )
+            }
+            // 复仇者：chomp=镰刀45 thrash=三连火(6/7 A3)×3 thrash_block=灼伤(3/5 A18)；
+            // counter=镰刀冷却；每回合尾自动无形 1
+            MonsterKind::Nemesis => {
+                let hp = if ascension >= 8 { 200 } else { 185 };
+                (
+                    hp,
+                    (
+                        45,
+                        if ascension >= 3 { 7 } else { 6 },
+                        if ascension >= 18 { 5 } else { 3 },
+                        0,
+                        0,
+                        0,
+                        0,
+                    ),
+                )
+            }
+            // 爬虫法师：chomp=蛇击(13/16)×2+弱1 thrash=重咬(30/34)
+            // thrash_block=每次召唤数(1/2 A18)；首招召唤；canSpawn≤3
+            MonsterKind::Reptomancer => {
+                let (lo, hi) = if ascension >= 8 {
+                    (190, 200)
+                } else {
+                    (180, 190)
+                };
+                if ascension >= 3 {
+                    (
+                        hp_rng.random_start_end(lo, hi),
+                        (16, 34, if ascension >= 18 { 2 } else { 1 }, 1, 0, 0, 0),
+                    )
+                } else {
+                    (
+                        hp_rng.random_start_end(lo, hi),
+                        (13, 30, if ascension >= 18 { 2 } else { 1 }, 1, 0, 0, 0),
+                    )
+                }
+            }
+            // 蛇匕：chomp=刺9 thrash=自爆25（打完自灭）
+            MonsterKind::SnakeDagger => {
+                let (lo, hi) = (20, 25);
+                (hp_rng.random_start_end(lo, hi), (9, 25, 0, 0, 0, 0, 0))
+            }
+            // 觉醒者：双阶段(300/300, A9 320)；chomp=挥砍20 thrash=灵魂冲击6×4
+            // thrash_block=黑暗回响40 bellow_str=污泥18 bellow_block=冲撞10
+            // dark=冲击段数4 ritual=冲撞段数3；counter=阶段2标记
+            MonsterKind::AwakenedOne => {
+                let hp = if ascension >= 9 { 320 } else { 300 };
+                (hp, (20, 6, 40, 18, 10, 4, 3))
+            }
+            // 多努：chomp=光束(10/12)×2 thrash=力量环3；起手力量环；神器2(3 A19)
+            MonsterKind::Donu => {
+                let hp = if ascension >= 9 { 265 } else { 250 };
+                (hp, (if ascension >= 4 { 12 } else { 10 }, 3, 0, 0, 0, 0, 0))
+            }
+            // 德卡：chomp=光束(10/12)×2+晕2 thrash=护甲环3；起手光束；神器2(3 A19)
+            MonsterKind::Deca => {
+                let hp = if ascension >= 9 { 265 } else { 250 };
+                (hp, (if ascension >= 4 { 12 } else { 10 }, 3, 2, 0, 0, 0, 0))
+            }
+            // 吞时者：chomp=回响(7/8)×3 thrash=头撞(26/32)+下回合抽牌-1
+            // thrash_block=涟漪格挡20；半血一次加速；战前 TimeWarp
+            MonsterKind::TimeEater => {
+                let hp = if ascension >= 9 { 480 } else { 456 };
+                let (reverb, slam) = if ascension >= 2 { (8, 32) } else { (7, 26) };
+                (hp, (reverb, slam, 20, 0, 0, 0, 0))
+            }
         };
         Self {
             kind,
@@ -1023,6 +1108,38 @@ impl MonsterState {
                 3 => Intent::AttackDebuff, // ATTACK_DEBUFF
                 _ => Intent::Debuff,       // MEGA（寄生前置）
             },
+            MonsterKind::GiantHead => match self.next_move {
+                1 => Intent::Debuff, // GLARE
+                2 => Intent::Attack, // IT_IS_TIME
+                _ => Intent::Attack, // COUNT
+            },
+            MonsterKind::Nemesis => match self.next_move {
+                3 => Intent::Attack, // SCYTHE 45
+                4 => Intent::Debuff, // TRI_BURN
+                _ => Intent::Attack, // TRI_ATTACK ×3
+            },
+            MonsterKind::Reptomancer => match self.next_move {
+                1 => Intent::AttackDebuff, // SNAKE_STRIKE ×2 + 弱
+                2 => Intent::Unknown,      // SPAWN
+                _ => Intent::Attack,       // BIG_BITE
+            },
+            MonsterKind::SnakeDagger => Intent::Attack,
+            MonsterKind::AwakenedOne => match self.next_move {
+                3 => Intent::Unknown,      // 重生前待机
+                5 => Intent::Attack,       // DARK_ECHO 40
+                6 => Intent::AttackDebuff, // SLUDGE + 虚空
+                _ => Intent::Attack,       // SLASH / SOUL_STRIKE / TACKLE
+            },
+            MonsterKind::Donu | MonsterKind::Deca => match self.next_move {
+                0 => Intent::Attack, // BEAM ×2
+                _ => Intent::Buff,   // CIRCLE
+            },
+            MonsterKind::TimeEater => match self.next_move {
+                3 => Intent::DefendBuff, // RIPPLE（DEFEND_DEBUFF 归并）
+                5 => Intent::Buff,       // 半血加速
+                4 => Intent::AttackDebuff,
+                _ => Intent::Attack,
+            },
         }
     }
 
@@ -1212,6 +1329,44 @@ impl MonsterState {
                 1 => Some(self.thrash_dmg),
                 2 => Some(self.thrash_block),
                 3 => Some(self.bellow_str),
+                _ => None,
+            },
+            MonsterKind::GiantHead => match self.next_move {
+                1 => Some(self.chomp_dmg),
+                3 => Some(self.thrash_dmg),
+                2 => Some(self.thrash_dmg + (5 - self.burn_upgraded).max(0) * self.thrash_block),
+                _ => None,
+            },
+            MonsterKind::Nemesis => match self.next_move {
+                3 => Some(self.chomp_dmg),
+                2 => Some(self.thrash_dmg),
+                _ => None,
+            },
+            MonsterKind::Reptomancer => match self.next_move {
+                1 => Some(self.chomp_dmg),
+                3 => Some(self.thrash_dmg),
+                _ => None,
+            },
+            MonsterKind::SnakeDagger => match self.next_move {
+                1 => Some(self.chomp_dmg),
+                2 => Some(self.thrash_dmg),
+                _ => None,
+            },
+            MonsterKind::AwakenedOne => match self.next_move {
+                1 => Some(self.chomp_dmg),
+                2 => Some(self.thrash_dmg),
+                5 => Some(self.thrash_block),
+                6 => Some(self.bellow_str),
+                8 => Some(self.bellow_block),
+                _ => None,
+            },
+            MonsterKind::Donu | MonsterKind::Deca => match self.next_move {
+                0 => Some(self.chomp_dmg),
+                _ => None,
+            },
+            MonsterKind::TimeEater => match self.next_move {
+                2 => Some(self.chomp_dmg),
+                4 => Some(self.thrash_dmg),
                 _ => None,
             },
         }

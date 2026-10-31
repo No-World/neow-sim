@@ -102,6 +102,17 @@ pub enum PowerKind {
     Constricted,
     /// 反应（Reactive：受方每次非致死受击 → 重掷招式（消耗 aiRng）；WrithingMass）
     Reactive,
+    // —— Act 3 精英/Boss ——
+    /// 迟缓（Slow：受方受到的 NORMAL 伤害 ×(1+amount×10%)；
+    /// 玩家每打出一张牌 amount+1，轮末归零；GiantHead）
+    Slow,
+    /// 时滞（TimeWarp：玩家每打出一张牌计数+1，满 12 立即终止玩家回合
+    /// 并清零；TimeEater）
+    TimeWarp,
+    /// 好奇（Curiosity：玩家每打出一张能力牌 → 自身力量 +amount；AwakenedOne）
+    Curiosity,
+    /// 再生怪（RegenerateMonster：自身回合开始回复 amount；AwakenedOne）
+    RegenerateMonster,
 }
 
 impl PowerKind {
@@ -154,6 +165,9 @@ impl Power {
             PowerKind::Weak | PowerKind::Frail => source_is_monster,
             // RitualPower: skipFirst = true（怪物侧首轮不投予）；其余无 skip
             PowerKind::Ritual => true,
+            // IntangiblePower：justApplied=true —— 施加后跳过第一次轮末衰减
+            // （Nemesis 回合尾自动无形能撑过整个玩家回合的关键）
+            PowerKind::IntangiblePlayer => true,
             _ => false,
         };
         Self {
@@ -203,6 +217,10 @@ impl Power {
             PowerKind::GainStrength => "GainStrength",
             PowerKind::Constricted => "Constricted",
             PowerKind::Reactive => "Reactive",
+            PowerKind::Slow => "Slow",
+            PowerKind::TimeWarp => "Time Warp",
+            PowerKind::Curiosity => "Curiosity",
+            PowerKind::RegenerateMonster => "Regenerate",
         }
     }
 
@@ -239,6 +257,7 @@ impl Power {
     pub fn at_damage_receive(&self, dmg: f32, ty: DamageType) -> f32 {
         match (self.kind, ty) {
             (PowerKind::Vulnerable, DamageType::Normal) => dmg * 1.5,
+            (PowerKind::Slow, DamageType::Normal) => dmg * (1.0 + self.amount as f32 * 0.1),
             _ => dmg,
         }
     }

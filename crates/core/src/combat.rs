@@ -380,6 +380,15 @@ enum Q {
     ReviveTorchHeads,
     /// 蠕动聚块 MEGA：往玩家主牌组永久塞一张寄生前置（战斗内无即时效果）
     ParasiteToDeck,
+    // —— Act 3 精英/Boss ——
+    /// 蛇匕自爆后自灭
+    SnakeDaggerSuicide {
+        src: usize,
+    },
+    /// 德卡护甲环：全怪 +3 多层护甲
+    PlatedAllMonsters(i32),
+    /// 吞时者头撞：下回合抽牌 -1（DrawReductionPower）
+    PlayerDrawNextTurn(i32),
 }
 
 /// 探素卡池（returnTrulyRandomCardInCombat(type) / Colorless 变体）
@@ -414,6 +423,11 @@ fn power_kind(pid: &str) -> Option<PowerKind> {
         "GainStrength" => Some(PowerKind::GainStrength),
         "Constricted" => Some(PowerKind::Constricted),
         "Reactive" => Some(PowerKind::Reactive),
+        "Slow" => Some(PowerKind::Slow),
+        "Time Warp" => Some(PowerKind::TimeWarp),
+        "Intangible" => Some(PowerKind::IntangiblePlayer),
+        "Curiosity" => Some(PowerKind::Curiosity),
+        "Regenerate" => Some(PowerKind::RegenerateMonster),
         "Dexterity" => Some(PowerKind::Dexterity),
         "Poison" => Some(PowerKind::Poison),
         "Metallicize" => Some(PowerKind::Metallicize),
@@ -655,6 +669,63 @@ impl Combat {
                         &mut c.monsters[i].creature.powers,
                         PowerKind::Shifting,
                         1,
+                        false,
+                        false,
+                    );
+                }
+                // 巨首：自身 Slow 0（玩家出牌叠层）
+                MonsterKind::GiantHead => {
+                    apply_power(
+                        &mut c.monsters[i].creature.powers,
+                        PowerKind::Slow,
+                        0,
+                        false,
+                        false,
+                    );
+                }
+                // 觉醒者：再生 10(15 A19) + 好奇 1(2) + A4 力量 2
+                MonsterKind::AwakenedOne => {
+                    let (regen, cur) = if c.ascension >= 19 { (15, 2) } else { (10, 1) };
+                    apply_power(
+                        &mut c.monsters[i].creature.powers,
+                        PowerKind::RegenerateMonster,
+                        regen,
+                        false,
+                        false,
+                    );
+                    apply_power(
+                        &mut c.monsters[i].creature.powers,
+                        PowerKind::Curiosity,
+                        cur,
+                        false,
+                        false,
+                    );
+                    if c.ascension >= 4 {
+                        apply_power(
+                            &mut c.monsters[i].creature.powers,
+                            PowerKind::Strength,
+                            2,
+                            false,
+                            false,
+                        );
+                    }
+                }
+                // 多努/德卡：神器 2（A19+ 3）
+                MonsterKind::Donu | MonsterKind::Deca => {
+                    apply_power(
+                        &mut c.monsters[i].creature.powers,
+                        PowerKind::Artifact,
+                        if c.ascension >= 19 { 3 } else { 2 },
+                        false,
+                        false,
+                    );
+                }
+                // 吞时者：TimeWarp（12 张牌终止回合）
+                MonsterKind::TimeEater => {
+                    apply_power(
+                        &mut c.monsters[i].creature.powers,
+                        PowerKind::TimeWarp,
+                        0,
                         false,
                         false,
                     );
@@ -1260,6 +1331,58 @@ impl Combat {
         }
         for &eff in card.def.effects {
             self.apply_effect(eff, card, ti, x_cost, &mut q, 0);
+        }
+        // Slow（GiantHead）：玩家每打出一张牌 → 所有 Slow 怪 +1 层（本回合）
+        for mi in 0..self.monsters.len() {
+            if let Some(p) = self.monsters[mi]
+                .creature
+                .powers
+                .iter_mut()
+                .find(|p| p.kind == PowerKind::Slow)
+            {
+                p.amount += 1;
+            }
+        }
+        // Curiosity（AwakenedOne）：打出能力牌 → 好奇怪 +amount 力量
+        if card.def.card_type == "POWER" {
+            for mi in 0..self.monsters.len() {
+                if let Some(cur) = self.monsters[mi]
+                    .creature
+                    .powers
+                    .iter()
+                    .find(|p| p.kind == PowerKind::Curiosity)
+                    .map(|p| p.amount)
+                {
+                    apply_power(
+                        &mut self.monsters[mi].creature.powers,
+                        PowerKind::Strength,
+                        cur,
+                        false,
+                        false,
+                    );
+                }
+            }
+        }
+        // TimeWarp（TimeEater）：12 张 → 立即终止玩家回合并清零
+        {
+            let mut warp_triggered = false;
+            for mi in 0..self.monsters.len() {
+                if let Some(p) = self.monsters[mi]
+                    .creature
+                    .powers
+                    .iter_mut()
+                    .find(|p| p.kind == PowerKind::TimeWarp)
+                {
+                    p.amount += 1;
+                    if p.amount >= 12 {
+                        p.amount = 0;
+                        warp_triggered = true;
+                    }
+                }
+            }
+            if warp_triggered {
+                self.force_end_turn_after_queue = true;
+            }
         }
         // HexPower.onUseCard：打出非攻击牌 → 抽牌堆随机位置塞 amount 张晕眩
         if card.def.card_type != "ATTACK" {
@@ -3376,6 +3499,258 @@ impl Combat {
                 4 => q.push(Q::ParasiteToDeck),
                 _ => {}
             },
+            // ══════════ Act 3 精英/Boss 及召唤物 ══════════
+            // 巨首：1=瞪视(弱1)  2=时刻已至(count 递减伤害递增)  3=计数打击
+            MonsterKind::GiantHead => match m.next_move {
+                1 => q.push(Q::ApplyPowerToPlayerFromMonster {
+                    kind: PowerKind::Weak,
+                    amount: 1,
+                }),
+                2 => {
+                    // index = 1-count（封顶 7）→ deathDmg + index*5
+                    let idx = (1 - m.burn_upgraded).clamp(0, 7);
+                    q.push(Q::MonsterDamage {
+                        src: i,
+                        base: m.thrash_dmg + idx * m.thrash_block,
+                    });
+                }
+                3 => q.push(Q::MonsterDamage {
+                    src: i,
+                    base: m.chomp_dmg,
+                }),
+                _ => {}
+            },
+            // 复仇者：2=三连火×3  3=镰刀45  4=三连灼伤；回合尾自动无形
+            MonsterKind::Nemesis => {
+                match m.next_move {
+                    2 => {
+                        for _ in 0..3 {
+                            q.push(Q::MonsterDamage {
+                                src: i,
+                                base: m.thrash_dmg,
+                            });
+                        }
+                    }
+                    3 => q.push(Q::MonsterDamage {
+                        src: i,
+                        base: m.chomp_dmg,
+                    }),
+                    4 => {
+                        if let Some(burn) = CardInst::new_by_class("Burn") {
+                            for _ in 0..m.thrash_block {
+                                q.push(Q::MakeDiscard(burn));
+                            }
+                        }
+                    }
+                    _ => {}
+                }
+                // takeTurn 尾：无无形则补 1（玩家回合恒无形）
+                let has_intangible = self.monsters[i]
+                    .creature
+                    .powers
+                    .iter()
+                    .any(|p| p.kind == PowerKind::IntangiblePlayer);
+                if !has_intangible {
+                    q.push(Q::ApplyPowerToMonster {
+                        target: i,
+                        kind: PowerKind::IntangiblePlayer,
+                        amount: 1,
+                    });
+                }
+            }
+            // 爬虫法师：1=蛇击×2+弱1  2=召唤蛇匕(1/2)  3=重咬
+            MonsterKind::Reptomancer => match m.next_move {
+                1 => {
+                    for _ in 0..2 {
+                        q.push(Q::MonsterDamage {
+                            src: i,
+                            base: m.chomp_dmg,
+                        });
+                    }
+                    q.push(Q::ApplyPowerToPlayerFromMonster {
+                        kind: PowerKind::Weak,
+                        amount: m.bellow_str,
+                    });
+                }
+                2 => {
+                    let n = m.thrash_block;
+                    for _ in 0..n {
+                        q.push(Q::SpawnMonster {
+                            kind: MonsterKind::SnakeDagger,
+                        });
+                    }
+                }
+                3 => q.push(Q::MonsterDamage {
+                    src: i,
+                    base: m.thrash_dmg,
+                }),
+                _ => {}
+            },
+            // 蛇匕：1=刺9  2=自爆25后自灭
+            MonsterKind::SnakeDagger => match m.next_move {
+                1 => q.push(Q::MonsterDamage {
+                    src: i,
+                    base: m.chomp_dmg,
+                }),
+                2 => {
+                    q.push(Q::MonsterDamage {
+                        src: i,
+                        base: m.thrash_dmg,
+                    });
+                    q.push(Q::SnakeDaggerSuicide { src: i });
+                }
+                _ => {}
+            },
+            // 觉醒者：1=挥砍20  2=灵魂冲击6×4  3=重生待机(满血复活转阶段)
+            // 5=黑暗回响40  6=污泥18+虚空  8=冲撞10×3；回合始再生
+            MonsterKind::AwakenedOne => {
+                // RegenerateMonster：回合开始回复 10（A19+ 15）
+                let (echo, sludge, tackle, tackle_n, ss, ss_n, slash) = (
+                    m.thrash_block,
+                    m.bellow_str,
+                    m.bellow_block,
+                    m.ritual_amt,
+                    m.thrash_dmg,
+                    m.dark_strike_dmg,
+                    m.chomp_dmg,
+                );
+                let cur_move = m.next_move;
+                let regen = if self.ascension >= 19 { 15 } else { 10 };
+                {
+                    let cr = &mut self.monsters[i].creature;
+                    cr.hp = (cr.hp + regen).min(cr.max_hp);
+                }
+                match cur_move {
+                    1 => q.push(Q::MonsterDamage {
+                        src: i,
+                        base: slash,
+                    }),
+                    2 => {
+                        for _ in 0..ss_n {
+                            q.push(Q::MonsterDamage { src: i, base: ss });
+                        }
+                    }
+                    3 => {
+                        // REBIRTH：满血复活、转阶段 2（burn_upgraded=1）
+                        let stage2_hp = if self.ascension >= 9 { 320 } else { 300 };
+                        let cr = &mut self.monsters[i].creature;
+                        cr.max_hp = stage2_hp;
+                        cr.hp = stage2_hp;
+                        self.monsters[i].half_dead = false;
+                        self.monsters[i].burn_upgraded = 1;
+                        // 阶段 2 重置招式史（firstTurn → 黑暗回响）
+                        self.monsters[i].move_history.clear();
+                        self.monsters[i].next_move = 5;
+                        self.monsters[i].move_history.push(5);
+                    }
+                    5 => q.push(Q::MonsterDamage { src: i, base: echo }),
+                    6 => {
+                        q.push(Q::MonsterDamage {
+                            src: i,
+                            base: sludge,
+                        });
+                        if let Some(void) = CardInst::new_by_class("Void") {
+                            q.push(Q::MakeInDraw {
+                                inst: void,
+                                random: true,
+                            });
+                        }
+                    }
+                    8 => {
+                        for _ in 0..tackle_n {
+                            q.push(Q::MonsterDamage {
+                                src: i,
+                                base: tackle,
+                            });
+                        }
+                    }
+                    _ => {}
+                }
+            }
+            MonsterKind::Donu | MonsterKind::Deca => match m.next_move {
+                0 => {
+                    for _ in 0..2 {
+                        q.push(Q::MonsterDamage {
+                            src: i,
+                            base: m.chomp_dmg,
+                        });
+                    }
+                    if m.kind == MonsterKind::Deca {
+                        if let Some(dazed) = CardInst::new_by_class("Dazed") {
+                            for _ in 0..m.thrash_block {
+                                q.push(Q::MakeDiscard(dazed));
+                            }
+                        }
+                    }
+                }
+                2 => {
+                    if m.kind == MonsterKind::Donu {
+                        q.push(Q::StrAllMonsters(m.thrash_dmg));
+                    } else {
+                        q.push(Q::PlatedAllMonsters(m.thrash_dmg));
+                    }
+                }
+                _ => {}
+            },
+            // 吞时者：2=回响×3  3=涟漪(格挡+弱易[脆])  4=头撞+抽牌-1[+粘液]
+            // 5=半血一次加速(清减益+回到半血[+格挡])
+            MonsterKind::TimeEater => {
+                let slam = m.thrash_dmg;
+                match m.next_move {
+                    2 => {
+                        for _ in 0..3 {
+                            q.push(Q::MonsterDamage {
+                                src: i,
+                                base: m.chomp_dmg,
+                            });
+                        }
+                    }
+                    3 => {
+                        q.push(Q::MonsterBlock {
+                            target: i,
+                            amount: m.thrash_block,
+                        });
+                        for kind in [PowerKind::Vulnerable, PowerKind::Weak] {
+                            q.push(Q::ApplyPowerToPlayerFromMonster { kind, amount: 1 });
+                        }
+                        if self.ascension >= 19 {
+                            q.push(Q::ApplyPowerToPlayerFromMonster {
+                                kind: PowerKind::Frail,
+                                amount: 1,
+                            });
+                        }
+                    }
+                    4 => {
+                        q.push(Q::MonsterDamage {
+                            src: i,
+                            base: m.thrash_dmg,
+                        });
+                        q.push(Q::PlayerDrawNextTurn(-1));
+                        if self.ascension >= 19 {
+                            if let Some(slimed) = CardInst::new_by_class("Slimed") {
+                                for _ in 0..2 {
+                                    q.push(Q::MakeDiscard(slimed));
+                                }
+                            }
+                        }
+                    }
+                    5 => {
+                        // 半血加速：清自身减益 + 回复至半血（A19+ 另获格挡=头撞伤）
+                        self.monsters[i]
+                            .creature
+                            .powers
+                            .retain(|p| !p.kind.is_debuff());
+                        let half = self.monsters[i].creature.max_hp / 2;
+                        let bonus_block = if self.ascension >= 19 { slam } else { 0 };
+                        let cr = &mut self.monsters[i].creature;
+                        if cr.hp < half {
+                            cr.hp = half;
+                        }
+                        cr.block += bonus_block;
+                    }
+                    _ => {}
+                }
+            }
             MonsterKind::FungiBeast => match m.next_move {
                 1 => q.push(Q::MonsterDamage {
                     src: i,
@@ -3472,6 +3847,12 @@ impl Combat {
                 .creature
                 .powers
                 .retain(|p| p.kind != PowerKind::GainStrength);
+            // Slow：轮末 amount 归零（atEndOfRound）
+            for p in &mut self.monsters[i].creature.powers {
+                if p.kind == PowerKind::Slow {
+                    p.amount = 0;
+                }
+            }
             decay_powers(&mut self.monsters[i].creature.powers);
             for g in grants {
                 apply_power(
@@ -4739,6 +5120,29 @@ impl Combat {
                     }
                 }
             }
+            Q::SnakeDaggerSuicide { src } => {
+                // LoseHPAction(this, currentHealth)：自灭（真死路径）
+                if self.alive(src) {
+                    self.monsters[src].creature.hp = 0;
+                    self.on_monster_death(src);
+                }
+            }
+            Q::PlatedAllMonsters(amount) => {
+                for mi in 0..self.monsters.len() {
+                    if self.alive(mi) {
+                        apply_power(
+                            &mut self.monsters[mi].creature.powers,
+                            PowerKind::PlatedArmor,
+                            amount,
+                            false,
+                            false,
+                        );
+                    }
+                }
+            }
+            Q::PlayerDrawNextTurn(n) => {
+                self.next_turn_draw += n;
+            }
             Q::ParasiteToDeck => {
                 if let Some(c) = CardInst::new_by_class("Burn") {
                     let _ = c;
@@ -4971,6 +5375,17 @@ impl Combat {
                 self.roll_move(target);
             }
         }
+        // AwakenedOne：阶段 1 死亡 → 半死转阶段（阶段 2 死亡 = 真死）
+        if self.monsters[target].creature.hp <= 0
+            && !self.monsters[target].half_dead
+            && self.monsters[target].kind == MonsterKind::AwakenedOne
+            && self.monsters[target].burn_upgraded == 0
+        {
+            self.monsters[target].half_dead = true;
+            self.monsters[target].next_move = 3;
+            self.monsters[target].move_history.push(3);
+            return false;
+        }
         // Darkling：半死（全员半死=真死；否则定招 4 待复活）
         if self.monsters[target].creature.hp <= 0
             && !self.monsters[target].half_dead
@@ -5110,6 +5525,10 @@ impl Combat {
                 self.player.draw = pile;
             }
             let mut c = self.player.draw.pop().unwrap();
+            // Void（虚空）：抽到时失 1 能量（VoidCard.whenDrawn）
+            if c.def.id == "Void" {
+                self.player.energy -= 1;
+            }
             if confused {
                 let cur = c.def.cost.unwrap_or(-2);
                 if cur >= 0 {
@@ -5751,6 +6170,209 @@ impl Combat {
         }
     }
 
+    /// GiantHead.getMove：count<=1 → 时刻已至（count 递减，>-6 止）；
+    /// 否则 count-- 且瞪视/计数交替（counter=count 在此更新）
+    fn giant_head_get_move(&mut self, i: usize, num: i32) -> u8 {
+        let m = &self.monsters[i];
+        let last = m.move_history.last().copied();
+        let last2 = if m.move_history.len() >= 2 {
+            Some(m.move_history[m.move_history.len() - 2])
+        } else {
+            None
+        };
+        if m.burn_upgraded <= 1 {
+            if m.burn_upgraded > -6 {
+                self.monsters[i].burn_upgraded -= 1;
+            }
+            return 2;
+        }
+        self.monsters[i].burn_upgraded -= 1;
+        if num < 50 {
+            if !(last == Some(1) && last2 == Some(1)) {
+                1
+            } else {
+                3
+            }
+        } else if !(last == Some(3) && last2 == Some(3)) {
+            3
+        } else {
+            1
+        }
+    }
+
+    /// Nemesis.getMove：首招按 num 三连攻/灼伤；镰刀冷却 2；
+    /// 多分支 randomBoolean 重掣（消耗 aiRng）
+    fn nemesis_get_move(&mut self, i: usize, num: i32) -> u8 {
+        {
+            let m = &self.monsters[i];
+            let last = m.move_history.last().copied();
+            let last2 = if m.move_history.len() >= 2 {
+                Some(m.move_history[m.move_history.len() - 2])
+            } else {
+                None
+            };
+            if m.first_move {
+                return if num < 50 { 2 } else { 4 };
+            }
+            if num < 30 {
+                if last != Some(3) && m.burn_upgraded <= 0 {
+                    self.monsters[i].burn_upgraded = 2; // 镰刀冷却置 2
+                    return 3;
+                }
+                if self.rng.ai.random_boolean() && !(last == Some(2) && last2 == Some(2)) {
+                    return 2;
+                }
+                return 4;
+            }
+            if num < 65 {
+                if !(last == Some(2) && last2 == Some(2)) {
+                    return 2;
+                }
+                if self.rng.ai.random_boolean() {
+                    if m.burn_upgraded > 0 {
+                        return 4;
+                    }
+                    self.monsters[i].burn_upgraded = 2;
+                    return 3;
+                }
+                return 4;
+            }
+            if last != Some(4) {
+                return 4;
+            }
+            if self.rng.ai.random_boolean() && m.burn_upgraded <= 0 {
+                self.monsters[i].burn_upgraded = 2;
+                return 3;
+            }
+            2
+        }
+    }
+
+    /// Reptomancer.getMove：首招召唤；num<33 蛇击（重掣）；
+    /// <66 且非双召唤且 canSpawn → 召唤；其余重咬
+    fn reptomancer_get_move(&mut self, i: usize, num: i32) -> u8 {
+        let can_spawn = {
+            let alive_others = self
+                .monsters
+                .iter()
+                .enumerate()
+                .filter(|(j, m)| *j != i && !m.creature.is_dead() && !m.escaped)
+                .count();
+            alive_others <= 3
+        };
+        let mut num = num;
+        loop {
+            let m = &self.monsters[i];
+            let last = m.move_history.last().copied();
+            let last2 = if m.move_history.len() >= 2 {
+                Some(m.move_history[m.move_history.len() - 2])
+            } else {
+                None
+            };
+            if m.first_move {
+                return 2;
+            }
+            if num < 33 {
+                if last != Some(1) {
+                    return 1;
+                }
+                num = self.rng.ai.random_start_end(33, 99);
+            } else if num < 66 {
+                if !(last == Some(2) && last2 == Some(2)) {
+                    if can_spawn {
+                        return 2;
+                    }
+                    return 1;
+                }
+                return 1;
+            } else {
+                return 3;
+            }
+        }
+    }
+
+    /// AwakenedOne.getMove：阶段 1 挥砍/灵魂冲击；阶段 2（counter=1）
+    /// 首招黑暗回响，之后污泥/冲撞交替
+    fn awakened_one_get_move(&mut self, i: usize, num: i32) -> u8 {
+        let stage2 = self.monsters[i].burn_upgraded == 1;
+        let m = &self.monsters[i];
+        let last = m.move_history.last().copied();
+        let last2 = if m.move_history.len() >= 2 {
+            Some(m.move_history[m.move_history.len() - 2])
+        } else {
+            None
+        };
+        if !stage2 {
+            if m.first_move {
+                return 1;
+            }
+            if num < 25 {
+                if last != Some(2) {
+                    return 2;
+                }
+                return 1;
+            }
+            if !(last == Some(1) && last2 == Some(1)) {
+                return 1;
+            }
+            return 2;
+        }
+        // 阶段 2：重生回合已 setMove(5)；此后污泥/冲撞
+        if m.move_history.len() <= 1 {
+            return 5;
+        }
+        if num < 50 {
+            if !(last == Some(6) && last2 == Some(6)) {
+                return 6;
+            }
+            return 8;
+        }
+        if !(last == Some(8) && last2 == Some(8)) {
+            return 8;
+        }
+        6
+    }
+
+    /// TimeEater.getMove：半血一次加速（usedHaste=history 含 5）；
+    /// num<45 回响（双后重掣）；<80 头撞/涟漪（66% 回响）；否则涟漪/重掣
+    fn time_eater_get_move(&mut self, i: usize, num: i32) -> u8 {
+        let used_haste = self.monsters[i].move_history.contains(&5);
+        let m = &self.monsters[i];
+        let half = m.creature.hp * 2 < m.creature.max_hp;
+        if half && !used_haste {
+            return 5;
+        }
+        let mut num = num;
+        loop {
+            let m = &self.monsters[i];
+            let last = m.move_history.last().copied();
+            let last2 = if m.move_history.len() >= 2 {
+                Some(m.move_history[m.move_history.len() - 2])
+            } else {
+                None
+            };
+            if num < 45 {
+                if !(last == Some(2) && last2 == Some(2)) {
+                    return 2;
+                }
+                num = self.rng.ai.random_start_end(50, 99);
+                continue;
+            } else if num < 80 {
+                if last != Some(4) {
+                    return 4;
+                }
+                if self.rng.ai.random_boolean_chance(0.66) {
+                    return 2;
+                }
+                return 3;
+            }
+            if last != Some(3) {
+                return 3;
+            }
+            num = self.rng.ai.random_range(74);
+        }
+    }
+
     /// 意图决策（逐行对照各怪 getMove；num = aiRng.random(99)）
     fn roll_move(&mut self, i: usize) {
         let num = self.rng.ai.random_range(99);
@@ -5821,6 +6443,32 @@ impl Combat {
             MonsterKind::Transient => 1,
             MonsterKind::Maw => self.maw_get_move(i, num),
             MonsterKind::WrithingMass => self.writhing_mass_get_move(i, num),
+            MonsterKind::GiantHead => self.giant_head_get_move(i, num),
+            MonsterKind::Nemesis => self.nemesis_get_move(i, num),
+            MonsterKind::Reptomancer => self.reptomancer_get_move(i, num),
+            MonsterKind::SnakeDagger => {
+                if self.monsters[i].first_move {
+                    1
+                } else {
+                    2
+                }
+            }
+            MonsterKind::AwakenedOne => self.awakened_one_get_move(i, num),
+            MonsterKind::Donu | MonsterKind::Deca => {
+                // 攻/环交替（isAttacking ⟺ 上次是攻击；首招由构造器定）
+                if self.monsters[i].first_move {
+                    if self.monsters[i].kind == MonsterKind::Donu {
+                        2
+                    } else {
+                        0
+                    }
+                } else if self.monsters[i].move_history.last() == Some(&0) {
+                    2
+                } else {
+                    0
+                }
+            }
+            MonsterKind::TimeEater => self.time_eater_get_move(i, num),
         };
         self.monsters[i].first_move = false;
         self.monsters[i].move_history.push(mv);
@@ -7530,7 +8178,7 @@ mod tests {
             amount: 2,
         });
         assert_eq!(m_amount(&c, 0, PowerKind::Weak), None, "被神器抵消");
-        assert_eq!(m_amount(&c, 0, PowerKind::Artifact), Some(2));
+        assert_eq!(m_amount(&c, 0, PowerKind::Artifact), Some(2), "3-1=2");
     }
 
     /// 天选者：非 A17 首招戳刺×2 → 咒缚；打出非攻击牌塞晕眩
@@ -8188,6 +8836,223 @@ mod tests {
         };
         assert_eq!(play(41), play(41));
         assert_ne!(play(41), play(42));
+    }
+
+    // ══════════════ Act 3 精英/Boss ══════════════
+
+    /// 巨首：Slow（出牌叠层增伤）；count 递减到时刻已至大伤害
+    #[test]
+    fn giant_head_slow_and_time() {
+        let mut c = Combat::new_with(3, 20, &[MonsterKind::GiantHead]);
+        assert!(m_amount(&c, 0, PowerKind::Slow).is_some(), "战前 Slow");
+        c.monsters[0].creature.hp = 999;
+        c.monsters[0].creature.max_hp = 999;
+        // 打击 6 → Slow 0 层 → 6；再打一张（Slow=1）→ 6×1.1=6.6 floor 6；
+        // 第三张（Slow=2）→ 7.2 → 7
+        force_hand(&mut c, &["Strike_R", "Strike_R", "Strike_R"]);
+        let hp0 = c.monsters[0].creature.hp;
+        c.step(&Action::PlayCard {
+            index: 0,
+            target: Some(0),
+        });
+        let hp1 = c.monsters[0].creature.hp;
+        assert_eq!(hp0 - hp1, 6, "首张无 Slow 加成");
+        c.step(&Action::PlayCard {
+            index: 0,
+            target: Some(0),
+        });
+        let hp2 = c.monsters[0].creature.hp;
+        assert_eq!(hp1 - hp2, 6, "第二张 1 层 ×1.1=6.6→6");
+        c.step(&Action::PlayCard {
+            index: 0,
+            target: Some(0),
+        });
+        let hp3 = c.monsters[0].creature.hp;
+        assert_eq!(hp2 - hp3, 7, "第三张 2 层 ×1.2=7.2→7");
+        // count 起 5：开局 roll 后 4 → 意图为时刻已至（count<=1 才触发，此时还不是）
+        // 直接构造 count=0 → 时刻已至 40 + (1-(-1))×5? 按 idx=1-count
+        c.monsters[0].burn_upgraded = 0;
+        c.monsters[0].next_move = 2;
+        c.monsters[0].move_history.push(2);
+        let php0 = c.player.creature.hp;
+        c.player.creature.hp = 999;
+        c.player.creature.max_hp = 999;
+        let p999 = c.player.creature.hp;
+        let _ = php0;
+        c.step(&Action::EndTurn);
+        assert_eq!(c.player.creature.hp, p999 - 45, "40+idx1×5（A3+）");
+    }
+
+    /// 复仇者：回合尾自动无形；无形期间受击固定 1 伤
+    #[test]
+    fn nemesis_intangible() {
+        let mut c = Combat::new_with(5, 20, &[MonsterKind::Nemesis]);
+        c.monsters[0].creature.hp = 999;
+        c.monsters[0].creature.max_hp = 999;
+        c.player.creature.hp = 999;
+        c.player.creature.max_hp = 999;
+        // 第 1 回合结束后获得无形
+        c.step(&Action::EndTurn);
+        assert_eq!(m_amount(&c, 0, PowerKind::IntangiblePlayer), Some(1));
+        // 无形期间受击 → 1 伤
+        force_hand(&mut c, &["Strike_R"]);
+        let hp0 = c.monsters[0].creature.hp;
+        c.step(&Action::PlayCard {
+            index: 0,
+            target: Some(0),
+        });
+        assert_eq!(hp0 - c.monsters[0].creature.hp, 1, "无形固定 1 伤");
+    }
+
+    /// 爬虫法师：召唤蛇匕；蛇匕刺 9 后自爆 25 并自灭
+    #[test]
+    fn reptomancer_daggers() {
+        let mut c = Combat::new_with(7, 16, &[MonsterKind::Reptomancer]);
+        assert_eq!(c.monsters[0].next_move, 2, "首招召唤");
+        c.player.creature.hp = 999;
+        c.player.creature.max_hp = 999;
+        c.step(&Action::EndTurn);
+        assert_eq!(c.monsters.len(), 2, "召唤 1 把（非 A18）");
+        // 蛇匕行动：刺 9 → 下回合自爆
+        let mut d = Combat::new_with(7, 16, &[MonsterKind::SnakeDagger]);
+        assert_eq!(d.monsters[0].next_move, 1, "首招刺");
+        let hp0 = d.player.creature.hp;
+        d.step(&Action::EndTurn);
+        assert_eq!(d.player.creature.hp, hp0 - 9);
+        assert_eq!(d.monsters[0].next_move, 2, "下回合自爆");
+        let hp1 = d.player.creature.hp;
+        d.step(&Action::EndTurn);
+        assert_eq!(d.player.creature.hp, hp1 - 25);
+        assert!(d.monsters[0].creature.is_dead(), "自爆自灭");
+        assert!(d.over && d.won);
+    }
+
+    /// 觉醒者：死亡转阶段（满血复活）；好奇（能力牌涨力）；阶段2 黑暗回响
+    #[test]
+    fn awakened_one_stages() {
+        let mut c = Combat::new_with(9, 20, &[MonsterKind::AwakenedOne]);
+        assert_eq!(
+            m_amount(&c, 0, PowerKind::RegenerateMonster),
+            Some(15),
+            "A19+ 15"
+        );
+        assert_eq!(m_amount(&c, 0, PowerKind::Curiosity), Some(2), "A19+ 2");
+        assert_eq!(m_amount(&c, 0, PowerKind::Strength), Some(2), "A4+ 力量 2");
+        // 打出能力牌 → 好奇 +1 力量
+        c.exec(Q::ApplyPowerToSelf {
+            kind: PowerKind::Artifact,
+            amount: 1,
+        });
+        // 杀死 → 半死 → 下回合重生满血
+        c.exec(Q::DamageMonster {
+            target: 0,
+            dmg: 999,
+        });
+        assert!(c.monsters[0].half_dead);
+        assert!(!c.over, "阶段 1 死亡不判负");
+        c.player.creature.hp = 999;
+        c.player.creature.max_hp = 999;
+        c.step(&Action::EndTurn); // move 3 重生
+        assert!(!c.monsters[0].half_dead);
+        assert_eq!(c.monsters[0].creature.hp, 320, "A9+ 阶段 2 满血 320");
+        assert_eq!(c.monsters[0].next_move, 5, "黑暗回响起手");
+        let php = c.player.creature.hp;
+        c.step(&Action::EndTurn);
+        assert_eq!(c.player.creature.hp, php - 42, "回响 40 + A4 力量 2");
+        // 阶段 2 死亡 = 真死
+        c.exec(Q::DamageMonster {
+            target: 0,
+            dmg: 999,
+        });
+        assert!(c.over && c.won);
+    }
+
+    /// 多努/德卡：攻环交替；力量环/护甲环给全员；神器抵消
+    #[test]
+    fn donu_deca_circle() {
+        let mut c = Combat::new_with(11, 20, &[MonsterKind::Donu, MonsterKind::Deca]);
+        assert_eq!(m_amount(&c, 0, PowerKind::Artifact), Some(3), "A19+ 3");
+        // 首招：Donu(0)=力量环，Deca(1)=光束
+        assert_eq!(c.monsters[0].next_move, 2);
+        assert_eq!(c.monsters[1].next_move, 0);
+        c.player.creature.hp = 999;
+        c.player.creature.max_hp = 999;
+        c.step(&Action::EndTurn);
+        // 力量环：全怪 +3 力量；德卡光束 12×2 + 晕 2
+        assert_eq!(m_amount(&c, 0, PowerKind::Strength), Some(3));
+        assert_eq!(m_amount(&c, 1, PowerKind::Strength), Some(3));
+        assert_eq!(c.player.creature.hp, 999 - 30, "德卡光束吃力量环：(12+3)×2");
+        // 德卡护甲环（交替后）：全怪 +3 多层护甲
+        c.monsters[1].next_move = 2;
+        c.step(&Action::EndTurn);
+        assert_eq!(m_amount(&c, 0, PowerKind::PlatedArmor), Some(3));
+        assert_eq!(m_amount(&c, 1, PowerKind::PlatedArmor), Some(3));
+    }
+
+    /// 吞时者：TimeWarp 12 张牌终止玩家回合；半血加速回半血
+    #[test]
+    fn time_eater_warp_and_haste() {
+        let mut c = Combat::new_with(13, 20, &[MonsterKind::TimeEater]);
+        assert!(m_amount(&c, 0, PowerKind::TimeWarp).is_some());
+        c.player.creature.hp = 999;
+        c.player.creature.max_hp = 999;
+        // 连打 12 张 0 费小刀 → 玩家回合被终止（怪物行动）
+        c.player.draw.clear();
+        c.player.discard.clear();
+        c.player.draw = ["Shiv"; 12].iter().map(|id| CardInst::new(id)).collect();
+        c.player.hand.clear();
+        c.player.energy = 99;
+        let turn0 = c.turn;
+        let mut played = 0;
+        while played < 12 {
+            if c.over || c.turn != turn0 {
+                break;
+            }
+            if c.player.hand.is_empty() {
+                c.draw_cards(5); // 测试辅助：补手牌（不触发 TimeWarp）
+            }
+            if c.player.hand.is_empty() {
+                break;
+            }
+            c.step(&Action::PlayCard {
+                index: 0,
+                target: Some(0),
+            });
+            played += 1;
+        }
+        assert!(c.turn > turn0, "第 12 张牌后回合被终止（怪物行动）");
+        // 半血加速：打掉过半 → 下回合 move 5 → 回半血
+        let max = c.monsters[0].creature.max_hp;
+        c.exec(Q::DamageMonster {
+            target: 0,
+            dmg: max * 3 / 4,
+        });
+        c.step(&Action::EndTurn); // roll → haste
+        assert_eq!(c.monsters[0].next_move, 5, "半血加速");
+        let hp_before = c.monsters[0].creature.hp;
+        c.step(&Action::EndTurn);
+        assert_eq!(c.monsters[0].creature.hp, max / 2, "回到半血");
+        assert!(hp_before <= max / 2);
+    }
+
+    /// Act 3 精英/Boss 同种子重放一致
+    #[test]
+    fn act3_elites_replay_deterministic() {
+        let play = |seed: u64| {
+            let mut c = Combat::new_with(seed, 20, &[MonsterKind::AwakenedOne]);
+            c.player.creature.max_hp = 9999;
+            c.player.creature.hp = 9999;
+            c.player.hand.clear();
+            for _ in 0..14 {
+                if c.over {
+                    break;
+                }
+                c.step(&Action::EndTurn);
+            }
+            c.state_hash()
+        };
+        assert_eq!(play(51), play(51));
+        assert_ne!(play(51), play(52));
     }
 
     fn pamount_monster(c: &Combat, k: PowerKind) -> Option<i32> {
