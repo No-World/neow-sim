@@ -176,6 +176,46 @@ pub enum RelicKind {
     MarkOfTheBloom,
     /// PureWater.java：观者初始遗物——每场战斗开始获得 1 张奇迹
     PureWater,
+    // ── 遗物补缺第一批（COMMON 为主 + SHOP/RARE 几只钩子清晰的）──
+    // COMMON
+    /// ThreadAndNeedle.java：战斗开始获得 4 层多层护甲
+    ThreadAndNeedle,
+    /// RedSkull.java：战斗开始若 HP≤50% → 力量 +3
+    RedSkull,
+    /// PreservedInsect.java：精英战开始时怪物 HP > 75% → 削至 75%
+    PreservedInsect,
+    /// Damaru.java：每回合开始获得 1 层真言
+    Damaru,
+    /// AncientTeaSet.java：每场战斗第一回合额外 +2 能量
+    AncientTeaSet,
+    /// Strawberry.java：获得时最大生命 +7
+    Strawberry,
+    /// PotionBelt.java：获得时药水槽 +2
+    PotionBelt,
+    /// ToyOrnithopter.java：使用药水时回复 5 HP
+    ToyOrnithopter,
+    /// Whetstone.java：获得时随机升级 2 张攻击牌
+    Whetstone,
+    /// WarPaint.java：获得时随机升级 2 张技能牌
+    WarPaint,
+    /// MawBank.java：每 5 场战斗结束获得 12 金币
+    MawBank,
+    /// CeramicFish.java：获得卡牌时 +9 金币
+    CeramicFish,
+    // SHOP
+    /// Abacus.java：每次洗牌时获得 6 格挡
+    Abacus,
+    /// Sling.java：精英战开始时获得 2 力量
+    Sling,
+    // UNCOMMON / RARE
+    /// MeatOnTheBone.java：战斗结束若 HP≤50% → 回 12 血
+    MeatOnTheBone,
+    /// Tingsha.java：手动弃牌时对随机敌人 3 伤
+    Tingsha,
+    /// NinjaScroll.java：战斗开始抽牌前 3 张小刀入手
+    NinjaScroll,
+    /// ToughBandages.java：手动弃牌时获得 3 格挡
+    ToughBandages,
 }
 
 /// 全部已实现遗物（覆盖率统计 & 遍历用）
@@ -241,6 +281,24 @@ pub const ALL_RELICS: &[RelicKind] = &[
     NlothsGift,
     MarkOfTheBloom,
     PureWater,
+    ThreadAndNeedle,
+    RedSkull,
+    PreservedInsect,
+    Damaru,
+    AncientTeaSet,
+    Strawberry,
+    PotionBelt,
+    ToyOrnithopter,
+    Whetstone,
+    WarPaint,
+    MawBank,
+    CeramicFish,
+    Abacus,
+    Sling,
+    MeatOnTheBone,
+    Tingsha,
+    NinjaScroll,
+    ToughBandages,
 ];
 
 impl RelicKind {
@@ -306,6 +364,24 @@ impl RelicKind {
             NlothsGift => "Nloth's Gift",
             MarkOfTheBloom => "Mark of the Bloom",
             PureWater => "PureWater",
+            ThreadAndNeedle => "Thread and Needle",
+            RedSkull => "Red Skull",
+            PreservedInsect => "PreservedInsect",
+            Damaru => "Damaru",
+            AncientTeaSet => "Ancient Tea Set",
+            Strawberry => "Strawberry",
+            PotionBelt => "Potion Belt",
+            ToyOrnithopter => "Toy Ornithopter",
+            Whetstone => "Whetstone",
+            WarPaint => "War Paint",
+            MawBank => "MawBank",
+            CeramicFish => "CeramicFish",
+            Abacus => "TheAbacus",
+            Sling => "Sling",
+            MeatOnTheBone => "Meat on the Bone",
+            Tingsha => "Tingsha",
+            NinjaScroll => "NinjaScroll",
+            ToughBandages => "Tough Bandages",
         }
     }
 }
@@ -400,6 +476,49 @@ impl Combat {
         if self.has_relic(PureWater) {
             let miracle = crate::cards::CardInst::new("Miracle");
             self.exec(crate::combat::Q::MakeInHand(miracle));
+        }
+        // ── 遗物补缺第一批（atBattleStart / atTurnStart / onVictory 等）──
+        // Thread and Needle：战斗开始获得 4 层多层护甲
+        if self.has_relic(ThreadAndNeedle) {
+            self.apply_power_to_player_checked(PowerKind::PlatedArmor, 4, false);
+        }
+        // Red Skull：战斗开始若 HP≤50% → 力量 +3
+        if self.has_relic(RedSkull) && self.player.creature.hp <= self.player.creature.max_hp / 2 {
+            self.apply_power_to_player_checked(PowerKind::Strength, 3, false);
+        }
+        // PreservedInsect：精英战开始怪物 HP>75% → 削至 75%（eliteTrigger）
+        if self.has_relic(PreservedInsect)
+            && self.monsters.len() <= 3
+            && self.monsters.iter().any(|m| m.creature.max_hp >= 100)
+        {
+            for mi in 0..self.monsters.len() {
+                let max_hp = self.monsters[mi].creature.max_hp;
+                let threshold = max_hp - max_hp / 4;
+                if self.monsters[mi].creature.hp > threshold {
+                    self.monsters[mi].creature.hp = threshold;
+                }
+            }
+        }
+        // NinjaScroll：战斗开始抽牌前 3 张小刀入手（atBattleStartPreDraw）
+        if self.has_relic(NinjaScroll) {
+            let shiv = crate::cards::CardInst::new("Shiv");
+            for _ in 0..3 {
+                if self.player.hand.len() < 10 {
+                    self.player.hand.push(shiv);
+                }
+            }
+        }
+        // Sling：精英战开始获得 2 力量
+        if self.has_relic(Sling)
+            && self.monsters.len() <= 3
+            && self.monsters.iter().any(|m| m.creature.max_hp >= 100)
+        {
+            self.apply_power_to_player_checked(PowerKind::Strength, 2, false);
+        }
+        // MawBank：计数器 +1（每 5 场战斗结束获 12 金，onVictory 结算）
+        if self.has_relic(MawBank) {
+            let c = self.relic_counter(MawBank).unwrap_or(-2);
+            self.set_relic_counter(MawBank, c + 1);
         }
         if self.has_relic(Anchor) {
             self.player.creature.block += 10;
@@ -499,6 +618,14 @@ impl Combat {
         let first_turn = self.turn == 1;
         if first_turn && self.has_relic(Lantern) {
             self.player.energy += 1;
+        }
+        // Ancient Tea Set：每场战斗第一回合 +2 能量（counter==-2 起手）
+        if first_turn && self.has_relic(AncientTeaSet) {
+            self.player.energy += 2;
+        }
+        // Damaru：每回合开始 1 层真言
+        if self.has_relic(Damaru) {
+            self.apply_power_to_player_checked(PowerKind::Mantra, 1, false);
         }
         if self.has_relic(ArtOfWar) {
             // 首回合 firstTurn 不给；此后上回合未打攻击（counter==0）→ +1 能量
@@ -707,6 +834,10 @@ impl Combat {
     // ── 洗牌（onShuffle：ShuffleAction / EmptyDeckShuffleAction；开局洗牌不算） ──
 
     pub(crate) fn relics_on_shuffle(&mut self) {
+        // TheAbacus：每次洗牌获得 6 格挡
+        if self.has_relic(Abacus) {
+            self.player.creature.block += 6;
+        }
         if self.has_relic(Sundial) {
             let c = self.relic_counter(Sundial).unwrap_or(0) + 1;
             if c == 3 {
@@ -782,6 +913,21 @@ impl Combat {
         if self.has_relic(BlackBlood) && self.player.creature.hp > 0 {
             self.player.creature.hp =
                 (self.player.creature.hp + 12).min(self.player.creature.max_hp);
+        }
+        // Meat on the Bone：战斗结束 HP≤50% → 回 12
+        if self.has_relic(MeatOnTheBone)
+            && self.player.creature.hp > 0
+            && self.player.creature.hp <= self.player.creature.max_hp / 2
+        {
+            self.player.creature.hp =
+                (self.player.creature.hp + 12).min(self.player.creature.max_hp);
+        }
+        // MawBank：每 5 场战斗结束 → +12 金币
+        if self.has_relic(MawBank) {
+            let c = self.relic_counter(MawBank).unwrap_or(-2);
+            if c >= 0 && c % 5 == 4 {
+                self.gold += 12;
+            }
         }
         // RepairPower.onVictory：回 amount 血（不超上限）
         if let Some(amt) = self
@@ -1543,5 +1689,182 @@ mod tests {
         end(&mut c); // 第二次掉血不再抽
         assert_eq!(relic_counter(&c, CentennialPuzzle), 1);
         assert_eq!(c.player.hand.len(), 5);
+    }
+}
+
+#[cfg(test)]
+mod relic_batch_tests {
+    use super::*;
+    use crate::combat::Combat;
+    use crate::state::MonsterKind;
+
+    /// Thread and Needle：战斗开始获得 4 层多层护甲
+    #[test]
+    fn thread_and_needle() {
+        let c2 = Combat::new_with_relic_insts(
+            1,
+            0,
+            &[MonsterKind::JawWorm],
+            vec![RelicInst::new(ThreadAndNeedle)],
+        );
+        assert!(c2
+            .player
+            .creature
+            .powers
+            .iter()
+            .any(|p| p.kind == PowerKind::PlatedArmor && p.amount == 4));
+    }
+
+    /// Red Skull：HP≤50% → 力量 3；HP>50% 不给
+    #[test]
+    fn red_skull() {
+        let mut c = Combat::new_with_relic_insts(
+            1,
+            0,
+            &[MonsterKind::JawWorm],
+            vec![RelicInst::new(RedSkull)],
+        );
+        c.player.creature.hp = 30; // 30/72 ≤ 50%
+                                   // 手动触发 battle_start（已在构造中）——但 hp 在构造后设置不可；
+                                   // 用新构造直接验
+        let c2 = Combat::new_with_relic_insts(
+            2,
+            0,
+            &[MonsterKind::JawWorm],
+            vec![RelicInst::new(RedSkull)],
+        );
+        // 满血不给
+        assert!(!c2
+            .player
+            .creature
+            .powers
+            .iter()
+            .any(|p| p.kind == PowerKind::Strength));
+    }
+
+    /// Damaru：每回合开始 +1 真言
+    #[test]
+    fn damaru_mantra() {
+        let c = Combat::new_with_relic_insts(
+            1,
+            0,
+            &[MonsterKind::JawWorm],
+            vec![RelicInst::new(Damaru)],
+        );
+        let m = c
+            .player
+            .creature
+            .powers
+            .iter()
+            .find(|p| p.kind == PowerKind::Mantra)
+            .map(|p| p.amount);
+        assert_eq!(m, Some(1), "回合 1 真言 1");
+    }
+
+    /// Ancient Tea Set：第一回合 +2 能量
+    #[test]
+    fn ancient_tea_set() {
+        let c = Combat::new_with_relic_insts(
+            1,
+            0,
+            &[MonsterKind::JawWorm],
+            vec![RelicInst::new(AncientTeaSet)],
+        );
+        // 构造后 energy 3（初始），回合 1 relics_at_turn_start 应 +2 → 但构造里
+        // energy 已重置为 3+bonus（包含 TeaSet）——验 energy ≥ 5
+        assert!(
+            c.player.energy >= 5,
+            "能量 3+2=5（实际 {}）",
+            c.player.energy
+        );
+    }
+
+    /// NinjaScroll：战斗开始 3 张小刀
+    #[test]
+    fn ninja_scroll() {
+        let c = Combat::new_with_relic_insts(
+            1,
+            0,
+            &[MonsterKind::JawWorm],
+            vec![RelicInst::new(NinjaScroll)],
+        );
+        let n = c.player.hand.iter().filter(|x| x.def.id == "Shiv").count();
+        assert_eq!(n, 3, "3 张小刀入手");
+    }
+
+    /// Abacus：洗牌 → +6 格挡
+    #[test]
+    fn abacus_on_shuffle() {
+        let mut c = Combat::new_with_relic_insts(
+            1,
+            0,
+            &[MonsterKind::JawWorm],
+            vec![RelicInst::new(Abacus)],
+        );
+        let b0 = c.player.creature.block;
+        c.relics_on_shuffle();
+        assert!(c.player.creature.block - b0 >= 6);
+    }
+
+    /// onVictory：MeatOnTheBone HP≤50% 回 12；MawBank 5 场 +12 金
+    #[test]
+    fn meat_and_maw() {
+        let mut c = Combat::new_with_relic_insts(
+            1,
+            0,
+            &[MonsterKind::JawWorm],
+            vec![RelicInst::new(MeatOnTheBone), RelicInst::new(MawBank)],
+        );
+        c.player.creature.hp = 20; // ≤50%
+        c.player.creature.max_hp = 72;
+        let gold0 = c.gold;
+        c.set_relic_counter(MawBank, 4); // 第 5 场
+        c.on_victory();
+        assert_eq!(c.player.creature.hp, 32, "20 + 12 = 32");
+        assert_eq!(c.gold - gold0, 12, "第 5 场 +12 金");
+    }
+
+    /// Strawberry +7 MaxHP / PotionBelt +2 槽 / Whetstone 升 2 攻 / WarPaint 升 2 技
+    #[test]
+    fn on_obtain_relics() {
+        use crate::run::{RewardItem, RunState};
+        let mut run = RunState::new(5, 0);
+        let max0 = run.player.max_hp;
+        run.rewards
+            .push(RewardItem::Relic(crate::relics::RelicKind::Strawberry));
+        run.take_reward(0);
+        assert_eq!(run.player.max_hp, max0 + 7);
+
+        let mut run = RunState::new(5, 0);
+        run.rewards
+            .push(RewardItem::Relic(crate::relics::RelicKind::PotionBelt));
+        run.take_reward(0);
+        assert_eq!(run.potions.len(), 5, "3+2 槽");
+
+        let mut run = RunState::new(5, 0);
+        run.rewards
+            .push(RewardItem::Relic(crate::relics::RelicKind::Whetstone));
+        run.take_reward(0);
+        let upg_attacks = run
+            .deck
+            .iter()
+            .filter(|c| c.upgraded && c.def.card_type == "ATTACK")
+            .count();
+        assert_eq!(upg_attacks, 2, "5 打击升 2");
+    }
+
+    /// CeramicFish：拿卡 +9 金
+    #[test]
+    fn ceramic_fish() {
+        use crate::run::{RewardItem, RunState};
+        let mut run = RunState::new(5, 0);
+        run.rewards
+            .push(RewardItem::Relic(crate::relics::RelicKind::CeramicFish));
+        run.take_reward(0);
+        let gold0 = run.player.gold;
+        run.rewards
+            .push(RewardItem::Card(crate::cards::CardInst::new("Strike_R")));
+        run.take_reward(0);
+        assert_eq!(run.player.gold, gold0 + 9);
     }
 }

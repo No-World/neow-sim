@@ -1686,13 +1686,71 @@ impl RunState {
         let item = self.rewards.remove(idx);
         match item {
             RewardItem::Gold(g) => self.player.gold += g,
-            RewardItem::Card(c) => self.deck.push(c),
+            RewardItem::Card(c) => {
+                self.deck.push(c);
+                // CeramicFish：获得卡牌时 +9 金币
+                if self
+                    .relics
+                    .iter()
+                    .any(|r| r.kind == crate::relics::RelicKind::CeramicFish)
+                {
+                    self.player.gold += 9;
+                }
+            }
             RewardItem::Potion(k) => {
                 if let Some(slot) = self.potions.iter_mut().find(|s| s.is_none()) {
                     *slot = Some(crate::potions::PotionInst::new(k));
                 } // 满槽：弃（简化：满槽领取前应由调用方先 discard）
             }
-            RewardItem::Relic(k) => self.relics.push(crate::relics::RelicInst::new(k)),
+            RewardItem::Relic(k) => {
+                self.relics.push(crate::relics::RelicInst::new(k));
+                self.relic_on_obtain(k);
+            }
+        }
+    }
+
+    /// 遗物 onEquip（获得时效果；逐行对照源码 onEquip）
+    fn relic_on_obtain(&mut self, kind: crate::relics::RelicKind) {
+        use crate::relics::RelicKind;
+        match kind {
+            // Strawberry.java：Max HP +7
+            RelicKind::Strawberry => {
+                self.player.max_hp += 7;
+                self.player.hp += 7;
+            }
+            // PotionBelt.java：药水槽 +2
+            RelicKind::PotionBelt => {
+                self.potions.push(None);
+                self.potions.push(None);
+            }
+            // Whetstone.java：随机升级 2 张攻击牌（miscRng 洗牌取前 2）
+            RelicKind::Whetstone => {
+                self.upgrade_random_cards("ATTACK", 2);
+            }
+            // WarPaint.java：随机升级 2 张技能牌
+            RelicKind::WarPaint => {
+                self.upgrade_random_cards("SKILL", 2);
+            }
+            _ => {}
+        }
+    }
+
+    /// miscRng 洗牌后取前 n 张可升级指定类型牌
+    fn upgrade_random_cards(&mut self, card_type: &str, n: usize) {
+        let mut idxs: Vec<usize> = self
+            .deck
+            .iter()
+            .enumerate()
+            .filter(|(_, c)| !c.upgraded && c.def.card_type == card_type)
+            .map(|(i, _)| i)
+            .collect();
+        // Fisher-Yates（miscRng）取前 n
+        for i in (1..idxs.len()).rev() {
+            let j = self.rng.misc.random_range(i as i32).max(0) as usize;
+            idxs.swap(i, j);
+        }
+        for &i in idxs.iter().take(n) {
+            self.deck[i].upgraded = true;
         }
     }
 
