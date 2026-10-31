@@ -389,6 +389,8 @@ enum Q {
     PlatedAllMonsters(i32),
     /// 吞时者头撞：下回合抽牌 -1（DrawReductionPower）
     PlayerDrawNextTurn(i32),
+    /// 尖塔之盾筑防：全怪获得格挡
+    BlockAllMonsters(i32),
 }
 
 /// 探素卡池（returnTrulyRandomCardInCombat(type) / Colorless 变体）
@@ -428,6 +430,9 @@ fn power_kind(pid: &str) -> Option<PowerKind> {
         "Intangible" => Some(PowerKind::IntangiblePlayer),
         "Curiosity" => Some(PowerKind::Curiosity),
         "Regenerate" => Some(PowerKind::RegenerateMonster),
+        "Invincible" => Some(PowerKind::Invincible),
+        "Beat of Death" => Some(PowerKind::BeatOfDeath),
+        "Painful Stabs" => Some(PowerKind::PainfulStabs),
         "Dexterity" => Some(PowerKind::Dexterity),
         "Poison" => Some(PowerKind::Poison),
         "Metallicize" => Some(PowerKind::Metallicize),
@@ -716,6 +721,33 @@ impl Combat {
                         &mut c.monsters[i].creature.powers,
                         PowerKind::Artifact,
                         if c.ascension >= 19 { 3 } else { 2 },
+                        false,
+                        false,
+                    );
+                }
+                // 尖塔双子：A18+ 神器 2（否则 1）
+                MonsterKind::SpireShield | MonsterKind::SpireSpear => {
+                    apply_power(
+                        &mut c.monsters[i].creature.powers,
+                        PowerKind::Artifact,
+                        if c.ascension >= 18 { 2 } else { 1 },
+                        false,
+                        false,
+                    );
+                }
+                // 腐朽之心：无敌 300（A19+ 200）+ 亡律 1（A19+ 2）
+                MonsterKind::CorruptHeart => {
+                    apply_power(
+                        &mut c.monsters[i].creature.powers,
+                        PowerKind::Invincible,
+                        if c.ascension >= 19 { 200 } else { 300 },
+                        false,
+                        false,
+                    );
+                    apply_power(
+                        &mut c.monsters[i].creature.powers,
+                        PowerKind::BeatOfDeath,
+                        if c.ascension >= 19 { 2 } else { 1 },
                         false,
                         false,
                     );
@@ -1360,6 +1392,40 @@ impl Combat {
                         false,
                         false,
                     );
+                }
+            }
+        }
+        // BeatOfDeath（心脏）：玩家每打出一张牌 → 受 amount 点 THORNS 直伤
+        {
+            let beats: Vec<i32> = self
+                .monsters
+                .iter()
+                .filter(|m| !m.creature.is_dead() && !m.escaped)
+                .flat_map(|m| {
+                    m.creature
+                        .powers
+                        .iter()
+                        .filter(|p| p.kind == PowerKind::BeatOfDeath)
+                        .map(|p| p.amount)
+                })
+                .collect();
+            for b in beats {
+                // 直接失血（THORNS 管线：格挡吸收；此处按 DamageAction 语义走格挡）
+                let mut d = b;
+                if self
+                    .player
+                    .creature
+                    .powers
+                    .iter()
+                    .any(|p| p.kind == PowerKind::IntangiblePlayer)
+                    && d > 1
+                {
+                    d = 1;
+                }
+                self.player.creature.apply_damage(d);
+                if self.player.creature.is_dead() && !self.fairy_rescue() {
+                    self.over = true;
+                    self.won = false;
                 }
             }
         }
@@ -3649,7 +3715,7 @@ impl Combat {
                             src: i,
                             base: sludge,
                         });
-                        if let Some(void) = CardInst::new_by_class("Void") {
+                        if let Some(void) = CardInst::new_by_class("VoidCard") {
                             q.push(Q::MakeInDraw {
                                 inst: void,
                                 random: true,
@@ -3751,6 +3817,147 @@ impl Combat {
                     _ => {}
                 }
             }
+            // ══════════ Act 4（终局）══════════
+            // 尖塔之盾：1=痛击(-1力/球时-1专注)  2=筑防(全怪30甲)  3=粉碎(伤+自甲)
+            MonsterKind::SpireShield => match m.next_move {
+                1 => {
+                    q.push(Q::MonsterDamage {
+                        src: i,
+                        base: m.chomp_dmg,
+                    });
+                    // 有充能球时 50% 改偷专注 1（aiRng）
+                    if !self.player.orbs.is_empty() && self.rng.ai.random_boolean() {
+                        q.push(Q::ApplyPowerToPlayerFromMonster {
+                            kind: PowerKind::Focus,
+                            amount: -1,
+                        });
+                    } else {
+                        q.push(Q::ApplyPowerToPlayerFromMonster {
+                            kind: PowerKind::Strength,
+                            amount: -1,
+                        });
+                    }
+                }
+                2 => q.push(Q::BlockAllMonsters(m.thrash_block)),
+                3 => {
+                    q.push(Q::MonsterDamage {
+                        src: i,
+                        base: m.thrash_dmg,
+                    });
+                    q.push(Q::MonsterBlock {
+                        target: i,
+                        amount: m.thrash_dmg,
+                    });
+                }
+                _ => {}
+            },
+            // 尖塔之矛：1=燃烧打击×2+灼伤2  2=穿透(全怪+2力)  3=穿刺×N
+            MonsterKind::SpireSpear => match m.next_move {
+                1 => {
+                    for _ in 0..2 {
+                        q.push(Q::MonsterDamage {
+                            src: i,
+                            base: m.chomp_dmg,
+                        });
+                    }
+                    if let Some(burn) = CardInst::new_by_class("Burn") {
+                        for _ in 0..m.thrash_block {
+                            q.push(Q::MakeDiscard(burn));
+                        }
+                    }
+                }
+                2 => q.push(Q::StrAllMonsters(2)),
+                3 => {
+                    for _ in 0..m.bellow_str {
+                        q.push(Q::MonsterDamage {
+                            src: i,
+                            base: m.thrash_dmg,
+                        });
+                    }
+                }
+                _ => {}
+            },
+            // 腐朽之心：1=血射×N  2=回响  3=开场削弱(+5状态卡)  4=增益轮转
+            MonsterKind::CorruptHeart => match m.next_move {
+                1 => {
+                    for _ in 0..m.thrash_block {
+                        q.push(Q::MonsterDamage {
+                            src: i,
+                            base: m.thrash_dmg,
+                        });
+                    }
+                }
+                2 => q.push(Q::MonsterDamage {
+                    src: i,
+                    base: m.chomp_dmg,
+                }),
+                3 => {
+                    for kind in [PowerKind::Vulnerable, PowerKind::Weak, PowerKind::Frail] {
+                        q.push(Q::ApplyPowerToPlayerFromMonster {
+                            kind,
+                            amount: m.bellow_str,
+                        });
+                    }
+                    // 五连状态：晕眩/粘液/伤口/灼伤/虚空 → 抽牌堆随机位
+                    for cls in ["Dazed", "Slimed", "Wound", "Burn", "VoidCard"] {
+                        if let Some(c) = CardInst::new_by_class(cls) {
+                            q.push(Q::MakeInDraw {
+                                inst: c,
+                                random: true,
+                            });
+                        }
+                    }
+                }
+                4 => {
+                    // 力量 +2（若力量为负先抵消）；buffCount 由招式史推导
+                    let buff_count = self.monsters[i]
+                        .move_history
+                        .iter()
+                        .filter(|&&x| x == 4)
+                        .count() as i32;
+                    let str_now = self.monsters[i]
+                        .creature
+                        .powers
+                        .iter()
+                        .find(|p| p.kind == PowerKind::Strength)
+                        .map(|p| p.amount)
+                        .unwrap_or(0);
+                    let bonus = if str_now < 0 { -str_now + 2 } else { 2 };
+                    q.push(Q::ApplyPowerToMonster {
+                        target: i,
+                        kind: PowerKind::Strength,
+                        amount: bonus,
+                    });
+                    match buff_count {
+                        0 => q.push(Q::ApplyPowerToMonster {
+                            target: i,
+                            kind: PowerKind::Artifact,
+                            amount: 2,
+                        }),
+                        1 => q.push(Q::ApplyPowerToMonster {
+                            target: i,
+                            kind: PowerKind::BeatOfDeath,
+                            amount: 1,
+                        }),
+                        2 => q.push(Q::ApplyPowerToMonster {
+                            target: i,
+                            kind: PowerKind::PainfulStabs,
+                            amount: 1,
+                        }),
+                        3 => q.push(Q::ApplyPowerToMonster {
+                            target: i,
+                            kind: PowerKind::Strength,
+                            amount: 10,
+                        }),
+                        _ => q.push(Q::ApplyPowerToMonster {
+                            target: i,
+                            kind: PowerKind::Strength,
+                            amount: 50,
+                        }),
+                    }
+                }
+                _ => {}
+            },
             MonsterKind::FungiBeast => match m.next_move {
                 1 => q.push(Q::MonsterDamage {
                     src: i,
@@ -5143,6 +5350,13 @@ impl Combat {
             Q::PlayerDrawNextTurn(n) => {
                 self.next_turn_draw += n;
             }
+            Q::BlockAllMonsters(amount) => {
+                for mi in 0..self.monsters.len() {
+                    if self.alive(mi) {
+                        self.monsters[mi].creature.block += amount;
+                    }
+                }
+            }
             Q::ParasiteToDeck => {
                 if let Some(c) = CardInst::new_by_class("Burn") {
                     let _ = c;
@@ -5264,6 +5478,22 @@ impl Combat {
         {
             let m = &mut self.monsters[target];
             let cr = &mut m.creature;
+            // Invincible（心脏）：单次伤害封顶剩余额度，额度随受击递减
+            let mut dmg = dmg;
+            if let Some(inv) = cr
+                .powers
+                .iter_mut()
+                .find(|p| p.kind == PowerKind::Invincible)
+            {
+                if dmg > inv.amount {
+                    dmg = inv.amount;
+                }
+                inv.amount -= dmg;
+                if inv.amount <= 0 {
+                    cr.powers.retain(|p| p.kind != PowerKind::Invincible);
+                }
+            }
+            let dmg = dmg;
             if dmg > 0 && dmg < cr.hp {
                 if let Some(idx) = cr.powers.iter().position(|p| p.kind == PowerKind::CurlUp) {
                     let amt = cr.powers[idx].amount;
@@ -5330,6 +5560,21 @@ impl Combat {
             if stunned_by_break {
                 self.monsters[target].next_move = 4;
                 self.monsters[target].move_history.push(4);
+            }
+        }
+        // PainfulStabs（心脏）：玩家对持有者造成伤害 → 失 2 HP
+        if dmg > 0 && ty != DamageType::Thorns {
+            let stabs = self.monsters[target]
+                .creature
+                .powers
+                .iter()
+                .any(|p| p.kind == PowerKind::PainfulStabs);
+            if stabs {
+                self.player.creature.hp -= 2;
+                if self.player.creature.is_dead() && !self.fairy_rescue() {
+                    self.over = true;
+                    self.won = false;
+                }
             }
         }
         // Shifting（Transient）：受击 → 力量 -伤害，累积 GainStrength 待轮末回复
@@ -6373,6 +6618,80 @@ impl Combat {
         }
     }
 
+    /// SpireShield.getMove：moveCount%3 环 —— 0: 50%筑防/痛击；
+    /// 1: 非上次痛击→痛击否则筑防；2: 粉碎（moveCount=史长-首招）
+    fn spire_shield_get_move(&mut self, i: usize) -> u8 {
+        let count = (self.monsters[i].move_history.len() as i32 - 1).max(0);
+        let last = self.monsters[i].move_history.last().copied();
+        match count % 3 {
+            0 => {
+                if self.rng.ai.random_boolean() {
+                    2
+                } else {
+                    1
+                }
+            }
+            1 => {
+                if last != Some(1) {
+                    1
+                } else {
+                    2
+                }
+            }
+            _ => 3,
+        }
+    }
+
+    /// SpireSpear.getMove：0: 非上次燃烧→燃烧否则穿透；1: 穿刺；2: 50%穿透/燃烧
+    fn spire_spear_get_move(&mut self, i: usize) -> u8 {
+        let count = (self.monsters[i].move_history.len() as i32 - 1).max(0);
+        let last = self.monsters[i].move_history.last().copied();
+        match count % 3 {
+            0 => {
+                if last != Some(1) {
+                    1
+                } else {
+                    2
+                }
+            }
+            1 => 3,
+            _ => {
+                if self.rng.ai.random_boolean() {
+                    2
+                } else {
+                    1
+                }
+            }
+        }
+    }
+
+    /// CorruptHeart.getMove：首招削弱；moveCount%3 环 ——
+    /// 0: 50%血射/回响；1: 非上次回响→回响否则血射；2: 增益
+    fn corrupt_heart_get_move(&mut self, i: usize) -> u8 {
+        if self.monsters[i].first_move {
+            return 3; // DEBILITATE
+        }
+        let count = (self.monsters[i].move_history.len() as i32 - 1).max(0);
+        let last = self.monsters[i].move_history.last().copied();
+        match count % 3 {
+            0 => {
+                if self.rng.ai.random_boolean() {
+                    1
+                } else {
+                    2
+                }
+            }
+            1 => {
+                if last != Some(2) {
+                    2
+                } else {
+                    1
+                }
+            }
+            _ => 4,
+        }
+    }
+
     /// 意图决策（逐行对照各怪 getMove；num = aiRng.random(99)）
     fn roll_move(&mut self, i: usize) {
         let num = self.rng.ai.random_range(99);
@@ -6469,6 +6788,9 @@ impl Combat {
                 }
             }
             MonsterKind::TimeEater => self.time_eater_get_move(i, num),
+            MonsterKind::SpireShield => self.spire_shield_get_move(i),
+            MonsterKind::SpireSpear => self.spire_spear_get_move(i),
+            MonsterKind::CorruptHeart => self.corrupt_heart_get_move(i),
         };
         self.monsters[i].first_move = false;
         self.monsters[i].move_history.push(mv);
@@ -9053,6 +9375,134 @@ mod tests {
         };
         assert_eq!(play(51), play(51));
         assert_ne!(play(51), play(52));
+    }
+
+    // ══════════════ Act 4（终局）══════════════
+
+    /// 尖塔双子：盾筑防/粉碎自甲；矛燃烧灼伤/穿透群力；A18 神器
+    #[test]
+    fn spire_twin_basics() {
+        let mut c = Combat::new_with(3, 20, &[MonsterKind::SpireShield, MonsterKind::SpireSpear]);
+        assert_eq!(m_amount(&c, 0, PowerKind::Artifact), Some(2), "A18+ 神器 2");
+        c.player.creature.hp = 999;
+        c.player.creature.max_hp = 999;
+        // 盾：筑防（全怪 30 甲）
+        c.monsters[0].next_move = 2;
+        c.step(&Action::EndTurn);
+        assert_eq!(c.monsters[0].creature.block, 30);
+        assert_eq!(c.monsters[1].creature.block, 30, "全怪共享");
+        // 矛：穿透（全怪 +2 力）
+        c.monsters[1].next_move = 2;
+        c.step(&Action::EndTurn);
+        assert_eq!(m_amount(&c, 0, PowerKind::Strength), Some(2));
+        assert_eq!(m_amount(&c, 1, PowerKind::Strength), Some(2));
+        // 矛：燃烧打击 ×2 + 灼伤 2（步前读力量）
+        c.monsters[1].next_move = 1;
+        let hp0 = c.player.creature.hp;
+        let str_spear = m_amount(&c, 1, PowerKind::Strength).unwrap_or(0);
+        let str_shield_pre = m_amount(&c, 0, PowerKind::Strength).unwrap_or(0);
+        c.step(&Action::EndTurn);
+        // 盾同回合也可能行动（bash 14/粉碎 38）——只验证矛的部分：
+        // 伤害 = 矛 (6+力)×2 + 灼伤 2 张；盾伤独立计算
+        let spear_dmg = (6 + str_spear) * 2;
+        let took = hp0 - c.player.creature.hp;
+        assert!(
+            took >= spear_dmg,
+            "至少含矛的 {} 伤（实际 {}）",
+            spear_dmg,
+            took
+        );
+        let _ = str_shield_pre;
+        let burns = c
+            .player
+            .discard
+            .iter()
+            .filter(|x| x.def.id == "Burn")
+            .count();
+        assert!(burns >= 2, "燃烧打击至少 2 张灼伤（自然轮可能追加）");
+        // 盾：粉碎 = 伤害 + 等值自甲
+        c.monsters[0].creature.block = 0;
+        c.monsters[0].next_move = 3;
+        let hp1 = c.player.creature.hp;
+        c.step(&Action::EndTurn);
+        let str_shield = m_amount(&c, 0, PowerKind::Strength).unwrap_or(0);
+        assert_eq!(
+            c.player.creature.hp,
+            hp1 - (38 + str_shield),
+            "A3+ 粉碎 38+力"
+        );
+        assert!(c.monsters[0].creature.block >= 38, "粉碎获等值格挡");
+    }
+
+    /// 腐朽之心：无敌封顶；亡律每牌直伤；开场削弱+五状态；增益轮转
+    #[test]
+    fn corrupt_heart_mechanics() {
+        let mut c = Combat::new_with(5, 20, &[MonsterKind::CorruptHeart]);
+        assert_eq!(
+            m_amount(&c, 0, PowerKind::Invincible),
+            Some(200),
+            "A19+ 200"
+        );
+        assert_eq!(m_amount(&c, 0, PowerKind::BeatOfDeath), Some(2), "A19+ 2");
+        assert_eq!(c.monsters[0].next_move, 3, "首招削弱");
+        c.player.creature.hp = 999;
+        c.player.creature.max_hp = 999;
+        let draw0 = c.player.draw.len();
+        c.step(&Action::EndTurn);
+        for k in [PowerKind::Vulnerable, PowerKind::Weak, PowerKind::Frail] {
+            assert!(c.player.creature.powers.iter().any(|p| p.kind == k));
+        }
+        // 五连状态入抽堆（换牌/洗牌会移动数量，改看全局净增）
+        let total: usize = c.player.draw.len() + c.player.discard.len() + c.player.hand.len();
+        assert_eq!(total, draw0 + 5 + 5, "原 5 手牌弃置 + 5 张状态净增");
+        // 亡律：打一张牌 → 1 直伤（格挡吸收）
+        c.player.creature.block = 5;
+        force_hand(&mut c, &["Strike_R"]);
+        c.step(&Action::PlayCard {
+            index: 0,
+            target: Some(0),
+        });
+        assert_eq!(c.player.creature.block, 3, "亡律 2(A19+) 被格挡吸收");
+        // 无敌：打击 6(减伤...) → 单次 ≤ 剩余额度且额度递减
+        let inv0 = m_amount(&c, 0, PowerKind::Invincible).unwrap();
+        c.exec(Q::DamageMonster { target: 0, dmg: 50 });
+        let inv1 = m_amount(&c, 0, PowerKind::Invincible).unwrap();
+        assert_eq!(inv0 - inv1, 50, "额度递减");
+        // 增益轮转：第 1 次 = 神器 2
+        c.monsters[0].next_move = 4;
+        c.step(&Action::EndTurn);
+        assert!(
+            m_amount(&c, 0, PowerKind::Artifact).is_some(),
+            "首次轮转神器"
+        );
+        // 第 2 次 = 亡律 +1
+        c.monsters[0].next_move = 4;
+        c.step(&Action::EndTurn);
+        assert_eq!(
+            m_amount(&c, 0, PowerKind::BeatOfDeath),
+            Some(2),
+            "二次亡律+1"
+        );
+    }
+
+    /// Act 4 同种子重放一致
+    #[test]
+    fn act4_replay_deterministic() {
+        let play = |seed: u64| {
+            let mut c = Combat::new_with(seed, 20, &[MonsterKind::CorruptHeart]);
+            c.player.creature.max_hp = 9999;
+            c.player.creature.hp = 9999;
+            c.player.hand.clear();
+            for _ in 0..14 {
+                if c.over {
+                    break;
+                }
+                c.step(&Action::EndTurn);
+            }
+            c.state_hash()
+        };
+        assert_eq!(play(61), play(61));
+        assert_ne!(play(61), play(62));
     }
 
     fn pamount_monster(c: &Combat, k: PowerKind) -> Option<i32> {

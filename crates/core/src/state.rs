@@ -255,6 +255,10 @@ pub enum MonsterKind {
     Donu,
     Deca,
     TimeEater,
+    // —— Act 4（终局）——
+    SpireShield,
+    SpireSpear,
+    CorruptHeart,
 }
 
 /// 通用怪物状态（M2 覆盖：大颚虫、邪教徒；M3 走数据驱动定义表）
@@ -850,6 +854,38 @@ impl MonsterState {
                 let (reverb, slam) = if ascension >= 2 { (8, 32) } else { (7, 26) };
                 (hp, (reverb, slam, 20, 0, 0, 0, 0))
             }
+            // ══════════ Act 4（终局）══════════
+            // 尖塔之盾：chomp=痛击(12/14 A3+) thrash=粉碎(34/38+自甲)
+            // thrash_block=筑防 30；moveCount 由史长推导；A18 神器 2
+            MonsterKind::SpireShield => {
+                let hp = if ascension >= 8 { 125 } else { 110 };
+                if ascension >= 3 {
+                    (hp, (14, 38, 30, 0, 0, 0, 0))
+                } else {
+                    (hp, (12, 34, 30, 0, 0, 0, 0))
+                }
+            }
+            // 尖塔之矛：chomp=燃烧打击(5/6)×2+灼伤2 thrash=穿刺10
+            // thrash_block=灼伤数2 bellow_str=穿刺段数(3/4)；A18 神器 2
+            MonsterKind::SpireSpear => {
+                let hp = if ascension >= 8 { 180 } else { 160 };
+                if ascension >= 3 {
+                    (hp, (6, 10, 2, 4, 0, 0, 0))
+                } else {
+                    (hp, (5, 10, 2, 3, 0, 0, 0))
+                }
+            }
+            // 腐朽之心：chomp=回响(40/45 A4+) thrash=血射每段2
+            // thrash_block=血射段数(12/15) bellow_str=削弱2；
+            // moveCount/buffCount 由招式史推导；战前无敌300(200)+亡律1(2)
+            MonsterKind::CorruptHeart => {
+                let hp = if ascension >= 9 { 800 } else { 750 };
+                if ascension >= 4 {
+                    (hp, (45, 2, 15, 2, 0, 0, 0))
+                } else {
+                    (hp, (40, 2, 12, 2, 0, 0, 0))
+                }
+            }
         };
         Self {
             kind,
@@ -1140,6 +1176,21 @@ impl MonsterState {
                 4 => Intent::AttackDebuff,
                 _ => Intent::Attack,
             },
+            MonsterKind::SpireShield => match self.next_move {
+                1 => Intent::AttackDebuff, // BASH（-1 力量）
+                2 => Intent::Defend,       // FORTIFY
+                _ => Intent::AttackDefend, // SMASH
+            },
+            MonsterKind::SpireSpear => match self.next_move {
+                1 => Intent::AttackDebuff, // BURN_STRIKE
+                2 => Intent::Buff,         // PIERCER
+                _ => Intent::Attack,       // SKEWER ×N
+            },
+            MonsterKind::CorruptHeart => match self.next_move {
+                3 => Intent::Debuff, // DEBILITATE（开场）
+                4 => Intent::Buff,   // 增益轮转
+                _ => Intent::Attack, // ECHO / BLOOD_SHOTS
+            },
         }
     }
 
@@ -1367,6 +1418,21 @@ impl MonsterState {
             MonsterKind::TimeEater => match self.next_move {
                 2 => Some(self.chomp_dmg),
                 4 => Some(self.thrash_dmg),
+                _ => None,
+            },
+            MonsterKind::SpireShield => match self.next_move {
+                1 => Some(self.chomp_dmg),
+                3 => Some(self.thrash_dmg),
+                _ => None,
+            },
+            MonsterKind::SpireSpear => match self.next_move {
+                1 => Some(self.chomp_dmg),
+                3 => Some(self.thrash_dmg),
+                _ => None,
+            },
+            MonsterKind::CorruptHeart => match self.next_move {
+                2 => Some(self.chomp_dmg),
+                1 => Some(self.thrash_dmg),
                 _ => None,
             },
         }

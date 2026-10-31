@@ -113,6 +113,14 @@ pub enum PowerKind {
     Curiosity,
     /// 再生怪（RegenerateMonster：自身回合开始回复 amount；AwakenedOne）
     RegenerateMonster,
+    // —— Act 4（终局）——
+    /// 无敌（Invincible：单次受击上限=剩余额度，额度随受击递减；
+    /// 心脏 300/200 = 整场战斗最多吃这么多伤害）
+    Invincible,
+    /// 亡律（BeatOfDeath：玩家每打出一张牌 → 受 amount 点 THORNS 直伤）
+    BeatOfDeath,
+    /// 痛击（PainfulStabs：玩家每次对持有者造成非 THORNS 伤害 → 失 2 HP）
+    PainfulStabs,
 }
 
 impl PowerKind {
@@ -221,6 +229,9 @@ impl Power {
             PowerKind::TimeWarp => "Time Warp",
             PowerKind::Curiosity => "Curiosity",
             PowerKind::RegenerateMonster => "Regenerate",
+            PowerKind::Invincible => "Invincible",
+            PowerKind::BeatOfDeath => "Beat of Death",
+            PowerKind::PainfulStabs => "Painful Stabs",
         }
     }
 
