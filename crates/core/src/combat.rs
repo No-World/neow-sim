@@ -10669,4 +10669,83 @@ mod tests {
             assert!(engine_playable(def), "{id} 应随别名接入解锁");
         }
     }
+
+    /// 阻塞审计：不可执行卡牌的原因分桶（打印用）
+    #[test]
+    fn audit_blockers() {
+        use crate::cards::ENGINE_POWERS;
+        use std::collections::BTreeMap;
+        let mut buckets: BTreeMap<String, Vec<&str>> = BTreeMap::new();
+        fn expr_bad(e: &crate::effects::Expr) -> bool {
+            matches!(
+                e,
+                crate::effects::Expr::Const(_) | crate::effects::Expr::Raw(_)
+            )
+        }
+        fn why(e: &crate::effects::Effect) -> Option<String> {
+            use crate::effects::Effect::*;
+            match e {
+                Damage(t, _x) if !matches!(t, crate::effects::Target::Enemy) => {
+                    Some("目标类型".into())
+                }
+                Damage(_, x)
+                | DamageAll(x)
+                | Block(x)
+                | Draw(x)
+                | GainEnergy(x)
+                | Heal(x)
+                | LoseHP(x)
+                    if expr_bad(x) =>
+                {
+                    Some("表达式".into())
+                }
+                ApplyPower(_, pid, x) => {
+                    if expr_bad(x) {
+                        Some("表达式".into())
+                    } else if !ENGINE_POWERS.contains(pid) {
+                        Some(format!("power:{pid}"))
+                    } else {
+                        None
+                    }
+                }
+                Unsupported(name) => Some(format!("动作:{name}")),
+                Repeat(n, inner) => {
+                    if expr_bad(n) {
+                        Some("表达式".into())
+                    } else {
+                        inner.iter().find_map(why)
+                    }
+                }
+                IfStance(_, inner) | IfNotStance(_, inner) => inner.iter().find_map(why),
+                _ => None,
+            }
+        }
+        for d in CARDS.iter() {
+            if d.cost == Some(-2) {
+                buckets
+                    .entry("不可打出(-2费)".into())
+                    .or_default()
+                    .push(d.id);
+                continue;
+            }
+            if !engine_playable(d) {
+                let reason = d
+                    .effects
+                    .iter()
+                    .find_map(&why)
+                    .unwrap_or_else(|| "其他".into());
+                buckets.entry(reason).or_default().push(d.id);
+            }
+        }
+        let mut total = 0;
+        for (k, v) in &buckets {
+            if k.starts_with("power:") || k.starts_with("动作:") {
+                println!("{:>3}  {}  [{}]", v.len(), k, v.join(","));
+            } else {
+                println!("{:>3}  {}", v.len(), k);
+            }
+            total += v.len();
+        }
+        println!("TOTAL blocked = {total}");
+    }
 }
