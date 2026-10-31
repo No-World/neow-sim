@@ -1269,6 +1269,20 @@ pub struct RunState {
     potion_pity: i32,
     /// 当前房间奖励（待领取）
     pub rewards: Vec<RewardItem>,
+    /// 商店（进入 Shop 房间时生成；协议层 shop_enter 后可购买）
+    pub shop: Option<crate::shop::Shop>,
+    /// 删卡服务价（整局累计：75 起，每次 +25；ShopScreen.purgeCost 静态量）
+    pub purge_cost: i32,
+    /// 当前事件（EventRoom.event）
+    pub event: Option<crate::events::EventState>,
+    /// 幕内事件池（不重复；每次进幕重填）
+    pub event_pool: Vec<crate::events::EventKind>,
+    pub shrine_pool: Vec<crate::events::EventKind>,
+    pub special_pool: Vec<crate::events::EventKind>,
+    /// 事件战斗标记（胜利后事件收尾；奖励由事件预置，卡牌/药水照掷）
+    pub event_combat: bool,
+    /// 休息房待选择（true = 已入房未休息）
+    pub rest_available: bool,
     /// 房间结束后待结算：拿走的卡进主牌组等
     pub pending_relic_tier_roll: bool,
 }
@@ -1309,8 +1323,17 @@ impl RunState {
             potion_pity: 0,
             rewards: Vec::new(),
             pending_relic_tier_roll: false,
+            shop: None,
+            purge_cost: 75,
+            event: None,
+            event_pool: Vec::new(),
+            shrine_pool: Vec::new(),
+            special_pool: Vec::new(),
+            event_combat: false,
+            rest_available: false,
         };
         s.populate_act();
+        s.init_event_pools();
         s
     }
 
@@ -1390,11 +1413,16 @@ impl RunState {
     }
 
     /// 进入当前节点的房间。战斗类经 `Combat::new_run_battle` 注入主牌组/药水栏/
-    /// 遗物栏/局外 HP 与金币；休息房回 30%；事件/商店/宝箱为占位（下一批）
+    /// 遗物栏/局外 HP 与金币；商店进货；事件入池抽取；休息房挂起待选
+    /// （`rest_sleep` / `rest_smith`，对照 RestRoom.onPlayerEntry 不自动回血）
     pub fn enter_room(&mut self) {
         let (y, x) = self.pos;
         let room = self.map.rows[y][x].room;
         self.rewards.clear();
+        self.shop = None;
+        self.event = None;
+        self.event_combat = false;
+        self.rest_available = false;
         match room {
             Some(RoomKind::Monster) | Some(RoomKind::Elite) => {
                 let kinds = if room == Some(RoomKind::Elite) {
@@ -1422,8 +1450,25 @@ impl RunState {
                 // 战斗内喝掉的药水同步回局外
             }
             Some(RoomKind::Rest) => {
-                let heal = (self.player.max_hp as f32 * 0.3) as i32;
-                self.player.hp = (self.player.hp + heal).min(self.player.max_hp);
+                // RestRoom.onPlayerEntry：不自动回血——休息选项由 rest_sleep/
+                // rest_smith 结算（协议层 rest 动作）
+                self.rest_available = true;
+            }
+            Some(RoomKind::Shop) => {
+                // ShopScreen.init：进货（Merchant 构造）+ 定价 + 删卡价快照
+                let owned: Vec<_> = self.relics.iter().map(|r| r.kind).collect();
+                self.shop = Some(crate::shop::Shop::generate(
+                    self.ascension,
+                    &mut self.card_blizz,
+                    &owned,
+                    self.purge_cost,
+                    Self::IMPLEMENTED_RELICS,
+                    &mut self.rng,
+                ));
+            }
+            Some(RoomKind::Event) => {
+                // EventRoom.onPlayerEntry → generateEvent(eventRng)
+                self.enter_event();
             }
             Some(RoomKind::Boss) => {
                 let relics: Vec<_> = self.relics.clone();
@@ -1629,6 +1674,8 @@ impl RunState {
     /// 胜利生成奖励（金币由 generate_rewards 掷，本方法不再加 gold_reward）
     pub fn settle_combat(&mut self, gold_reward: i32) {
         if let Some(mut c) = self.combat.take() {
+            let was_event_combat = self.event_combat;
+            self.event_combat = false;
             // 胜利遗物钩子（BurningBlood 回血 / FaceOfCleric MaxHP+1）
             let max_hp_gain = if c.won { c.on_victory() } else { 0 };
             self.player.hp = c.player.creature.hp.max(0);
@@ -1642,6 +1689,12 @@ impl RunState {
             self.player.gold = c.gold + if c.won { gold_reward } else { 0 };
             if c.won {
                 self.generate_rewards();
+            }
+            if was_event_combat {
+                // 事件战斗（Dead Adventurer）：奖励已预置，战斗后事件收尾
+                if let Some(ev) = &mut self.event {
+                    ev.done = true;
+                }
             }
             if c.won && self.pos.0 == MAP_HEIGHT - 1 {
                 // 幕 Boss 战胜利 → 下一幕（本批：3 幕打完即整局胜利）
@@ -1665,9 +1718,34 @@ impl RunState {
                     self.encounter_idx = 0;
                     self.elite_idx = 0;
                     self.populate_act();
+                    self.init_event_pools();
                 }
             }
         }
+    }
+
+    /// 休息·睡觉：回复 30% 最大生命（向上取整对照 RestRoom：
+    /// heal = (int)(maxHealth * 0.3)——A7 内截断）
+    pub fn rest_sleep(&mut self) {
+        if !self.rest_available {
+            return;
+        }
+        let heal = (self.player.max_hp as f32 * 0.3) as i32;
+        self.player.hp = (self.player.hp + heal).min(self.player.max_hp);
+        self.rest_available = false;
+    }
+
+    /// 休息·锻造：升级主牌组一张卡（协议层 grid_select 后回调）
+    pub fn rest_smith(&mut self, deck_idx: usize) {
+        if !self.rest_available {
+            return;
+        }
+        if let Some(c) = self.deck.get_mut(deck_idx) {
+            if !c.upgraded {
+                c.upgraded = true;
+            }
+        }
+        self.rest_available = false;
     }
 }
 
@@ -1681,5 +1759,52 @@ impl IfEmpty for &'static [MonsterKind] {
         } else {
             self
         }
+    }
+}
+
+/// 休息房：进房不自动回血；睡觉回 30%；锻造升级；只能选一项
+#[test]
+fn rest_room_options() {
+    let mut run = RunState::new(31, 0);
+    run.map.rows[2][3].room = Some(RoomKind::Rest);
+    run.pos = (2, 3);
+    run.player.hp = 40;
+    run.enter_room();
+    assert_eq!(run.player.hp, 40, "onPlayerEntry 不回血");
+    assert!(run.rest_available);
+    run.rest_sleep();
+    assert_eq!(run.player.hp, 40 + 24, "80×30% = 24");
+    assert!(!run.rest_available);
+    run.rest_smith(0); // 已休息 → 无效
+    assert!(!run.deck[0].upgraded);
+    // 另一局：锻造
+    let mut run = RunState::new(31, 0);
+    run.map.rows[2][3].room = Some(RoomKind::Rest);
+    run.pos = (2, 3);
+    run.enter_room();
+    run.rest_smith(0);
+    assert!(run.deck[0].upgraded);
+    assert!(!run.rest_available);
+    run.rest_sleep(); // 已锻造 → 无效
+    assert_eq!(run.player.hp, run.player.max_hp);
+}
+
+/// 商店房间进入即进货；事件房间进入即抽取（Act1 池非空）
+#[test]
+fn shop_and_event_rooms_enter() {
+    for seed in [1u64, 7, 99] {
+        let mut run = RunState::new(seed, 0);
+        run.map.rows[1][3].room = Some(RoomKind::Shop);
+        run.pos = (1, 3);
+        run.enter_room();
+        assert!(run.shop.is_some(), "商店进货");
+        assert!(run.event.is_none());
+        let mut run = RunState::new(seed, 0);
+        run.floor = 10;
+        run.map.rows[1][3].room = Some(RoomKind::Event);
+        run.pos = (1, 3);
+        run.enter_room();
+        assert!(run.event.is_some(), "Act1 事件池非空必有事件");
+        assert!(!run.event_pool.is_empty() || !run.shrine_pool.is_empty());
     }
 }

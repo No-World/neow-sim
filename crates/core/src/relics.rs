@@ -153,6 +153,18 @@ pub enum RelicKind {
     /// CentennialPuzzle.java：每场战斗第一次实际掉血时抽 3 张
     /// （wasHPLost，counter 0=未用/1=已用，atPreBattle 清零）
     CentennialPuzzle,
+    // ── 事件/纪念遗物（无战斗行为；GoldenIdol.java / WarpedTongs.java /
+    // SpiritPoop.java 仅分数与图鉴效果）──
+    /// GoldenIdol.java：金神像事件战利（Moai Head 事件门槛用，无战斗钩子）
+    GoldenIdol,
+    /// WarpedTongs.java：邪恶铁匠「翻查」战利（无战斗钩子）
+    WarpedTongs,
+    /// SpiritPoop.java：篝火献祭诅咒所得（纯分数遗物）
+    SpiritPoop,
+    /// OddMushroom.java：蘑菇屋战利：atBattleStart 敌方全体 +1 力量
+    /// （源码有战斗行为，行为层接入随怪物 Mushroomer 留待后续批次；
+    /// 当前仅作为事件奖励发放）
+    OddMushroom,
 }
 
 /// 全部已实现遗物（覆盖率统计 & 遍历用）
@@ -207,6 +219,12 @@ pub const ALL_RELICS: &[RelicKind] = &[
     TungstenRod,
     Torii,
     CentennialPuzzle,
+    // ── 事件/纪念遗物（无战斗行为；GoldenIdol.java / WarpedTongs.java /
+    // SpiritPoop.java / OddMushroom.java 仅分数与图鉴效果）──
+    GoldenIdol,
+    WarpedTongs,
+    SpiritPoop,
+    OddMushroom,
 ];
 
 impl RelicKind {
@@ -263,6 +281,10 @@ impl RelicKind {
             TungstenRod => "TungstenRod",
             Torii => "Torii",
             CentennialPuzzle => "Centennial Puzzle",
+            GoldenIdol => "Golden Idol",
+            WarpedTongs => "Warped Tongs",
+            SpiritPoop => "Spirit Poop",
+            OddMushroom => "Odd Mushroom",
         }
     }
 }
