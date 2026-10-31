@@ -1513,6 +1513,38 @@ impl RunState {
                 // EventRoom.onPlayerEntry → generateEvent(eventRng)
                 self.enter_event();
             }
+            Some(RoomKind::Treasury) => {
+                // 宝箱房（TreasureRoom.onPlayerEntry → getRandomChest →
+                // AbstractChest.randomizeReward；三幕同概率：小 50/中 33/大 17）。
+                // 箱子打开即入奖励屏（协议层 reward 动作拿取/跳过，无独立开箱动作；
+                // ⚠️ 偏差：金币额掷从开箱点击提前到进房，两者间无其他 treasureRng
+                // 消耗，确定性等价；遗物具体件走已实现池（tier 骰照掷）
+                let size_roll = self.rng.treasure.random_start_end(0, 99);
+                let (common_c, uncommon_c, gold_c, gold_amt) = if size_roll < 50 {
+                    (75, 25, 50, 25) // 小箱：恒普通/罕见，金币 25
+                } else if size_roll < 50 + 33 {
+                    (35, 50, 35, 50) // 中箱
+                } else {
+                    (0, 75, 50, 75) // 大箱：恒罕见/稀有
+                };
+                let roll = self.rng.treasure.random_start_end(0, 99);
+                if roll < gold_c {
+                    let jitter = 0.9 + self.rng.treasure.random_float() * 0.2;
+                    let g = ((gold_amt as f32) * jitter + 0.5) as i32; // MathUtils.round
+                    self.rewards.push(RewardItem::Gold(g));
+                }
+                // tier 阈值与金币判定同掷（roll）；具体遗物 roll_relic_kind（relicRng）
+                let _tier = if roll < common_c {
+                    "COMMON"
+                } else if roll < common_c + uncommon_c {
+                    "UNCOMMON"
+                } else {
+                    "RARE"
+                };
+                if let Some(k) = self.roll_relic_kind() {
+                    self.rewards.push(RewardItem::Relic(k));
+                }
+            }
             Some(RoomKind::Boss) => {
                 let relics: Vec<_> = self.relics.clone();
                 self.combat = Some(Combat::new_run_battle(
@@ -2010,4 +2042,41 @@ fn silent_ring_of_snake() {
         .iter()
         .chain(c.player.hand.iter())
         .any(|x| x.def.id == "Neutralize"));
+}
+
+/// 宝箱房：进房即战利入奖励屏（1 遗物 + 概率金币），拿取/跳过走既有 reward 动作
+#[test]
+fn treasury_room_loot() {
+    for seed in [3u64, 17, 42, 99, 2024] {
+        let mut run = RunState::new(seed, 0);
+        run.map.rows[8][3].room = Some(RoomKind::Treasury); // 行 8 恒宝箱
+        run.pos = (8, 3);
+        run.enter_room();
+        let relics: Vec<_> = run
+            .rewards
+            .iter()
+            .filter(|r| matches!(r, RewardItem::Relic(_)))
+            .collect();
+        assert_eq!(relics.len(), 1, "恒 1 遗物");
+        assert!(run.rewards.len() <= 2, "至多再加金币");
+        if let Some(RewardItem::Gold(g)) = run
+            .rewards
+            .iter()
+            .find(|r| matches!(r, RewardItem::Gold(_)))
+        {
+            let amt = *g as f32;
+            assert!(
+                (25.0 * 0.9..=75.0 * 1.1 + 0.5).contains(&amt),
+                "金币额在箱型范围内：{g}"
+            );
+        }
+        // 拿取走既有管线：take_reward 后遗物入栏
+        let idx = run
+            .rewards
+            .iter()
+            .position(|r| matches!(r, RewardItem::Relic(_)))
+            .unwrap();
+        run.take_reward(idx);
+        assert!(run.relics.len() >= 2, "宝箱遗物入栏");
+    }
 }
