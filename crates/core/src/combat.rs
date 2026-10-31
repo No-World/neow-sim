@@ -454,6 +454,12 @@ fn power_kind(pid: &str) -> Option<PowerKind> {
         "Metallicize" => Some(PowerKind::Metallicize),
         "Regeneration" => Some(PowerKind::Regen),
         "Focus" => Some(PowerKind::Focus),
+        // 数据层 cls 名别名（ApplyPower 携带的是 *Power 后缀类名）
+        "FocusPower" => Some(PowerKind::Focus),
+        "EnergizedPower" => Some(PowerKind::Energized),
+        "IntangiblePlayerPower" => Some(PowerKind::IntangiblePlayer),
+        "NoDrawPower" => Some(PowerKind::NoDraw),
+        "MantraPower" => Some(PowerKind::Mantra),
         "Demon Form" => Some(PowerKind::DemonForm),
         "Berserk" => Some(PowerKind::Berserk),
         "Brutality" => Some(PowerKind::Brutality),
@@ -6128,6 +6134,32 @@ impl Combat {
             source_is_monster,
             self.turn_has_ended,
         );
+        // MantraPower.stackPower：叠加后满 10 → 进神性并 -10（≤0 移除）
+        if kind == PowerKind::Mantra {
+            let mut divinity = false;
+            if let Some(p) = self
+                .player
+                .creature
+                .powers
+                .iter_mut()
+                .find(|pw| pw.kind == PowerKind::Mantra)
+            {
+                if p.amount >= 10 {
+                    p.amount -= 10;
+                    divinity = true;
+                    let rem = p.amount <= 0;
+                    if rem {
+                        self.player
+                            .creature
+                            .powers
+                            .retain(|pw| pw.kind != PowerKind::Mantra);
+                    }
+                }
+            }
+            if divinity {
+                self.exec(Q::ChangeStance(crate::state::Stance::Divinity));
+            }
+        }
     }
 
     /// 瓶中精灵免死钩子（源码 AbstractPlayer.damage 1467 行附近）——
@@ -6176,6 +6208,16 @@ impl Combat {
     pub fn draw_cards(&mut self, n: usize) {
         if self.player.hand.len() >= 10 {
             return; // createHandIsFullDialog：完全停止
+        }
+        // NoDrawPower：本回合不能再抽牌（轮末随衰减移除）
+        if self
+            .player
+            .creature
+            .powers
+            .iter()
+            .any(|p| p.kind == PowerKind::NoDraw)
+        {
+            return;
         }
         // Confusion（Snecko 瞪视）：抽牌费用 0..3 重掷（永改，cardRandomRng）
         let confused = self
@@ -10554,5 +10596,77 @@ mod tests {
             r,
             crate::run::RewardItem::Relic(crate::relics::RelicKind::RedMask)
         )));
+    }
+
+    // ── 角色补充批次：真言/禁抽/别名解锁 ──────────────
+
+    /// MantraPower.stackPower：满 10 → 进神性并 -10（余 0 移除）
+    #[test]
+    fn mantra_to_divinity() {
+        let mut c = Combat::new(1);
+        c.apply_power_to_player_checked(PowerKind::Mantra, 4, false);
+        assert_eq!(c.player.stance, crate::state::Stance::Neutral);
+        c.apply_power_to_player_checked(PowerKind::Mantra, 6, false);
+        assert_eq!(
+            c.player.stance,
+            crate::state::Stance::Divinity,
+            "满 10 进神性"
+        );
+        assert!(
+            c.player
+                .creature
+                .powers
+                .iter()
+                .all(|p| p.kind != PowerKind::Mantra),
+            "余 0 移除"
+        );
+        // 超 10：留余量
+        c.player.stance = crate::state::Stance::Neutral;
+        c.apply_power_to_player_checked(PowerKind::Mantra, 13, false);
+        assert_eq!(c.player.stance, crate::state::Stance::Divinity);
+        assert_eq!(
+            c.player
+                .creature
+                .powers
+                .iter()
+                .find(|p| p.kind == PowerKind::Mantra)
+                .map(|p| p.amount),
+            Some(3),
+            "13 → 进神留 3"
+        );
+    }
+
+    /// NoDrawPower：本回合禁抽，轮末随衰减移除
+    #[test]
+    fn no_draw_blocks_then_decays() {
+        let mut c = Combat::new(1);
+        c.apply_power_to_player_checked(PowerKind::NoDraw, 1, false);
+        c.draw_cards(3);
+        assert_eq!(c.player.hand.len(), 5, "本回合禁抽，手牌不变");
+        assert!(c
+            .player
+            .creature
+            .powers
+            .iter()
+            .any(|p| p.kind == PowerKind::NoDraw));
+        c.step(&Action::EndTurn); // 轮末：弃手牌 → 衰减移除 → 下回合重抽
+        assert!(
+            c.player
+                .creature
+                .powers
+                .iter()
+                .all(|p| p.kind != PowerKind::NoDraw),
+            "轮末移除"
+        );
+        assert_eq!(c.player.hand.len(), 5, "下回合照抽 5");
+    }
+
+    /// 数据层 cls 别名（FocusPower 等）解锁：聚能/活化/无形牌可执行
+    #[test]
+    fn power_alias_unlocks_cards() {
+        for id in ["Defragment", "Adrenaline", "Impervious"] {
+            let def = CARDS.iter().find(|d| d.id == id).expect(id);
+            assert!(engine_playable(def), "{id} 应随别名接入解锁");
+        }
     }
 }

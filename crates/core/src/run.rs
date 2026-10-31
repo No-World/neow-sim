@@ -1245,6 +1245,8 @@ pub enum RewardItem {
 pub struct RunState {
     pub seed: u64,
     pub ascension: i32,
+    /// 可玩角色（决定起始组/初始遗物/血量/卡池色/职业药水）
+    pub char_kind: crate::state::CharKind,
     pub act: u8,
     pub map: GameMap,
     pub pos: (usize, usize), // 当前节点 (y, x)
@@ -1291,20 +1293,36 @@ pub struct RunState {
 }
 
 impl RunState {
-    /// 开新局：生成 Act 1 地图 + 遭遇序列（populateMonsterList 语义：
-    /// 弱怪 2 / 强怪 12 / 精英 10；首强怪排除表；不与上一个/上上个重复）
+    /// 开新局（默认铁甲战士，兼容旧调用方）
     pub fn new(seed: u64, ascension: i32) -> Self {
+        Self::new_for(seed, ascension, crate::state::CharKind::Ironclad)
+    }
+
+    /// 开新局（指定角色）：起始组/初始遗物/血量（A6 起始 90%、
+    /// A14 上限 -loss）/遭遇序列同源码逐行
+    pub fn new_for(seed: u64, ascension: i32, char_kind: crate::state::CharKind) -> Self {
         let mut rng = RngStreams::new(seed);
         let map = generate_dungeon(1, ascension, &mut rng.map);
+        // A14：decreaseMaxHealth(getAscensionMaxHPLoss())；A6：起始 = round(90%)
+        let mut max_hp = char_kind.base_max_hp();
+        if ascension >= 14 {
+            max_hp -= char_kind.asc_hp_loss();
+        }
+        let hp = if ascension >= 6 {
+            ((max_hp as f32) * 0.9 + 0.5) as i32
+        } else {
+            max_hp
+        };
         let mut s = Self {
             seed,
             ascension,
+            char_kind,
             act: 1,
             map,
             pos: (0, 0),
             player: RunPlayer {
-                hp: if ascension >= 6 { 72 } else { 80 },
-                max_hp: 80,
+                hp,
+                max_hp,
                 gold: 99,
             },
             rng,
@@ -1317,11 +1335,9 @@ impl RunState {
             floor: 0,
             over: false,
             won: false,
-            deck: crate::cards::ironclad_starter(ascension),
+            deck: crate::cards::starter_deck(char_kind.id(), ascension),
             potions: vec![None, None, None],
-            relics: vec![crate::relics::RelicInst::new(
-                crate::relics::RelicKind::BurningBlood,
-            )],
+            relics: vec![crate::relics::RelicInst::new(char_kind.starting_relic())],
             card_blizz: 5,
             potion_pity: 0,
             rewards: Vec::new(),
@@ -1485,6 +1501,7 @@ impl RunState {
                 let owned: Vec<_> = self.relics.iter().map(|r| r.kind).collect();
                 self.shop = Some(crate::shop::Shop::generate(
                     self.ascension,
+                    self.char_kind,
                     &mut self.card_blizz,
                     &owned,
                     self.purge_cost,
@@ -1561,7 +1578,7 @@ impl RunState {
             (40 + self.potion_pity).clamp(0, 100)
         };
         if self.rng.potion.random_start_end(0, 99) < chance {
-            let pool = crate::potions::pool_for_class("Ironclad");
+            let pool = crate::potions::pool_for_class(self.char_kind.id());
             let k = crate::potions::return_random_potion(&pool, false, &mut self.rng.potion);
             self.rewards.push(RewardItem::Potion(k));
             self.potion_pity -= 10;
@@ -1606,7 +1623,9 @@ impl RunState {
         loop {
             let pool: Vec<&'static crate::effects::CardDef> = crate::generated::CARDS
                 .iter()
-                .filter(|d| d.color == "RED" && d.rarity == rarity && d.status != "no_use")
+                .filter(|d| {
+                    d.color == self.char_kind.color() && d.rarity == rarity && d.status != "no_use"
+                })
                 .collect();
             if pool.is_empty() {
                 // 兜底：任何稀有度（防数据空洞）
@@ -1832,4 +1851,163 @@ fn shop_and_event_rooms_enter() {
         assert!(run.event.is_some(), "Act1 事件池非空必有事件");
         assert!(!run.event_pool.is_empty() || !run.shrine_pool.is_empty());
     }
+}
+
+/// 四角色开局：起始组/血量/初始遗物/职业卡池与药水（A0/A6/A14 矩阵）
+#[test]
+fn four_characters_setup() {
+    use crate::state::CharKind;
+    // A0：基础血量与初始遗物
+    let table = [
+        (CharKind::Ironclad, 80, "Bash", "Burning Blood"),
+        (CharKind::Silent, 70, "Neutralize", "Ring of the Snake"),
+        (CharKind::Defect, 75, "Dualcast", "Cracked Core"),
+        (CharKind::Watcher, 72, "Eruption", "PureWater"),
+    ];
+    for (ch, hp, signature, relic_id) in table {
+        let run = RunState::new_for(3, 0, ch);
+        assert_eq!(run.player.max_hp, hp, "{:?} 基础血量", ch);
+        assert_eq!(run.player.hp, hp);
+        assert_eq!(run.relics[0].kind.id(), relic_id, "{:?} 初始遗物", ch);
+        assert!(
+            run.deck.iter().any(|c| c.def.id == signature),
+            "{:?} 起始组含 {signature}",
+            ch
+        );
+        assert!(run
+            .deck
+            .iter()
+            .all(|c| { c.def.color == ch.color() || c.def.color == "COLORLESS" }));
+    }
+    // A6：起始 = round(90%)，上限不变（AbstractDungeon 2574）
+    let s6 = RunState::new_for(3, 6, CharKind::Silent);
+    assert_eq!((s6.player.hp, s6.player.max_hp), (63, 70));
+    let w6 = RunState::new_for(3, 6, CharKind::Watcher);
+    assert_eq!(
+        (w6.player.hp, w6.player.max_hp),
+        (65, 72),
+        "round(72×0.9)=65"
+    );
+    // A14：上限 -loss（铁甲 5 其余 4）后再按 90% 起始
+    let i14 = RunState::new_for(3, 14, CharKind::Ironclad);
+    assert_eq!(
+        (i14.player.max_hp, i14.player.hp),
+        (75, 68),
+        "75, round(75×.9)=68"
+    );
+    let d14 = RunState::new_for(3, 14, CharKind::Defect);
+    assert_eq!(
+        (d14.player.max_hp, d14.player.hp),
+        (71, 64),
+        "round(71×.9)=63.8→64"
+    );
+    // A10：进阶之灾
+    let s10 = RunState::new_for(3, 10, CharKind::Silent);
+    assert!(s10.deck.iter().any(|c| c.def.id == "AscendersBane"));
+}
+
+/// 职业卡池：四角色战斗奖励 3 张全是本职业色（观者出紫、机器人出蓝）
+#[test]
+fn four_characters_card_reward_pool() {
+    use crate::state::CharKind;
+    for ch in CharKind::all() {
+        let mut run = RunState::new_for(11, 0, ch);
+        run.map.rows[1][3].room = Some(RoomKind::Monster);
+        run.pos = (1, 3);
+        run.enter_room();
+        run.combat = {
+            let mut c = run.combat.take().unwrap();
+            for m in c.monsters.iter_mut() {
+                m.creature.hp = 0;
+            }
+            c.over = true;
+            c.won = true;
+            Some(c)
+        };
+        run.settle_combat(0);
+        let cards: Vec<_> = run
+            .rewards
+            .iter()
+            .filter_map(|r| match r {
+                RewardItem::Card(c) => Some(c.def.color),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(cards.len(), 3, "{:?} 三张卡牌奖励", ch);
+        assert!(
+            cards.iter().all(|c| *c == ch.color()),
+            "{:?} 全本职业色",
+            ch
+        );
+    }
+}
+
+/// 四角色商店进货职业色 + 药水职业池（沉默出本能药水可行——只验色与生成）
+#[test]
+fn four_characters_shop_stock() {
+    use crate::state::CharKind;
+    for ch in CharKind::all() {
+        let mut run = RunState::new_for(11, 0, ch);
+        run.map.rows[1][3].room = Some(RoomKind::Shop);
+        run.pos = (1, 3);
+        run.enter_room();
+        let shop = run.shop.as_ref().unwrap();
+        assert!(
+            shop.cards.iter().all(|c| c.card.def.color == ch.color()),
+            "{:?} 商店色卡",
+            ch
+        );
+        assert_eq!(shop.potions.len(), 3);
+    }
+}
+
+/// 观者开局：进战斗纯水给奇迹、爆裂/守夜姿态可用
+#[test]
+fn watcher_purewater_and_stances() {
+    use crate::state::CharKind;
+    let mut run = RunState::new_for(7, 0, CharKind::Watcher);
+    run.map.rows[1][3].room = Some(RoomKind::Monster);
+    run.pos = (1, 3);
+    run.enter_room();
+    let c = run.combat.as_ref().unwrap();
+    assert!(
+        c.player.hand.iter().any(|x| x.def.id == "Miracle"),
+        "纯水开局奇迹"
+    );
+    // Eruption（爆裂）进愤怒：伤害×2 双向（用 Combat 单测语境内验）
+}
+
+/// 机器人开局：破碎核心战前充能 1 闪电球
+#[test]
+fn defect_cracked_core_channel() {
+    use crate::state::CharKind;
+    let mut run = RunState::new_for(7, 0, CharKind::Defect);
+    run.map.rows[1][3].room = Some(RoomKind::Monster);
+    run.pos = (1, 3);
+    run.enter_room();
+    let c = run.combat.as_ref().unwrap();
+    assert_eq!(c.player.orbs.len(), 1, "战前 1 球");
+    assert!(matches!(
+        c.player.orbs[0].kind,
+        crate::state::OrbKind::Lightning
+    ));
+}
+
+/// 沉默开局：蛇戒首回合抽 7（5+2）
+#[test]
+fn silent_ring_of_snake() {
+    use crate::state::CharKind;
+    let mut run = RunState::new_for(7, 0, CharKind::Silent);
+    run.map.rows[1][3].room = Some(RoomKind::Monster);
+    run.pos = (1, 3);
+    run.enter_room();
+    let c = run.combat.as_ref().unwrap();
+    assert_eq!(c.player.hand.len(), 7, "蛇戒 +2");
+    // Neutralize（-neutralize 打 3 + 虚弱 1）与 Survivor 可用性
+    assert!(c
+        .player
+        .draw
+        .iter()
+        .chain(c.player.hand.iter())
+        .any(|x| x.def.id == "Neutralize"));
 }

@@ -174,6 +174,8 @@ pub enum RelicKind {
     NlothsGift,
     /// MarkOfTheBloom.java：心灵绽放——禁止一切治疗（局外钩子待接，先入档）
     MarkOfTheBloom,
+    /// PureWater.java：观者初始遗物——每场战斗开始获得 1 张奇迹
+    PureWater,
 }
 
 /// 全部已实现遗物（覆盖率统计 & 遍历用）
@@ -238,6 +240,7 @@ pub const ALL_RELICS: &[RelicKind] = &[
     BloodyIdol,
     NlothsGift,
     MarkOfTheBloom,
+    PureWater,
 ];
 
 impl RelicKind {
@@ -302,6 +305,7 @@ impl RelicKind {
             BloodyIdol => "Bloody Idol",
             NlothsGift => "Nloth's Gift",
             MarkOfTheBloom => "Mark of the Bloom",
+            PureWater => "PureWater",
         }
     }
 }
@@ -391,6 +395,11 @@ impl Combat {
         }
         if self.has_relic(BagOfPreparation) {
             self.draw_cards(2);
+        }
+        // PureWater.java：战斗开始获得 1 张奇迹（atBattleStart → addToHand）
+        if self.has_relic(PureWater) {
+            let miracle = crate::cards::CardInst::new("Miracle");
+            self.exec(crate::combat::Q::MakeInHand(miracle));
         }
         if self.has_relic(Anchor) {
             self.player.creature.block += 10;

@@ -114,6 +114,7 @@ impl Shop {
     /// `owned`（已持有遗物）、`purge_cost`（整局累计删卡价）。
     pub fn generate(
         ascension: i32,
+        char_kind: crate::state::CharKind,
         card_blizz: &mut i32,
         owned: &[RelicKind],
         purge_cost: i32,
@@ -127,7 +128,7 @@ impl Shop {
             loop {
                 // rollRarity：商店基线 rare 9 / uncommon 37（重掷时连稀有度一起）
                 let rarity = roll_rarity_shop(&mut rng.card, card_blizz);
-                let card = pick_from_pool(Some(ty), "RED", rarity, &mut rng.card);
+                let card = pick_from_pool(Some(ty), char_kind.color(), rarity, &mut rng.card);
                 // 同型相邻去重（仅槽位 1/3 检查上一张）
                 if i % 2 == 1 && cards[i - 1].card.def.id == card.def.id {
                     continue;
@@ -194,7 +195,7 @@ impl Shop {
         }
 
         // ── initPotions：3 瓶（returnRandomPotion：potionRng）──
-        let pool = crate::potions::pool_for_class("Ironclad");
+        let pool = crate::potions::pool_for_class(char_kind.id());
         let mut potions = Vec::new();
         for _ in 0..3 {
             let kind = return_random_potion(&pool, false, &mut rng.potion);

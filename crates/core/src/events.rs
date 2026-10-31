@@ -1975,7 +1975,7 @@ impl RunState {
 
     /// PotionHelper.getRandomPotion：potionRng 全池均匀（无稀有度筛）
     fn random_potion_uniform(&mut self) -> PotionKind {
-        let pool = crate::potions::pool_for_class("Ironclad");
+        let pool = crate::potions::pool_for_class(self.char_kind.id());
         let roll = self.rng.potion.random_range(pool.len() as i32 - 1).max(0) as usize;
         pool[roll.min(pool.len() - 1)]
     }
@@ -1985,7 +1985,7 @@ impl RunState {
     fn transform_random_card(&mut self) -> CardInst {
         let pool: Vec<&'static crate::effects::CardDef> = CARDS
             .iter()
-            .filter(|d| d.color == "RED" && d.status != "no_use")
+            .filter(|d| d.color == self.char_kind.color() && d.status != "no_use")
             .collect();
         let roll = self.rng.misc.random_range(pool.len() as i32 - 1).max(0) as usize;
         CardInst {
@@ -2079,7 +2079,9 @@ impl RunState {
     fn pick_red_card(&mut self, rarity: &str) -> CardInst {
         let pool: Vec<&'static crate::effects::CardDef> = CARDS
             .iter()
-            .filter(|d| d.color == "RED" && d.rarity == rarity && d.status != "no_use")
+            .filter(|d| {
+                d.color == self.char_kind.color() && d.rarity == rarity && d.status != "no_use"
+            })
             .collect();
         if pool.is_empty() {
             return CardInst::new("Strike_R");
@@ -2319,10 +2321,10 @@ mod tests {
             2,
             "升级 2 张"
         );
-        // A15：round(80×0.3)=24，且 A6+ 起始生命 72
+        // A15（含 A14：max 75）：round(75×0.3)=23，A6 起始 round(75×0.9)=68
         let mut run = with_event(6, 15, EventKind::ShiningLight);
         run.choose_event_option(0);
-        assert_eq!(run.player.hp, 72 - 24);
+        assert_eq!(run.player.hp, 68 - 23);
     }
 
     /// The Woman in Blue：30 金买 2 药水（进奖励列表）
@@ -2647,7 +2649,7 @@ mod tests {
         assert_eq!(run.deck.iter().filter(|c| c.def.id == "Ghostly").count(), 5);
         let mut run = with_event(27, 15, EventKind::Ghosts);
         run.choose_event_option(0);
-        assert_eq!(run.player.max_hp, 80 - 40);
+        assert_eq!(run.player.max_hp, 75 - 38, "A14 减上限后 ceil(75×0.5)=38");
         assert_eq!(
             run.deck.iter().filter(|c| c.def.id == "Ghostly").count(),
             3,

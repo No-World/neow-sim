@@ -42,6 +42,85 @@ impl Creature {
     }
 }
 
+/// 可玩角色（AbstractPlayer 子类；局外层参数化用）
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum CharKind {
+    Ironclad,
+    Silent,
+    Defect,
+    Watcher,
+}
+
+impl CharKind {
+    /// 数据层 id（CHARACTERS / PotionHelper 键）
+    pub fn id(&self) -> &'static str {
+        match self {
+            CharKind::Ironclad => "Ironclad",
+            CharKind::Silent => "TheSilent",
+            CharKind::Defect => "Defect",
+            CharKind::Watcher => "Watcher",
+        }
+    }
+
+    /// 卡池色（CardColor）
+    pub fn color(&self) -> &'static str {
+        match self {
+            CharKind::Ironclad => "RED",
+            CharKind::Silent => "GREEN",
+            CharKind::Defect => "BLUE",
+            CharKind::Watcher => "PURPLE",
+        }
+    }
+
+    /// 基础最大生命（构造器）
+    pub fn base_max_hp(&self) -> i32 {
+        match self {
+            CharKind::Ironclad => 80,
+            CharKind::Silent => 70,
+            CharKind::Defect => 75,
+            CharKind::Watcher => 72,
+        }
+    }
+
+    /// getAscensionMaxHPLoss（A14 减上限）：铁甲 5，其余 4
+    pub fn asc_hp_loss(&self) -> i32 {
+        match self {
+            CharKind::Ironclad => 5,
+            _ => 4,
+        }
+    }
+
+    /// 初始遗物（starting_relics[0]）
+    pub fn starting_relic(&self) -> crate::relics::RelicKind {
+        use crate::relics::RelicKind;
+        match self {
+            CharKind::Ironclad => RelicKind::BurningBlood,
+            CharKind::Silent => RelicKind::SnakeRing,
+            CharKind::Defect => RelicKind::CrackedCore,
+            CharKind::Watcher => RelicKind::PureWater,
+        }
+    }
+
+    pub fn from_id(id: &str) -> Option<Self> {
+        match id {
+            "Ironclad" => Some(CharKind::Ironclad),
+            "TheSilent" | "Silent" => Some(CharKind::Silent),
+            "Defect" => Some(CharKind::Defect),
+            "Watcher" => Some(CharKind::Watcher),
+            _ => None,
+        }
+    }
+
+    pub fn all() -> [CharKind; 4] {
+        [
+            CharKind::Ironclad,
+            CharKind::Silent,
+            CharKind::Defect,
+            CharKind::Watcher,
+        ]
+    }
+}
+
 /// 观者姿态（stances/*.java：倍率只作用于 NORMAL）
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Stance {
@@ -50,7 +129,6 @@ pub enum Stance {
     Calm,
     Divinity,
 }
-
 impl Stance {
     pub fn from_id(id: &str) -> Option<Stance> {
         match id {

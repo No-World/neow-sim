@@ -129,6 +129,11 @@ pub enum PowerKind {
     /// powers/PenNibPower.java，Pen Nib 遗物第 9 张攻击后授予；
     /// priority=6：晚于力量/干劲（5），早于虚弱（99））
     PenNib,
+    // —— 角色补充批次 ——
+    /// 禁抽（NoDrawPower：本回合不能再抽牌，轮末移除；Impervious 等）
+    NoDraw,
+    /// 真言（MantraPower：屈身/祈祷等叠加；满 10 → 自动进入神性并清零）
+    Mantra,
 }
 
 impl PowerKind {
@@ -241,6 +246,8 @@ impl Power {
             PowerKind::BeatOfDeath => "Beat of Death",
             PowerKind::PainfulStabs => "Painful Stabs",
             PowerKind::Vigor => "Vigor",
+            PowerKind::NoDraw => "NoDrawPower",
+            PowerKind::Mantra => "MantraPower",
             PowerKind::PenNib => "Pen Nib",
         }
     }
@@ -262,6 +269,7 @@ impl Power {
                 | PowerKind::Weak
                 | PowerKind::Frail
                 | PowerKind::IntangiblePlayer
+                | PowerKind::NoDraw
         )
     }
 

@@ -28,6 +28,13 @@ pub const ENGINE_POWERS: &[&str] = &[
     "Dark Embrace",
     "Rage",
     "Focus",
+    "FocusPower",
+    "Energized",
+    "EnergizedPower",
+    "IntangiblePlayer",
+    "IntangiblePlayerPower",
+    "NoDrawPower",
+    "MantraPower",
     "Plated Armor",
 ];
 
@@ -199,16 +206,21 @@ pub fn engine_playable(def: &CardDef) -> bool {
     def.effects.iter().all(effect_supported)
 }
 
-/// 铁甲战士起始卡组（来自 generated::CHARACTERS；A10+ 追加进阶之灾）
-pub fn ironclad_starter(ascension: i32) -> Vec<CardInst> {
+/// 指定角色起始卡组（generated::CHARACTERS；A10+ 追加进阶之灾）
+pub fn starter_deck(char_id: &str, ascension: i32) -> Vec<CardInst> {
     let ids = CHARACTERS
         .iter()
-        .find(|c| c.id == "Ironclad")
-        .expect("Ironclad")
+        .find(|c| c.id == char_id)
+        .unwrap_or(&CHARACTERS[0])
         .starting_deck;
     let mut deck: Vec<CardInst> = ids.iter().map(|id| CardInst::new(id)).collect();
     if ascension >= 10 {
         deck.push(CardInst::new("AscendersBane"));
     }
     deck
+}
+
+/// 铁甲战士起始卡组（兼容旧调用方）
+pub fn ironclad_starter(ascension: i32) -> Vec<CardInst> {
+    starter_deck("Ironclad", ascension)
 }
