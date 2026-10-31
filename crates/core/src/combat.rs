@@ -15,6 +15,7 @@ use crate::damage::{calc_monster_damage, calc_player_card_block, calc_player_car
 use crate::effects::{CardDef, Effect, Expr, Target};
 use crate::potions::{pool_for_class, return_random_potion, PotionKind};
 use crate::powers::{apply_power, DamageType, Decay, Power, PowerKind};
+use crate::relics::{RelicInst, RelicKind};
 use crate::rng::{card_group_shuffle, RngStreams, StsRandom, Xs128};
 use crate::state::{Creature, MonsterKind, MonsterState, PlayerState};
 
@@ -117,7 +118,7 @@ pub enum Pending {
 
 /// 引擎级原子动作（引擎 action 队列的 M2 子集）
 #[derive(Clone, Copy, Debug)]
-enum Q {
+pub(crate) enum Q {
     DamageMonster {
         target: usize,
         dmg: i32,
@@ -325,6 +326,11 @@ enum Q {
     UpgradeAllBurnPiles,
     /// 灼伤回合末自伤（THORNS 管线：无力量/虚弱/易伤乘区；格挡吸收；无形截断）
     PlayerFlatDamage(i32),
+    /// 遗物直伤全体（Letter Opener 等：DamageAllEnemiesAction + THORNS 类型，
+    /// 无乘区、不触发 CurlUp/Angry/Flight 等受击钩子）
+    DamageAllThorns {
+        dmg: i32,
+    },
     // —— Act 2 怪物 ——
     /// Centurion Protect：随机其他存活怪（无则自己）获得格挡（exec 时消耗 aiRng）
     MonsterBlockRandomOther {
@@ -459,6 +465,8 @@ fn power_kind(pid: &str) -> Option<PowerKind> {
 pub struct Combat {
     pub player: PlayerState,
     pub monsters: Vec<MonsterState>,
+    /// 玩家遗物栏（第一批：战斗内触发遗物，见 relics.rs；局外层回填跨战计数）
+    pub player_relics: Vec<RelicInst>,
     pub rng: RngStreams,
     /// 挂起的选择屏（None = 正常行动阶段）
     pub pending: Option<Pending>,
@@ -503,6 +511,32 @@ impl Combat {
     }
 
     pub fn new_with(seed: u64, ascension: i32, encounter: &[MonsterKind]) -> Self {
+        Self::new_with_relics(seed, ascension, encounter, &[])
+    }
+
+    /// 指定遗物栏的遭遇构造（局外层把跨战斗计数的遗物实例化时用 RelicInst 直改）
+    pub fn new_with_relics(
+        seed: u64,
+        ascension: i32,
+        encounter: &[MonsterKind],
+        relics: &[RelicKind],
+    ) -> Self {
+        Self::new_with_relic_insts(
+            seed,
+            ascension,
+            encounter,
+            relics.iter().map(|k| RelicInst::new(*k)).collect(),
+        )
+    }
+
+    /// 带计数器的遗物实例构造（Du-Vu Doll 诅咒数/Girya 举重次数/Pen Nib 跨战
+    /// 计数等由局外层回填；战斗开始钩子在内部末尾触发）
+    pub fn new_with_relic_insts(
+        seed: u64,
+        ascension: i32,
+        encounter: &[MonsterKind],
+        relics: Vec<RelicInst>,
+    ) -> Self {
         let mut rng = RngStreams::new(seed);
         let monsters: Vec<MonsterState> = encounter
             .iter()
@@ -531,6 +565,7 @@ impl Combat {
                 potions: vec![None, None, None],
             },
             monsters,
+            player_relics: relics,
             rng,
             pending: None,
             pending_queue: None,
@@ -793,14 +828,17 @@ impl Combat {
             }
             c.roll_move(i);
         }
+        // 遗物战斗开始钩子（atPreBattle → atBattleStart → 首轮 atTurnStart；
+        // AbstractRoom 战斗开始块时序，见 relics.rs 模块注释）
+        c.relics_battle_start();
         c
     }
 
-    fn alive(&self, i: usize) -> bool {
+    pub(crate) fn alive(&self, i: usize) -> bool {
         !self.monsters[i].creature.is_dead() && !self.monsters[i].escaped
     }
 
-    fn all_monsters_dead(&self) -> bool {
+    pub(crate) fn all_monsters_dead(&self) -> bool {
         self.monsters
             .iter()
             .all(|m| m.creature.is_dead() || m.escaped)
@@ -1136,7 +1174,7 @@ impl Combat {
                 sel.dedup();
                 for &i in sel.iter().rev() {
                     let c = self.player.hand.remove(i);
-                    self.player.exhaust.push(c);
+                    self.push_exhaust(c);
                 }
             }
             _ => panic!("当前无弃牌选择屏"),
@@ -1215,7 +1253,7 @@ impl Combat {
                     HandPickPurpose::ExhaustGainEnergy => {
                         let energy = c.cost_pay().max(0);
                         self.player.energy += energy;
-                        self.player.exhaust.push(c);
+                        self.push_exhaust(c);
                     }
                     HandPickPurpose::CopyNextTurn => {
                         // Night Terror：记录卡+数量，下回合加副本
@@ -1251,7 +1289,7 @@ impl Combat {
                             }
                             self.drain(q2);
                         }
-                        self.player.exhaust.push(card);
+                        self.push_exhaust(card);
                     }
                 }
                 PilePickPurpose::DiscardExhaustPick => {
@@ -1262,7 +1300,7 @@ impl Combat {
                         if c.def.card_type == "SKILL" {
                             self.player.energy += 1;
                         }
-                        self.player.exhaust.push(c);
+                        self.push_exhaust(c);
                     }
                 }
                 PilePickPurpose::ExhaustToHand => {
@@ -1364,6 +1402,16 @@ impl Combat {
         for &eff in card.def.effects {
             self.apply_effect(eff, card, ti, x_cost, &mut q, 0);
         }
+        // Vigor/PenNib 能力的 onUseCard：打出攻击牌 → 移除自身（RemoveSpecificPower
+        // 入队先于复制重播，故重播的伤害不再吃干劲/笔尖——与源码队列序一致）
+        if card.def.card_type == "ATTACK" {
+            self.player
+                .creature
+                .powers
+                .retain(|p| !matches!(p.kind, PowerKind::Vigor | PowerKind::PenNib));
+        }
+        // 遗物 onUseCard（手里剑/苦无/扇/双节棍/笔尖计数、书信刀、饕饣之瓮…）
+        self.relics_on_use_card(card.def.card_type, &mut q);
         // Slow（GiantHead）：玩家每打出一张牌 → 所有 Slow 怪 +1 层（本回合）
         for mi in 0..self.monsters.len() {
             if let Some(p) = self.monsters[mi]
@@ -1422,7 +1470,7 @@ impl Combat {
                 {
                     d = 1;
                 }
-                self.player.creature.apply_damage(d);
+                self.player_deal_damage(d, DamageType::Thorns);
                 if self.player.creature.is_dead() && !self.fairy_rescue() {
                     self.over = true;
                     self.won = false;
@@ -1495,6 +1543,12 @@ impl Combat {
                 }
                 if card.def.card_type == "ATTACK" {
                     self.attacks_this_turn += 1;
+                    // 重播也是一次真实 use()：同样触发 Vigor/PenNib 移除与遗物计数
+                    self.player
+                        .creature
+                        .powers
+                        .retain(|p| !matches!(p.kind, PowerKind::Vigor | PowerKind::PenNib));
+                    self.relics_on_use_card(card.def.card_type, &mut q);
                 }
                 self.player.creature.powers[di].amount -= 1;
                 if self.player.creature.powers[di].amount == 0 {
@@ -1505,8 +1559,9 @@ impl Combat {
         // UseCardAction 去向：exhaust 旗标 → 消耗堆，否则弃牌堆
         self.player.hand.remove(i);
         if card.def.flags.contains(&"exhaust") {
-            self.player.exhaust.push(card);
-            // onExhaust 钩子：Dark Embrace —— 每消耗一张抽 amount
+            self.push_exhaust(card);
+            // onExhaust 钩子（CardGroup.moveToExhaustPile：遗物先于 power）：
+            // Dark Embrace —— 每消耗一张抽 amount
             if let Some(de) = self
                 .player
                 .creature
@@ -1555,8 +1610,15 @@ impl Combat {
         for &eff in card.def.effects {
             self.apply_effect(eff, card, ti, 0, &mut q, 0);
         }
+        if card.def.card_type == "ATTACK" {
+            self.player
+                .creature
+                .powers
+                .retain(|p| !matches!(p.kind, PowerKind::Vigor | PowerKind::PenNib));
+        }
+        self.relics_on_use_card(card.def.card_type, &mut q);
         if card.def.flags.contains(&"exhaust") {
-            self.player.exhaust.push(card);
+            self.push_exhaust(card);
         } else {
             self.player.discard.push(card);
         }
@@ -2121,9 +2183,16 @@ impl Combat {
 
     fn end_turn(&mut self) {
         self.turn_has_ended = true;
+        // callEndOfTurnActions → applyEndOfTurnRelics（最先于玩家 powers EOT）：
+        // Orichalcum / Stone Calendar / Frozen Core
+        self.relics_on_player_end_turn();
+        if self.over {
+            return;
+        }
         // callEndOfTurnActions：玩家 powers 的 EOT，按插入序逐个结算：
         // Metallicize（PreEndTurnCards 钩子，先于其余）→ LoseStrength/Regen（atEndOfTurn）
         let mut combust_damage = 0;
+        let mut combust_hp_loss = 0;
         {
             let mut keep: Vec<Power> = Vec::new();
             let mut strength_deltas: Vec<i32> = Vec::new();
@@ -2154,7 +2223,7 @@ impl Combat {
                     }
                     // Combust：失 1 HP，对所有敌人造成 amount（THORNS 直伤，不走力量）
                     PowerKind::Combust => {
-                        self.player.creature.hp -= 1;
+                        combust_hp_loss += 1;
                         combust_damage += p.amount;
                         keep.push(p);
                     }
@@ -2164,6 +2233,10 @@ impl Combat {
                 }
             }
             self.player.creature.powers = keep;
+            // Combust 的 LoseHPAction（HP_LOSS：绕格挡；TungstenRod 每次失血 -1）
+            if combust_hp_loss > 0 {
+                self.player_deal_damage(combust_hp_loss, DamageType::HpLoss);
+            }
             for d in strength_deltas {
                 apply_power(
                     &mut self.player.creature.powers,
@@ -2372,6 +2445,13 @@ impl Combat {
             }
         }
         self.player.energy = 3 + bonus_energy; // ③ 能量重置（Plasma 加成合并）
+                                               // applyStartOfTurnRelics（atTurnStart：Lantern/HappyFlower/Art of War/
+                                               // 手里剑系清零/Mercury Hourglass/Brimstone…）——真游戏在 loseBlock 前同步
+                                               // 调用、动作入队在 loseBlock 后执行，格挡/能量类净效果与此时序一致
+        self.relics_at_turn_start();
+        if self.over {
+            return;
+        }
         self.draw_cards(5);
         // Night Terror 延迟副本
         let copies = std::mem::take(&mut self.next_turn_copies);
@@ -2409,7 +2489,8 @@ impl Combat {
             self.draw_cards(draw_extra as usize);
         }
         if hp_loss > 0 {
-            self.player.creature.hp -= hp_loss; // LoseHPAction 绕过格挡
+            // LoseHPAction（HP_LOSS：绕格挡，TungstenRod 可减 1）
+            self.player_deal_damage(hp_loss, DamageType::HpLoss);
             if self.player.creature.is_dead() {
                 self.over = true;
                 self.won = false;
@@ -4082,7 +4163,7 @@ impl Combat {
         }
     }
 
-    fn drain(&mut self, mut q: Vec<Q>) {
+    pub(crate) fn drain(&mut self, mut q: Vec<Q>) {
         while !q.is_empty() {
             let act = q.remove(0);
             self.exec(act);
@@ -4102,7 +4183,27 @@ impl Combat {
         }
     }
 
-    fn exec(&mut self, a: Q) {
+    /// AbstractPlayer.damage 的玩家侧收尾：decrementBlock（HP_LOSS 绕过格挡）
+    /// → 遗物管线（Torii.onAttacked → TungstenRod.onLoseHpLast → CentennialPuzzle.
+    /// wasHPLost，见 relics.rs）→ 扣血。返回实际 HP 损失（≥0）。
+    /// 无形截断与乘区由调用方先行算入 dmg（calc_monster_damage / 各直伤点）。
+    /// 死亡判定/瓶中精灵仍在调用点处理。
+    pub(crate) fn player_deal_damage(&mut self, dmg: i32, ty: DamageType) -> i32 {
+        let mut d = dmg.max(0);
+        if ty != DamageType::HpLoss {
+            let cr = &mut self.player.creature;
+            if d > cr.block {
+                d -= cr.block;
+                cr.block = 0;
+            } else {
+                cr.block -= d;
+                d = 0;
+            }
+        }
+        self.relic_damage_hooks(d, ty)
+    }
+
+    pub(crate) fn exec(&mut self, a: Q) {
         match a {
             Q::DamageMonster { target, dmg } => {
                 if self.alive(target) {
@@ -4132,7 +4233,7 @@ impl Combat {
                     self.player.stance,
                 );
                 let before_hp = self.player.creature.hp;
-                self.player.creature.apply_damage(d);
+                self.player_deal_damage(d, DamageType::Normal);
                 // Plated Armor wasHPLost：NORMAL 类型实际掉血 → -1 层
                 if before_hp - self.player.creature.hp > 0 {
                     self.reduce_plated_armor();
@@ -4204,7 +4305,8 @@ impl Combat {
                     (self.player.creature.hp + n).min(self.player.creature.max_hp);
             }
             Q::LoseHP(n) => {
-                self.player.creature.hp -= n; // HP 损失绕过格挡（HP_LOSS 也触发瓶中精灵）
+                // HP 损失绕过格挡（HP_LOSS 也触发瓶中精灵；TungstenRod 每次失血 -1）
+                self.player_deal_damage(n, DamageType::HpLoss);
                 if self.player.creature.is_dead() && !self.fairy_rescue() {
                     self.over = true;
                     self.won = false;
@@ -4339,6 +4441,8 @@ impl Combat {
                 let mut pile = std::mem::take(&mut self.player.draw);
                 card_group_shuffle(&mut pile, &mut self.rng.shuffle);
                 self.player.draw = pile;
+                // ShuffleAction → relics.onShuffle（Sundial）
+                self.relics_on_shuffle();
             }
             Q::DoIfStanceBlock { stance, block } => {
                 if self.player.stance == stance {
@@ -4387,7 +4491,9 @@ impl Combat {
             Q::DoExhaustHand => {
                 let cards = std::mem::take(&mut self.player.hand);
                 let n = cards.len();
-                self.player.exhaust.extend(cards);
+                for c in cards {
+                    self.push_exhaust(c);
+                }
                 // onExhaust 钩子：Dark Embrace
                 if let Some(de) = self
                     .player
@@ -4618,15 +4724,22 @@ impl Combat {
                 // Havoc：从抽牌堆顶打出一张卡（无能量消耗）
                 if !self.player.draw.is_empty() {
                     let card = self.player.draw.pop().unwrap();
-                    // 执行卡牌效果（不扣能量）
+                    // 执行卡牌效果（不能量消耗）
                     let mut q2 = Vec::new();
                     let ti = 0;
                     for &eff in card.def.effects {
                         self.apply_effect(eff, card, ti, 0, &mut q2, 0);
                     }
+                    if card.def.card_type == "ATTACK" {
+                        self.player
+                            .creature
+                            .powers
+                            .retain(|p| !matches!(p.kind, PowerKind::Vigor | PowerKind::PenNib));
+                    }
+                    self.relics_on_use_card(card.def.card_type, &mut q2);
                     // 去向
                     if card.def.flags.contains(&"exhaust") {
-                        self.player.exhaust.push(card);
+                        self.push_exhaust(card);
                     } else {
                         self.player.discard.push(card);
                     }
@@ -4876,7 +4989,7 @@ impl Combat {
                     .collect();
                 for &i in indices.iter().rev() {
                     let c = self.player.hand.remove(i);
-                    self.player.exhaust.push(c);
+                    self.push_exhaust(c);
                     self.player.creature.block += block_per;
                 }
             }
@@ -5379,10 +5492,18 @@ impl Combat {
                 {
                     d = 1;
                 }
-                self.player.creature.apply_damage(d);
+                self.player_deal_damage(d, DamageType::Thorns);
                 if self.player.creature.is_dead() && !self.fairy_rescue() {
                     self.over = true;
                     self.won = false;
+                }
+            }
+            Q::DamageAllThorns { dmg } => {
+                // Letter Opener 等：全部存活怪 THORNS 直伤（无乘区、无受击钩子）
+                for mi in 0..self.monsters.len() {
+                    if self.alive(mi) {
+                        self.hit_monster(mi, dmg, DamageType::Thorns);
+                    }
                 }
             }
         }
@@ -5457,7 +5578,17 @@ impl Combat {
         if self.all_monsters_dead() {
             self.over = true;
             self.won = true;
+            return;
         }
+        // 遗物 onMonsterDeath（Gremlin Horn：非终局击杀 +1 能量抽 1）
+        self.relics_on_monster_death();
+    }
+
+    /// 入消耗堆统一入口（CardGroup.moveToExhaustPile）：先遗物 onExhaust
+    /// （Charon's Ashes 3 直伤全体）再由调用点处理 power 钩子（Dark Embrace）
+    fn push_exhaust(&mut self, card: CardInst) {
+        self.player.exhaust.push(card);
+        self.relics_on_exhaust();
     }
 
     /// 怪物受伤统一入口（AbstractMonster.damage + powers 钩子管线，Act 2 起）。
@@ -5468,7 +5599,7 @@ impl Combat {
     /// - PlatedArmor（怪物侧）：实际掉血 → -1；归零移除 → 灼壳寄生生 ARMOR_BREAK
     ///
     /// 返回是否死亡（含亡语/终局判定）；THORNS/HP_LOSS 不触发受击钩子
-    fn hit_monster(&mut self, target: usize, dmg: i32, ty: DamageType) -> bool {
+    pub(crate) fn hit_monster(&mut self, target: usize, dmg: i32, ty: DamageType) -> bool {
         if !self.alive(target) {
             return false;
         }
@@ -5768,6 +5899,8 @@ impl Combat {
                 let mut pile = std::mem::take(&mut self.player.discard);
                 card_group_shuffle(&mut pile, &mut self.rng.shuffle);
                 self.player.draw = pile;
+                // EmptyDeckShuffleAction → relics.onShuffle（Sundial）
+                self.relics_on_shuffle();
             }
             let mut c = self.player.draw.pop().unwrap();
             // Void（虚空）：抽到时失 1 能量（VoidCard.whenDrawn）
@@ -6873,6 +7006,10 @@ impl Combat {
         self.player.creature.hp.hash(h);
         self.player.stance.hash(h);
         self.player.max_orbs.hash(h);
+        // 遗物栏（公开信息）：种类 + 计数器
+        for r in &self.player_relics {
+            (r.kind, r.counter).hash(h);
+        }
         // 药水栏（公开信息）：种类即可（potency 由种类确定）
         for slot in &self.player.potions {
             match slot {

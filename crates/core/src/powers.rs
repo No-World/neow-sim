@@ -121,6 +121,14 @@ pub enum PowerKind {
     BeatOfDeath,
     /// 痛击（PainfulStabs：玩家每次对持有者造成非 THORNS 伤害 → 失 2 HP）
     PainfulStabs,
+    // —— 遗物系统新增（钩子在 combat/relics 中实现） ——
+    /// 干劲（VigorPower：下一张攻击牌 NORMAL 伤害 +amount，打出攻击牌后移除；
+    /// watcher/VigorPower.java，Akabeko 战斗开始授予 8 层）
+    Vigor,
+    /// 笔尖（PenNibPower：下一张攻击牌 NORMAL 伤害 ×2，打出攻击牌后移除；
+    /// powers/PenNibPower.java，Pen Nib 遗物第 9 张攻击后授予；
+    /// priority=6：晚于力量/干劲（5），早于虚弱（99））
+    PenNib,
 }
 
 impl PowerKind {
@@ -232,6 +240,8 @@ impl Power {
             PowerKind::Invincible => "Invincible",
             PowerKind::BeatOfDeath => "Beat of Death",
             PowerKind::PainfulStabs => "Painful Stabs",
+            PowerKind::Vigor => "Vigor",
+            PowerKind::PenNib => "Pen Nib",
         }
     }
 
@@ -260,6 +270,8 @@ impl Power {
         match (self.kind, ty) {
             (PowerKind::Strength, DamageType::Normal) => dmg + self.amount as f32,
             (PowerKind::Weak, DamageType::Normal) => dmg * 0.75,
+            (PowerKind::Vigor, DamageType::Normal) => dmg + self.amount as f32,
+            (PowerKind::PenNib, DamageType::Normal) => dmg * 2.0,
             _ => dmg,
         }
     }
