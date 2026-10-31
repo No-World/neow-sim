@@ -6028,7 +6028,7 @@ impl Combat {
                 return if num < 50 { 2 } else { 3 };
             }
             if num < 40 {
-                if last != Some(1) && i % 2 == 0 {
+                if last != Some(1) && i & 1 == 0 {
                     return 1;
                 }
                 num = self.rng.ai.random_start_end(40, 99);
