@@ -632,10 +632,8 @@ impl Combat {
                     }
                 }
             }
-            "POWER" => {
-                if self.has_relic(BirdFacedUrn) {
-                    q.push(Q::Heal(2));
-                }
+            "POWER" if self.has_relic(BirdFacedUrn) => {
+                q.push(Q::Heal(2));
             }
             _ => {}
         }
