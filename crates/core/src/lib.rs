@@ -20,6 +20,7 @@ pub mod effects;
 pub mod generated;
 pub mod potions;
 pub mod powers;
+pub mod relics;
 pub mod rng;
 pub mod run;
 pub mod state;
