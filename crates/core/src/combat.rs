@@ -460,6 +460,29 @@ fn power_kind(pid: &str) -> Option<PowerKind> {
         "IntangiblePlayerPower" => Some(PowerKind::IntangiblePlayer),
         "NoDrawPower" => Some(PowerKind::NoDraw),
         "MantraPower" => Some(PowerKind::Mantra),
+        // ── power 补缺第一批 + 数据层 cls 别名 ──
+        "NoxiousFumesPower" => Some(PowerKind::NoxiousFumes),
+        "InfiniteBladesPower" => Some(PowerKind::InfiniteBlades),
+        "MentalFortressPower" => Some(PowerKind::MentalFortress),
+        "LikeWaterPower" => Some(PowerKind::LikeWater),
+        "DevotionPower" => Some(PowerKind::Devotion),
+        "StormPower" => Some(PowerKind::Storm),
+        "FeelNoPainPower" => Some(PowerKind::FeelNoPain),
+        "RupturePower" => Some(PowerKind::Rupture),
+        "AfterImagePower" => Some(PowerKind::AfterImage),
+        "RepairPower" => Some(PowerKind::Repair),
+        "DrawCardNextTurnPower" => Some(PowerKind::DrawCardNextTurn),
+        "NextTurnBlockPower" => Some(PowerKind::NextTurnBlock),
+        "DrawPower" => Some(PowerKind::DrawBonus),
+        "TheBombPower" => Some(PowerKind::TheBomb),
+        "WrathNextTurnPower" => Some(PowerKind::WrathNextTurn),
+        // 已实现 power 的 cls 名别名（引擎早期按显示名登记）
+        "DemonFormPower" => Some(PowerKind::DemonForm),
+        "DarkEmbrace" => Some(PowerKind::DarkEmbrace),
+        "BerserkPower" => Some(PowerKind::Berserk),
+        "BrutalityPower" => Some(PowerKind::Brutality),
+        "EnergizedBluePower" => Some(PowerKind::Energized),
+        "VigorPower" => Some(PowerKind::Vigor),
         "Demon Form" => Some(PowerKind::DemonForm),
         "Berserk" => Some(PowerKind::Berserk),
         "Brutality" => Some(PowerKind::Brutality),
@@ -1512,6 +1535,7 @@ impl Combat {
         }
         // 遗物 onUseCard（手里剑/苦无/扇/双节棍/笔尖计数、书信刀、饕饣之瓮…）
         self.relics_on_use_card(card.def.card_type, &mut q);
+        self.powers_on_use_card(card.def.card_type, &mut q);
         // Slow（GiantHead）：玩家每打出一张牌 → 所有 Slow 怪 +1 层（本回合）
         for mi in 0..self.monsters.len() {
             if let Some(p) = self.monsters[mi]
@@ -1649,6 +1673,7 @@ impl Combat {
                         .powers
                         .retain(|p| !matches!(p.kind, PowerKind::Vigor | PowerKind::PenNib));
                     self.relics_on_use_card(card.def.card_type, &mut q);
+                    self.powers_on_use_card(card.def.card_type, &mut q);
                 }
                 self.player.creature.powers[di].amount -= 1;
                 if self.player.creature.powers[di].amount == 0 {
@@ -1717,6 +1742,7 @@ impl Combat {
                 .retain(|p| !matches!(p.kind, PowerKind::Vigor | PowerKind::PenNib));
         }
         self.relics_on_use_card(card.def.card_type, &mut q);
+        self.powers_on_use_card(card.def.card_type, &mut q);
         if card.def.flags.contains(&"exhaust") {
             self.push_exhaust(card);
         } else {
@@ -2293,6 +2319,7 @@ impl Combat {
         // Metallicize（PreEndTurnCards 钩子，先于其余）→ LoseStrength/Regen（atEndOfTurn）
         let mut combust_damage = 0;
         let mut combust_hp_loss = 0;
+        let mut bomb_damage = 0;
         {
             let mut keep: Vec<Power> = Vec::new();
             let mut strength_deltas: Vec<i32> = Vec::new();
@@ -2329,6 +2356,26 @@ impl Combat {
                     }
                     // Rage：仅本回合有效，EOT 移除
                     PowerKind::Rage => {}
+                    // 如水：平静中回合结束 → 获 amount 格挡（PreEndTurnCards）
+                    PowerKind::LikeWater => {
+                        if self.player.stance == crate::state::Stance::Calm {
+                            self.player.creature.block += p.amount;
+                        }
+                        keep.push(p);
+                    }
+                    // 炸弹：EOT 倒数 -1，归零 → 全体 THORNS 伤（amount 编码 dmg×10+倒数）
+                    PowerKind::TheBomb => {
+                        let dmg = p.amount / 10;
+                        let turns = p.amount % 10;
+                        if turns <= 1 {
+                            bomb_damage = bomb_damage.max(dmg);
+                        } else {
+                            keep.push(Power {
+                                amount: dmg * 10 + (turns - 1),
+                                ..p
+                            });
+                        }
+                    }
                     _ => keep.push(p),
                 }
             }
@@ -2365,6 +2412,17 @@ impl Combat {
             for mi in 0..self.monsters.len() {
                 if self.alive(mi) {
                     self.hit_monster(mi, combust_damage, DamageType::Thorns);
+                    if self.over {
+                        return;
+                    }
+                }
+            }
+        }
+        // 炸弹起爆：DamageAllEnemies（THORNS 直伤，不走力量/虚弱）
+        if bomb_damage > 0 && !self.over {
+            for mi in 0..self.monsters.len() {
+                if self.alive(mi) {
+                    self.hit_monster(mi, bomb_damage, DamageType::Thorns);
                     if self.over {
                         return;
                     }
@@ -2552,7 +2610,53 @@ impl Combat {
         if self.over {
             return;
         }
-        self.draw_cards(5);
+        // ── atStartOfTurn（抽牌前）：无限之刃 Shiv / 下回合格挡 / 下回合愤怒 ──
+        {
+            let mut keep: Vec<Power> = Vec::new();
+            let mut shiv_n = 0;
+            let mut block_n = 0;
+            let mut enter_wrath = false;
+            for pw in self.player.creature.powers.drain(..) {
+                match pw.kind {
+                    PowerKind::InfiniteBlades => {
+                        shiv_n += pw.amount;
+                        keep.push(pw);
+                    }
+                    PowerKind::NextTurnBlock => {
+                        block_n += pw.amount; // 一次性：不移回
+                    }
+                    PowerKind::WrathNextTurn => {
+                        enter_wrath = true; // 一次性
+                    }
+                    _ => keep.push(pw),
+                }
+            }
+            self.player.creature.powers = keep;
+            if shiv_n > 0 {
+                let shiv = crate::cards::CardInst::new("Shiv");
+                for _ in 0..shiv_n {
+                    if self.player.hand.len() < 10 {
+                        self.player.hand.push(shiv);
+                    }
+                }
+            }
+            if block_n > 0 {
+                self.player.creature.block += block_n;
+            }
+            if enter_wrath {
+                self.exec(Q::ChangeStance(crate::state::Stance::Wrath));
+            }
+        }
+        // DrawPower（Machine Learning）：gameHandSize +amount
+        let hand_bonus = self
+            .player
+            .creature
+            .powers
+            .iter()
+            .find(|p| p.kind == PowerKind::DrawBonus)
+            .map(|p| p.amount)
+            .unwrap_or(0);
+        self.draw_cards((5 + hand_bonus) as usize);
         // Night Terror 延迟副本
         let copies = std::mem::take(&mut self.next_turn_copies);
         for (card, count) in copies {
@@ -2595,6 +2699,49 @@ impl Combat {
                 self.over = true;
                 self.won = false;
             }
+        }
+        // ── atStartOfTurnPostDraw 其余：剧毒瘴气上毒 / 奉献真言 / 掠食者补抽 ──
+        let mut fumes_poison = 0;
+        let mut devotion = 0;
+        let mut predator_draw = 0;
+        {
+            let mut keep: Vec<Power> = Vec::new();
+            for pw in self.player.creature.powers.drain(..) {
+                match pw.kind {
+                    PowerKind::NoxiousFumes => {
+                        fumes_poison += pw.amount;
+                        keep.push(pw);
+                    }
+                    PowerKind::Devotion => {
+                        devotion += pw.amount;
+                        keep.push(pw);
+                    }
+                    PowerKind::DrawCardNextTurn => {
+                        predator_draw += pw.amount; // 一次性：不移回
+                    }
+                    _ => keep.push(pw),
+                }
+            }
+            self.player.creature.powers = keep;
+        }
+        if fumes_poison > 0 {
+            for mi in 0..self.monsters.len() {
+                if self.alive(mi) {
+                    apply_power(
+                        &mut self.monsters[mi].creature.powers,
+                        PowerKind::Poison,
+                        fumes_poison,
+                        false,
+                        false,
+                    );
+                }
+            }
+        }
+        if devotion > 0 {
+            self.apply_power_to_player_checked(PowerKind::Mantra, devotion, false);
+        }
+        if predator_draw > 0 {
+            self.draw_cards(predator_draw as usize);
         }
     }
 
@@ -4557,6 +4704,24 @@ impl Combat {
                 if self.player.creature.is_dead() && !self.fairy_rescue() {
                     self.over = true;
                     self.won = false;
+                    return;
+                }
+                // RupturePower.wasHPLost（info.owner == 玩家）：因自身卡牌失血 → 力量 +amount
+                if let Some(amt) = self
+                    .player
+                    .creature
+                    .powers
+                    .iter()
+                    .find(|p| p.kind == PowerKind::Rupture)
+                    .map(|p| p.amount)
+                {
+                    apply_power(
+                        &mut self.player.creature.powers,
+                        PowerKind::Strength,
+                        amt,
+                        false,
+                        false,
+                    );
                 }
             }
             Q::MakeDiscard(c) => self.player.discard.push(c),
@@ -4651,6 +4816,17 @@ impl Combat {
                         self.player.energy += 2; // CalmStance.onExitStance → GainEnergy(2)
                     }
                     self.player.stance = new_stance;
+                    // MentalFortressPower.onChangeStance：获 amount 格挡
+                    if let Some(amt) = self
+                        .player
+                        .creature
+                        .powers
+                        .iter()
+                        .find(|p| p.kind == PowerKind::MentalFortress)
+                        .map(|p| p.amount)
+                    {
+                        self.player.creature.block += amt;
+                    }
                 }
             }
             Q::Channel { kind, auto_evoke } => {
@@ -4984,6 +5160,7 @@ impl Combat {
                             .retain(|p| !matches!(p.kind, PowerKind::Vigor | PowerKind::PenNib));
                     }
                     self.relics_on_use_card(card.def.card_type, &mut q2);
+                    self.powers_on_use_card(card.def.card_type, &mut q2);
                     // 去向
                     if card.def.flags.contains(&"exhaust") {
                         self.push_exhaust(card);
@@ -5796,6 +5973,25 @@ impl Combat {
         }
     }
 
+    /// 出牌 power 钩子（AbstractPower.onUseCard）：
+    /// - AfterImagePower：打出任意牌 → 获 amount 格挡
+    /// - StormPower：打出能力牌 → 充能 amount 颗闪电球
+    fn powers_on_use_card(&mut self, card_type: &str, q: &mut Vec<Q>) {
+        for pw in &self.player.creature.powers {
+            match pw.kind {
+                PowerKind::AfterImage => q.push(Q::PlayerBlock(pw.amount)),
+                PowerKind::Storm if card_type == "POWER" => {
+                    for _ in 0..pw.amount {
+                        q.push(Q::Channel {
+                            kind: crate::state::OrbKind::Lightning,
+                            auto_evoke: false,
+                        });
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
     /// 球 onEvoke 效果（orbs/*.java）
     fn orb_evoke_effect(&mut self, orb: &crate::state::OrbState) {
         let focus = self
@@ -6127,13 +6323,33 @@ impl Combat {
                 }
             }
         }
-        apply_power(
-            &mut self.player.creature.powers,
-            kind,
-            amount,
-            source_is_monster,
-            self.turn_has_ended,
-        );
+        // TheBombPower：amount 编码 dmg×10 + 倒数 3（不走通用叠加；重复打出重置倒数）
+        if kind == PowerKind::TheBomb {
+            let encoded = amount * 10 + 3;
+            if let Some(p) = self
+                .player
+                .creature
+                .powers
+                .iter_mut()
+                .find(|pw| pw.kind == PowerKind::TheBomb)
+            {
+                p.amount = encoded;
+            } else {
+                self.player.creature.powers.push(Power {
+                    kind,
+                    amount: encoded,
+                    just_applied: false,
+                });
+            }
+        } else {
+            apply_power(
+                &mut self.player.creature.powers,
+                kind,
+                amount,
+                source_is_monster,
+                self.turn_has_ended,
+            );
+        }
         // MantraPower.stackPower：叠加后满 10 → 进神性并 -10（≤0 移除）
         if kind == PowerKind::Mantra {
             let mut divinity = false;
@@ -10747,5 +10963,218 @@ mod tests {
             total += v.len();
         }
         println!("TOTAL blocked = {total}");
+    }
+
+    // ── power 补缺第一批 ──────────────────────
+
+    /// 剧毒瘴气：抽牌后回合开始 → 全体敌人中毒
+    #[test]
+    fn noxious_fumes_poison_all() {
+        let mut c = Combat::new_with(1, 0, &[MonsterKind::Cultist, MonsterKind::Cultist]);
+        c.apply_power_to_player_checked(PowerKind::NoxiousFumes, 2, false);
+        c.step(&Action::EndTurn);
+        for m in &c.monsters {
+            let po = m
+                .creature
+                .powers
+                .iter()
+                .find(|p| p.kind == PowerKind::Poison)
+                .map(|p| p.amount);
+            assert_eq!(po, Some(2), "全体中毒 2");
+        }
+    }
+
+    /// 无限之刃：回合开始 Shiv 入手；奉献：回合开始真言（满 10 进神性）
+    #[test]
+    fn infinite_blades_and_devotion() {
+        let mut c = Combat::new(1);
+        c.apply_power_to_player_checked(PowerKind::InfiniteBlades, 1, false);
+        c.apply_power_to_player_checked(PowerKind::Devotion, 10, false);
+        assert_eq!(
+            c.player.stance,
+            crate::state::Stance::Neutral,
+            "奉献非立即触发"
+        );
+        c.step(&Action::EndTurn); // 抽牌后：真言 +10 → 满 10 进神性
+        assert_eq!(
+            c.player.stance,
+            crate::state::Stance::Divinity,
+            "奉献 10 → 神性"
+        );
+        assert!(
+            c.player.hand.iter().any(|x| x.def.id == "Shiv")
+                || c.player.discard.iter().any(|x| x.def.id == "Shiv"),
+            "回合开始 Shiv 入手"
+        );
+    }
+
+    /// 心之堡垒（换姿态格挡）+ 如水（平静 EOT 格挡）
+    #[test]
+    fn mental_fortress_and_like_water() {
+        let mut c = Combat::new(1);
+        c.apply_power_to_player_checked(PowerKind::MentalFortress, 4, false);
+        c.exec(Q::ChangeStance(crate::state::Stance::Wrath));
+        assert_eq!(c.player.creature.block, 4, "换姿态 +4");
+        c.exec(Q::ChangeStance(crate::state::Stance::Calm));
+        assert_eq!(c.player.creature.block, 8, "再次换姿态 +4");
+        c.apply_power_to_player_checked(PowerKind::LikeWater, 3, false);
+        // 壁垒保住跨回合格挡（否则下回合 loseBlock 归零，无法观测）
+        c.apply_power_to_player_checked(PowerKind::Barricade, 1, false);
+        c.monsters[0].next_move = 2; // 大颚虫咆哮：不攻击
+        c.step(&Action::EndTurn); // 平静中结束 → +3
+        assert!(
+            c.player.creature.block >= 8 + 3,
+            "如水平静 EOT +3（实际 {}）",
+            c.player.creature.block
+        );
+    }
+
+    /// 风暴：打出能力牌充闪电；余像：每张牌 +1 格挡
+    #[test]
+    fn storm_channel_and_after_image() {
+        let mut c = Combat::new(1);
+        c.player.max_orbs = 3;
+        c.apply_power_to_player_checked(PowerKind::Storm, 1, false);
+        c.apply_power_to_player_checked(PowerKind::AfterImage, 1, false);
+        let idx = c
+            .player
+            .hand
+            .iter()
+            .position(|cd| cd.def.card_type == "POWER");
+        if let Some(i) = idx {
+            c.step(&Action::PlayCard {
+                index: i,
+                target: Some(0),
+            });
+            assert!(!c.player.orbs.is_empty(), "能力牌充闪电");
+            assert!(c.player.creature.block >= 1, "余像 +1 格挡");
+        }
+    }
+
+    /// 无痛：消耗牌 → 3 格挡；破裂：卡牌失 HP → 力量 +1
+    #[test]
+    fn feel_no_pain_and_rupture() {
+        let mut c = Combat::new(1);
+        c.apply_power_to_player_checked(PowerKind::FeelNoPain, 3, false);
+        c.relics_on_exhaust();
+        assert_eq!(c.player.creature.block, 3, "无痛 +3");
+        c.apply_power_to_player_checked(PowerKind::Rupture, 1, false);
+        let str0 = c
+            .player
+            .creature
+            .powers
+            .iter()
+            .find(|p| p.kind == PowerKind::Strength)
+            .map(|p| p.amount)
+            .unwrap_or(0);
+        c.exec(Q::LoseHP(2));
+        let str1 = c
+            .player
+            .creature
+            .powers
+            .iter()
+            .find(|p| p.kind == PowerKind::Strength)
+            .map(|p| p.amount)
+            .unwrap_or(0);
+        assert_eq!(str1 - str0, 1, "破裂失血 +1 力量");
+    }
+
+    /// 炸弹：3 回合后全体 40 THORNS
+    #[test]
+    fn the_bomb_detonate() {
+        let mut c = Combat::new_with(1, 0, &[MonsterKind::Cultist]);
+        let hp0 = c.monsters[0].creature.hp;
+        c.apply_power_to_player_checked(PowerKind::TheBomb, 40, false);
+        c.step(&Action::EndTurn); // 倒数 3→2
+        assert!(c.monsters[0].creature.hp == hp0, "未爆");
+        c.step(&Action::EndTurn); // 2→1
+        assert!(c.monsters[0].creature.hp == hp0, "未爆");
+        c.step(&Action::EndTurn); // 1→0 起爆
+        assert!(
+            c.over && c.won || c.monsters[0].creature.hp <= (hp0 - 40).max(0),
+            "40 伤或已击杀"
+        );
+    }
+
+    /// 掠食者：下回合补抽 2；闪翻：下回合格挡 4；机器学习：每回合抽 5+1
+    #[test]
+    fn next_turn_draw_block_and_hand_size() {
+        let mut c = Combat::new(1);
+        c.apply_power_to_player_checked(PowerKind::DrawCardNextTurn, 2, false);
+        c.apply_power_to_player_checked(PowerKind::NextTurnBlock, 4, false);
+        c.step(&Action::EndTurn);
+        assert!(c.player.hand.len() >= 7, "5+2 补抽");
+        assert_eq!(
+            c.player.creature.block, 4,
+            "下回合格挡 4（无怪伤格挡情况下）"
+        );
+        assert!(
+            c.player
+                .creature
+                .powers
+                .iter()
+                .all(|p| p.kind != PowerKind::DrawCardNextTurn),
+            "一次性移除"
+        );
+        let mut c = Combat::new(1);
+        c.apply_power_to_player_checked(PowerKind::DrawBonus, 1, false);
+        c.step(&Action::EndTurn);
+        assert_eq!(c.player.hand.len(), 6, "gameHandSize+1");
+    }
+
+    /// 复仇：下回合进愤怒；自我修复：胜利回血
+    #[test]
+    fn vengeance_wrath_and_repair() {
+        let mut c = Combat::new(1);
+        c.apply_power_to_player_checked(PowerKind::WrathNextTurn, 1, false);
+        c.step(&Action::EndTurn);
+        assert_eq!(c.player.stance, crate::state::Stance::Wrath, "下回合进愤怒");
+        // 自我修复：胜利回 5
+        let mut c = Combat::new(1);
+        c.player.creature.hp = 50;
+        c.apply_power_to_player_checked(PowerKind::Repair, 5, false);
+        for m in c.monsters.iter_mut() {
+            m.creature.hp = 0;
+        }
+        c.won = true;
+        c.on_victory();
+        assert_eq!(
+            c.player.creature.hp,
+            50 + 5,
+            "修复 +5（单测战斗无初始遗物）"
+        );
+    }
+
+    /// 别名解锁：恶魔形态/魔化/狂乱/暴虐/蓄能电池/火焰花环 全部可执行
+    #[test]
+    fn power_batch1_alias_unlocks() {
+        for id in [
+            "Demon Form",
+            "Dark Embrace",
+            "Berserk",
+            "Brutality",
+            "Conserve Battery",
+            "WreathOfFlame",
+            "Predator",
+            "Dodge and Roll",
+            "Machine Learning",
+            "Self Repair",
+            "Feel No Pain",
+            "Rupture",
+            "After Image",
+            "Noxious Fumes",
+            "Infinite Blades",
+            "MentalFortress",
+            "LikeWater",
+            "Devotion",
+            "Storm",
+            "The Bomb",
+            "Vengeance",
+        ] {
+            let def = CARDS.iter().find(|d| d.id == id || d.cls == id);
+            assert!(def.is_some(), "{id} 在数据层");
+            let def = def.unwrap();
+            assert!(engine_playable(def), "{id} 应解锁（{}）", def.id);
+        }
     }
 }

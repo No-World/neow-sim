@@ -733,6 +733,17 @@ impl Combat {
         if self.has_relic(CharonsAshes) {
             self.relic_thorns_damage_all(3);
         }
+        // FeelNoPainPower.onExhaust：消耗一张牌 → 获 amount 格挡
+        if let Some(amt) = self
+            .player
+            .creature
+            .powers
+            .iter()
+            .find(|p| p.kind == PowerKind::FeelNoPain)
+            .map(|p| p.amount)
+        {
+            self.player.creature.block += amt;
+        }
     }
 
     // ── 受击/失血收尾（AbstractPlayer.damage:1392-1429 玩家侧 relic 管线） ──
@@ -771,6 +782,18 @@ impl Combat {
         if self.has_relic(BlackBlood) && self.player.creature.hp > 0 {
             self.player.creature.hp =
                 (self.player.creature.hp + 12).min(self.player.creature.max_hp);
+        }
+        // RepairPower.onVictory：回 amount 血（不超上限）
+        if let Some(amt) = self
+            .player
+            .creature
+            .powers
+            .iter()
+            .find(|p| p.kind == PowerKind::Repair)
+            .map(|p| p.amount)
+        {
+            self.player.creature.hp =
+                (self.player.creature.hp + amt).min(self.player.creature.max_hp);
         }
         if self.has_relic(FaceOfCleric) {
             max_hp_gain += 1;

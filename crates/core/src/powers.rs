@@ -134,6 +134,37 @@ pub enum PowerKind {
     NoDraw,
     /// 真言（MantraPower：屈身/祈祷等叠加；满 10 → 自动进入神性并清零）
     Mantra,
+    // —— power 补缺第一批（每只解锁 1 张卡；钩子在 combat 接线）——
+    /// 剧毒瘴气（NoxiousFumesPower：抽牌后回合开始 → 全体敌人中毒 amount）
+    NoxiousFumes,
+    /// 无限之刃（InfiniteBladesPower：回合开始 → Shiv×amount 入手）
+    InfiniteBlades,
+    /// 心之堡垒（MentalFortressPower：姿态切换 → 获 amount 格挡）
+    MentalFortress,
+    /// 如水（LikeWaterPower：平静中回合结束 → 获 amount 格挡）
+    LikeWater,
+    /// 奉献（DevotionPower：抽牌后回合开始 → 真言 +amount）
+    Devotion,
+    /// 风暴（StormPower：打出能力牌 → 充能 amount 颗闪电球）
+    Storm,
+    /// 无痛（FeelNoPainPower：消耗一张牌 → 获 amount 格挡）
+    FeelNoPain,
+    /// 破裂（RupturePower：因自身卡牌失 HP → 力量 +amount）
+    Rupture,
+    /// 余像（AfterImagePower：打出任意牌 → 获 amount 格挡）
+    AfterImage,
+    /// 自我修复（RepairPower：战斗胜利 → 回 amount 血）
+    Repair,
+    /// 下回合抽牌（DrawCardNextTurnPower：下回合抽牌后多抽 amount，一次性）
+    DrawCardNextTurn,
+    /// 下回合格挡（NextTurnBlockPower：下回合开始获 amount 格挡，一次性）
+    NextTurnBlock,
+    /// 抽牌量提升（DrawPower：gameHandSize +amount，持续）
+    DrawBonus,
+    /// 炸弹（TheBombPower：amount 编码 dmg×10+倒数；EOT 倒数-1，归零全体 THORNS 伤）
+    TheBomb,
+    /// 下回合愤怒（WrathNextTurnPower：下回合开始进愤怒，一次性）
+    WrathNextTurn,
 }
 
 impl PowerKind {
@@ -248,6 +279,21 @@ impl Power {
             PowerKind::Vigor => "Vigor",
             PowerKind::NoDraw => "NoDrawPower",
             PowerKind::Mantra => "MantraPower",
+            PowerKind::NoxiousFumes => "Noxious Fumes",
+            PowerKind::InfiniteBlades => "Infinite Blades",
+            PowerKind::MentalFortress => "MentalFortress",
+            PowerKind::LikeWater => "LikeWater",
+            PowerKind::Devotion => "Devotion",
+            PowerKind::Storm => "Storm",
+            PowerKind::FeelNoPain => "Feel No Pain",
+            PowerKind::Rupture => "Rupture",
+            PowerKind::AfterImage => "After Image",
+            PowerKind::Repair => "Repair",
+            PowerKind::DrawCardNextTurn => "DrawCardNextTurnPower",
+            PowerKind::NextTurnBlock => "NextTurnBlockPower",
+            PowerKind::DrawBonus => "DrawPower",
+            PowerKind::TheBomb => "The Bomb",
+            PowerKind::WrathNextTurn => "WrathNextTurnPower",
             PowerKind::PenNib => "Pen Nib",
         }
     }
