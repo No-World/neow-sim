@@ -51,6 +51,7 @@ def _count_enum(path: Path, enum_name: str) -> int:
 MONSTERS_IMPL = _count_enum(CORE / "state.rs", "MonsterKind")
 POWERS_IMPL = _count_enum(CORE / "powers.rs", "PowerKind")
 POTIONS_IMPL = _count_enum(CORE / "potions.rs", "PotionKind")
+RELICS_IMPL = _count_enum(CORE / "relics.rs", "RelicKind")
 
 
 CLASS_NAMES = {c["class"] for c in cards["data"]}
@@ -241,7 +242,7 @@ md = f"""# 覆盖率审计（自动生成：tools/coverage.py）
 |---|---|---|
 | 怪物 | {len(monsters)}/73 ✅ | {MONSTERS_IMPL}/73（MonsterKind 逐只手写，Act 1-4 全覆盖——全部遭遇/精英/Boss/心脏） |
 | power | {len(powers)} 条 ✅ | {POWERS_IMPL} 种（PowerKind 枚举，含钩子行为） |
-| 遗物 | {len(relics)} 条 ✅ | 0（战斗内主动遗物待做） |
+| 遗物 | {len(relics)} 条 ✅ | {RELICS_IMPL}/{len(relics)}（RelicKind 枚举，战斗内触发遗物第一批；商店/事件/局外钩子待 M3） |
 | 药水 | {len(potions)} 条 ✅ | {POTIONS_IMPL}/{len(potions)}（可执行药水全量；第 43 条为 PotionSlot 占位符——游戏用它表示空栏，引擎用 `Option::None` 等价建模，非待办） |
 | 角色 | {len(chars)}/4 ✅ | 1/4（铁甲，无角色专属机制） |
 
@@ -256,7 +257,7 @@ md = f"""# 覆盖率审计（自动生成：tools/coverage.py）
 | 战斗内选择屏（hand/grid select、Scry、探素、姿态选择） | ✅ |
 | 充能球（Defect）/姿态（Watcher） | ✅ |
 | 药水系统（使用/丢弃/免死/掉落采样） | ✅ |
-| 主动遗物 | ❌ |
+| 战斗内触发遗物（第一批 50 只，见 relics.rs） | ✅（atBattleStart/atTurnStart/onUseCard/onExhaust/onAttacked/onShuffle/onPlayerEndTurn/onVictory） |
 | 地图/事件/商店/休息/奖励（M3） | ❌ |
 | pyo3 Python 绑定 | ❌ |
 | **L1/L2 对拍（无误的最终裁判）** | ❌ 未开始（依赖 bridge） |
