@@ -431,6 +431,9 @@ fn next_room_by_rules(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::combat::Action;
+    use crate::combat::Q;
+    use crate::powers::PowerKind;
     use crate::rng::StsRandom;
 
     fn edge_sig(m: &GameMap) -> Vec<Vec<Vec<usize>>> {
@@ -505,6 +508,117 @@ mod tests {
                 assert!(!cur.edges.is_empty(), "行 14 有 Boss 哨兵边");
             }
         }
+    }
+
+    /// 大史莱姆：半血触发分裂 → 自灭 + 2 只 M 版各承当前 HP
+    #[test]
+    fn large_slime_split() {
+        let mut c = Combat::new_with(3, 20, &[MonsterKind::AcidSlimeL]);
+        let max = c.monsters[0].creature.max_hp;
+        // 打到半血以下 → 定招分裂（3）
+        c.exec(Q::DamageMonster {
+            target: 0,
+            dmg: max / 2 + 1,
+        });
+        assert!(!c.monsters[0].creature.is_dead(), "未死");
+        assert_eq!(c.monsters[0].next_move, 3, "半血定招分裂");
+        let hp_at_split = c.monsters[0].creature.hp;
+        // 分裂回合
+        c.step(&Action::EndTurn);
+        // L 版自灭 + 2 只 M 版入場
+        assert!(c.monsters[0].creature.is_dead(), "L 版自灭");
+        assert_eq!(c.monsters.len(), 3, "2 只 M 版");
+        assert_eq!(
+            c.monsters[1].creature.max_hp, hp_at_split,
+            "M 版承分裂时 HP"
+        );
+        assert_eq!(c.monsters[2].creature.max_hp, hp_at_split);
+        // 战斗继续（M 版可打）
+        assert!(!c.over);
+    }
+
+    /// 大史莱姆战利：粘液冲撞；脆舔/弱舔
+    #[test]
+    fn large_slime_moves() {
+        // 酸：腐蚀冲撞 12(A2+) + 2 粘液
+        let mut c = Combat::new_with(5, 20, &[MonsterKind::AcidSlimeL]);
+        c.monsters[0].next_move = 1;
+        let hp0 = c.player.creature.hp;
+        c.player.creature.hp = 999;
+        c.player.creature.max_hp = 999;
+        let p0 = c.player.creature.hp;
+        c.step(&Action::EndTurn);
+        assert_eq!(c.player.creature.hp, p0 - 12);
+        let slimed = c
+            .player
+            .discard
+            .iter()
+            .filter(|x| x.def.id == "Slimed")
+            .count();
+        assert_eq!(slimed, 2, "腐蚀冲撞+2 粘液");
+        let _ = hp0;
+
+        // 尖：火焰冲撞 18(A2+) + 2 粘液；脆舔 2(A17+ 3)
+        let mut c = Combat::new_with(6, 20, &[MonsterKind::SpikeSlimeL]);
+        c.player.creature.hp = 999;
+        c.player.creature.max_hp = 999;
+        c.monsters[0].next_move = 1;
+        let p0 = c.player.creature.hp;
+        c.step(&Action::EndTurn);
+        assert_eq!(c.player.creature.hp, p0 - 18);
+        c.monsters[0].next_move = 4;
+        c.monsters[0].move_history.push(4);
+        c.step(&Action::EndTurn);
+        assert!(c
+            .player
+            .creature
+            .powers
+            .iter()
+            .any(|p| p.kind == PowerKind::Frail));
+    }
+
+    /// Act 1 池：Large/Lots of Slimes 已恢复
+    #[test]
+    fn act1_pool_complete() {
+        let (weak, strong, _elite) = act1_pools();
+        assert_eq!(weak.len(), 4);
+        assert!(strong.iter().any(|e| e.name == "Large Slime"));
+        assert!(strong.iter().any(|e| e.name == "Lots of Slimes"));
+        assert!(strong.len() >= 10, "强怪池 10+ 项（含恢复的史莱姆）");
+    }
+
+    /// Boss 战利 + 幕间卡牌：Act1→2 转幕
+    #[test]
+    fn boss_relic_and_interlude() {
+        let mut run = RunState::new(19, 20);
+        run.pos = (14, 3);
+        run.map.rows[14][3].edges = vec![3];
+        run.map.rows[14][3].room = Some(RoomKind::Rest);
+        // 直接 Boss 战
+        run.combat = Some(Combat::new_run_battle(
+            99,
+            20,
+            run.boss,
+            run.relics.clone(),
+            run.deck.clone(),
+            run.potions.clone(),
+            999,
+            999,
+            99,
+        ));
+        if let Some(c) = run.combat.as_mut() {
+            for m in c.monsters.iter_mut() {
+                m.creature.hp = 0;
+            }
+            c.over = true;
+            c.won = true;
+        }
+        let relics_before = run.relics.len();
+        let deck_before = run.deck.len();
+        run.settle_combat(0);
+        assert_eq!(run.act, 2, "转幕");
+        assert!(run.relics.len() > relics_before, "Boss 战利入栏");
+        assert!(run.deck.len() > deck_before, "幕间卡牌入组");
     }
 
     /// 奖励管线：金币区间/药水怜悯/暴雪偏移/卡牌去重/稀有度
@@ -765,9 +879,9 @@ pub fn enc_kinds(list: &[EncInfo], name: &str) -> &'static [MonsterKind] {
         .unwrap_or(&[])
 }
 
-/// Act 1 遭遇池（Exordium）。
-/// ⚠️ 已知偏差：Large Slime / Lots of Slimes 未实现（AcidSlime_L/SpikeSlime_L
-/// 待补），暂从池中移除并在此登记——对拍前必须恢复（docs/parity-spec.md 偏差表）
+/// Act 1 遭遇池（Exordium）——全量可组。
+/// ⚠️ 残留偏差：Large Slime 的酸/尖二选一走源码 slimeRng（此处以 acid 表记）；
+/// Lots of Slimes 的 5 小怪混排走 miscRng（此处固定 3尖+2酸组合表记）
 pub fn act1_pools() -> (Vec<EncInfo>, Vec<EncInfo>, Vec<EncInfo>) {
     use MonsterKind::*;
     let weak = vec![
@@ -808,7 +922,22 @@ pub fn act1_pools() -> (Vec<EncInfo>, Vec<EncInfo>, Vec<EncInfo>) {
             weight: 2.0,
             kinds: &[Looter],
         },
-        // Large Slime (2.0) / Lots of Slimes (1.0)：未实现，偏差登记
+        EncInfo {
+            name: "Large Slime",
+            weight: 2.0,
+            kinds: &[AcidSlimeL], // 酸/尖各半（源码 slimeRng；此处以 acid 表记，偏差登记）
+        },
+        EncInfo {
+            name: "Lots of Slimes",
+            weight: 1.0,
+            kinds: &[
+                SpikeSlimeS,
+                AcidSlimeS,
+                SpikeSlimeS,
+                AcidSlimeS,
+                SpikeSlimeS,
+            ],
+        },
         EncInfo {
             name: "Exordium Thugs",
             weight: 1.5,
@@ -1458,6 +1587,22 @@ impl RunState {
         self.rewards.clear();
     }
 
+    /// Boss 战利：从遗物池 roll 3 候选后发放第一只（决策面属协议层）
+    fn boss_relic_reward(&mut self) {
+        let owned: Vec<_> = self.relics.iter().map(|r| r.kind).collect();
+        let pool: Vec<_> = Self::IMPLEMENTED_RELICS
+            .iter()
+            .copied()
+            .filter(|k| !owned.contains(k))
+            .collect();
+        if pool.is_empty() {
+            return;
+        }
+        let roll = self.rng.relic.random_range(pool.len() as i32 - 1).max(0);
+        let k = pool[roll as usize];
+        self.relics.push(crate::relics::RelicInst::new(k));
+    }
+
     /// 已实现遗物池（奖励发放用；RelicKind 全集的子集——偏差：无 tier 元数据）
     pub const IMPLEMENTED_RELICS: &[crate::relics::RelicKind] = &[
         crate::relics::RelicKind::Vajra,
@@ -1504,6 +1649,16 @@ impl RunState {
                     self.over = true;
                     self.won = true;
                 } else {
+                    // Boss 战利（简化：roll 后直接发放——三选一决策面属协议层）
+                    self.boss_relic_reward();
+                    // 幕间卡牌奖励（Boss 恒稀有）
+                    let mut cards = Vec::new();
+                    for _ in 0..3 {
+                        let rarity = self.roll_rarity(true);
+                        let card = self.pick_card(rarity, &cards);
+                        cards.push(card);
+                    }
+                    self.deck.extend(cards);
                     self.act += 1;
                     self.map = generate_dungeon(self.act, self.ascension, &mut self.rng.map);
                     self.pos = (0, 0);

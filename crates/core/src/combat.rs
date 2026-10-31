@@ -397,6 +397,12 @@ pub(crate) enum Q {
     PlayerDrawNextTurn(i32),
     /// 尖塔之盾筑防：全怪获得格挡
     BlockAllMonsters(i32),
+    /// 大史莱姆分裂：自灭（不计击杀），生成 2 只 M 版各承分裂时 HP
+    SlimeSplit {
+        src: usize,
+        acid: bool,
+        hp: i32,
+    },
 }
 
 /// 探素卡池（returnTrulyRandomCardInCombat(type) / Colorless 变体）
@@ -4110,6 +4116,58 @@ impl Combat {
                 }
                 _ => {}
             },
+            // 大酸液史莱姆：1=腐蚀冲撞+粘液2  2=普通冲撞  3=分裂  4=弱舔2
+            MonsterKind::AcidSlimeL => match m.next_move {
+                1 => {
+                    q.push(Q::MonsterDamage {
+                        src: i,
+                        base: m.chomp_dmg,
+                    });
+                    if let Some(slimed) = CardInst::new_by_class("Slimed") {
+                        for _ in 0..m.thrash_block {
+                            q.push(Q::MakeDiscard(slimed));
+                        }
+                    }
+                }
+                2 => q.push(Q::MonsterDamage {
+                    src: i,
+                    base: m.thrash_dmg,
+                }),
+                3 => q.push(Q::SlimeSplit {
+                    src: i,
+                    acid: true,
+                    hp: self.monsters[i].creature.hp,
+                }),
+                4 => q.push(Q::ApplyPowerToPlayerFromMonster {
+                    kind: PowerKind::Weak,
+                    amount: m.bellow_block,
+                }),
+                _ => {}
+            },
+            // 大尖刺史莱姆：1=火焰冲撞+粘液2  3=分裂  4=脆舔(2/3 A17)
+            MonsterKind::SpikeSlimeL => match m.next_move {
+                1 => {
+                    q.push(Q::MonsterDamage {
+                        src: i,
+                        base: m.chomp_dmg,
+                    });
+                    if let Some(slimed) = CardInst::new_by_class("Slimed") {
+                        for _ in 0..m.thrash_block {
+                            q.push(Q::MakeDiscard(slimed));
+                        }
+                    }
+                }
+                3 => q.push(Q::SlimeSplit {
+                    src: i,
+                    acid: false,
+                    hp: self.monsters[i].creature.hp,
+                }),
+                4 => q.push(Q::ApplyPowerToPlayerFromMonster {
+                    kind: PowerKind::Frail,
+                    amount: m.bellow_str,
+                }),
+                _ => {}
+            },
             MonsterKind::FungiBeast => match m.next_move {
                 1 => q.push(Q::MonsterDamage {
                     src: i,
@@ -5534,6 +5592,31 @@ impl Combat {
             Q::PlayerDrawNextTurn(n) => {
                 self.next_turn_draw += n;
             }
+            Q::SlimeSplit { src, acid, hp } => {
+                // CannotLose→SuicideAction(不计击杀)→2×SpawnMonster(M, newHp=currentHealth)
+                let kind = if acid {
+                    MonsterKind::AcidSlimeM
+                } else {
+                    MonsterKind::SpikeSlimeM
+                };
+                self.monsters[src].creature.hp = 0;
+                self.monsters[src].creature.block = 0;
+                // 不走 on_monster_death（SuicideAction 不触发亡语/胜利判定）
+                let asc = self.ascension;
+                for _ in 0..2 {
+                    let mut m = MonsterState::spawn(kind, asc, &mut self.rng.monster_hp);
+                    // M 版 HP = 分裂时 L 版当前 HP（构造器 newHealth 参数）
+                    m.creature.max_hp = hp;
+                    m.creature.hp = hp;
+                    m.next_move = 1;
+                    m.move_history.push(1);
+                    self.monsters.push(m);
+                }
+                if self.all_monsters_dead() {
+                    self.over = true;
+                    self.won = true;
+                }
+            }
             Q::BlockAllMonsters(amount) => {
                 for mi in 0..self.monsters.len() {
                     if self.alive(mi) {
@@ -5821,6 +5904,20 @@ impl Combat {
             {
                 self.roll_move(target);
             }
+        }
+        // 大史莱姆：非致死受击后 HP≤max/2 且未分裂过 → 定招分裂（3）
+        if self.monsters[target].creature.hp > 0
+            && self.monsters[target].creature.hp * 2 <= self.monsters[target].creature.max_hp
+            && self.monsters[target].next_move != 3
+            && self.monsters[target].burn_upgraded == 0
+            && matches!(
+                self.monsters[target].kind,
+                MonsterKind::AcidSlimeL | MonsterKind::SpikeSlimeL
+            )
+        {
+            self.monsters[target].burn_upgraded = 1; // splitTriggered
+            self.monsters[target].next_move = 3;
+            self.monsters[target].move_history.push(3);
         }
         // AwakenedOne：阶段 1 死亡 → 半死转阶段（阶段 2 死亡 = 真死）
         if self.monsters[target].creature.hp <= 0
@@ -6896,6 +6993,80 @@ impl Combat {
         }
     }
 
+    /// AcidSlime_L.getMove：A17 分段 <40/<70/else；非 A17 <30/<70/else；
+    /// 各分支含 randomBoolean 重掣（消耗 aiRng）
+    fn acid_slime_l_get_move(&mut self, i: usize, num: i32) -> u8 {
+        let m = &self.monsters[i];
+        let last = m.move_history.last().copied();
+        let last2 = if m.move_history.len() >= 2 {
+            Some(m.move_history[m.move_history.len() - 2])
+        } else {
+            None
+        };
+        let (t1, t2) = if self.ascension >= 17 {
+            (40, 70)
+        } else {
+            (30, 70)
+        };
+        let w_tackle = m.chomp_dmg;
+        let n_tackle = m.thrash_dmg;
+        if num < t1 {
+            if last == Some(1) && last2 == Some(1) {
+                return if self.rng.ai.random_boolean_chance(if self.ascension >= 17 {
+                    0.6
+                } else {
+                    0.5
+                }) {
+                    2
+                } else {
+                    4
+                };
+            }
+            return 1;
+        }
+        if num < t2 {
+            if last == Some(2) {
+                return if self.rng.ai.random_boolean_chance(0.4) {
+                    1
+                } else {
+                    4
+                };
+            }
+            return 2;
+        }
+        if last == Some(4) && last2 == Some(4) {
+            return if self.rng.ai.random_boolean_chance(0.4) {
+                1
+            } else {
+                2
+            };
+        }
+        let _ = (w_tackle, n_tackle);
+        4
+    }
+
+    /// SpikeSlime_L.getMove：A17 分段 <30/else（非 A17 <30/else）；
+    /// 上次脆舔→冲撞；连续两次冲撞→脆舔；否则冲撞
+    fn spike_slime_l_get_move(&mut self, i: usize, num: i32) -> u8 {
+        let m = &self.monsters[i];
+        let last = m.move_history.last().copied();
+        let last2 = if m.move_history.len() >= 2 {
+            Some(m.move_history[m.move_history.len() - 2])
+        } else {
+            None
+        };
+        if num < 30 {
+            if last == Some(1) && last2 == Some(1) {
+                return 4;
+            }
+            return 1;
+        }
+        if last == Some(4) {
+            return 1;
+        }
+        1
+    }
+
     /// 意图决策（逐行对照各怪 getMove；num = aiRng.random(99)）
     fn roll_move(&mut self, i: usize) {
         let num = self.rng.ai.random_range(99);
@@ -6995,6 +7166,8 @@ impl Combat {
             MonsterKind::SpireShield => self.spire_shield_get_move(i),
             MonsterKind::SpireSpear => self.spire_spear_get_move(i),
             MonsterKind::CorruptHeart => self.corrupt_heart_get_move(i),
+            MonsterKind::AcidSlimeL => self.acid_slime_l_get_move(i, num),
+            MonsterKind::SpikeSlimeL => self.spike_slime_l_get_move(i, num),
         };
         self.monsters[i].first_move = false;
         self.monsters[i].move_history.push(mv);

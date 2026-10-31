@@ -259,6 +259,9 @@ pub enum MonsterKind {
     SpireShield,
     SpireSpear,
     CorruptHeart,
+    // —— 补缺（Act 1 偏差清除）——
+    AcidSlimeL,
+    SpikeSlimeL,
 }
 
 /// 通用怪物状态（M2 覆盖：大颚虫、邪教徒；M3 走数据驱动定义表）
@@ -886,6 +889,40 @@ impl MonsterState {
                     (hp, (40, 2, 12, 2, 0, 0, 0))
                 }
             }
+            // 大酸液史莱姆：chomp=腐蚀冲撞(11/12)+粘液2 thrash=普通冲撞(16/18)
+            // bellow_block=弱舔2；半血分裂为 2 只 M 版（各承当前 HP）
+            MonsterKind::AcidSlimeL => {
+                let (lo, hi) = if ascension >= 7 { (68, 72) } else { (65, 69) };
+                (
+                    hp_rng.random_start_end(lo, hi),
+                    (
+                        if ascension >= 2 { 12 } else { 11 },
+                        if ascension >= 2 { 18 } else { 16 },
+                        2,
+                        2,
+                        2,
+                        0,
+                        0,
+                    ),
+                )
+            }
+            // 大尖刺史莱姆：chomp=火焰冲撞(16/18)+粘液2 bellow_str=脆舔(2/3 A17)
+            // 半血分裂为 2 只 M 版
+            MonsterKind::SpikeSlimeL => {
+                let (lo, hi) = if ascension >= 7 { (67, 73) } else { (64, 70) };
+                (
+                    hp_rng.random_start_end(lo, hi),
+                    (
+                        if ascension >= 2 { 18 } else { 16 },
+                        0,
+                        if ascension >= 17 { 3 } else { 2 },
+                        2,
+                        0,
+                        0,
+                        0,
+                    ),
+                )
+            }
         };
         Self {
             kind,
@@ -1191,6 +1228,17 @@ impl MonsterState {
                 4 => Intent::Buff,   // 增益轮转
                 _ => Intent::Attack, // ECHO / BLOOD_SHOTS
             },
+            MonsterKind::AcidSlimeL => match self.next_move {
+                1 => Intent::AttackDebuff, // 腐蚀冲撞+粘液
+                2 => Intent::Attack,       // 普通冲撞
+                4 => Intent::Debuff,       // 弱舔
+                _ => Intent::Unknown,      // 分裂
+            },
+            MonsterKind::SpikeSlimeL => match self.next_move {
+                1 => Intent::AttackDebuff, // 火焰冲撞+粘液
+                4 => Intent::Debuff,       // 脆舔
+                _ => Intent::Unknown,      // 分裂
+            },
         }
     }
 
@@ -1433,6 +1481,15 @@ impl MonsterState {
             MonsterKind::CorruptHeart => match self.next_move {
                 2 => Some(self.chomp_dmg),
                 1 => Some(self.thrash_dmg),
+                _ => None,
+            },
+            MonsterKind::AcidSlimeL => match self.next_move {
+                1 => Some(self.chomp_dmg),
+                2 => Some(self.thrash_dmg),
+                _ => None,
+            },
+            MonsterKind::SpikeSlimeL => match self.next_move {
+                1 => Some(self.chomp_dmg),
                 _ => None,
             },
         }
