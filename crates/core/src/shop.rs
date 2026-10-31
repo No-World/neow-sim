@@ -278,7 +278,7 @@ fn pick_from_pool(
                 d.color == color
                     && d.rarity == t
                     && d.status != "no_use"
-                    && ty.map_or(true, |ty| d.card_type == ty)
+                    && ty.is_none_or(|ty| d.card_type == ty)
             })
             .collect();
         if pool.is_empty() {
