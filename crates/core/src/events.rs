@@ -91,6 +91,12 @@ pub enum EventKind {
     KnowingSkull,
     Nloth,
     TheJoust,
+    // ── 事件补缺（5 只清零）──
+    CursedTome,
+    MoaiHead,
+    MatchAndKeep,
+    NoteForYourself,
+    SecretPortal,
 }
 
 impl EventKind {
@@ -143,6 +149,11 @@ impl EventKind {
             E::KnowingSkull => "Knowing Skull",
             E::Nloth => "N'loth",
             E::TheJoust => "The Joust",
+            E::CursedTome => "Cursed Tome",
+            E::MoaiHead => "The Moai Head",
+            E::MatchAndKeep => "Match and Keep!",
+            E::NoteForYourself => "NoteForYourself",
+            E::SecretPortal => "SecretPortal",
         }
     }
 }
@@ -227,12 +238,13 @@ pub fn act_event_pool(act: u8) -> Vec<EventKind> {
             E::ScrapOoze,
             E::ShiningLight,
         ],
-        // ⚠️ 偏差：CursedTome 未入池（Necronomicon 卡不在数据提取范围）
+        // ⚠️ 偏差清除：CursedTome 已入池（Necronomison 卡以占位卡替代）
         2 => vec![
             E::Addict,
             E::BackToBasics,
             E::Beggar,
             E::Colosseum,
+            E::CursedTome,
             E::DrugDealer,
             E::ForgottenAltar,
             E::Ghosts,
@@ -245,6 +257,7 @@ pub fn act_event_pool(act: u8) -> Vec<EventKind> {
         3 => vec![
             E::Falling,
             E::MindBloom,
+            E::MoaiHead,
             E::MysteriousSphere,
             E::SensoryStone,
             E::TombRedMask,
@@ -263,6 +276,7 @@ pub fn shrine_pool() -> Vec<EventKind> {
         E::PurificationShrine,
         E::UpgradeShrine,
         E::WheelOfChange,
+        E::MatchAndKeep,
     ]
 }
 
@@ -283,6 +297,8 @@ pub fn special_pool() -> Vec<EventKind> {
         E::KnowingSkull,
         E::Nloth,
         E::TheJoust,
+        E::NoteForYourself,
+        E::SecretPortal,
     ]
 }
 
@@ -344,6 +360,11 @@ impl RunState {
                 E::Cleric => self.player.gold >= 35,
                 E::Beggar => self.player.gold >= 75,
                 E::Colosseum => later_half,
+                E::MoaiHead => {
+                    // Moai Head：金神像持有者 或 HP > 50%
+                    self.relics.iter().any(|r| r.kind == RelicKind::GoldenIdol)
+                        || self.player.hp as f32 / self.player.max_hp as f32 > 0.5
+                }
                 _ => true,
             })
             .collect();
@@ -373,6 +394,8 @@ impl RunState {
                 E::KnowingSkull => self.act == 2 && self.player.hp > 12,
                 E::Nloth => self.act == 2 && self.relics.len() >= 2,
                 E::TheJoust => self.act == 2 && self.player.gold >= 50,
+                E::NoteForYourself => true,       // 简化：不限存档门槛
+                E::SecretPortal => self.act == 3, // 简化：不限游玩时长
                 _ => true,
             };
             if ok {
@@ -529,6 +552,15 @@ impl RunState {
                 ev.damage = hp;
             }
             EventKind::KnowingSkull => ev.costs = [6, 6, 6],
+            EventKind::MoaiHead => {
+                let pct = if asc >= 15 { 0.18 } else { 0.125 };
+                ev.damage = ((max_hp as f32) * pct + 0.5) as i32;
+                ev.gold = 333;
+            }
+            EventKind::CursedTome => {
+                ev.damage = if asc >= 15 { 15 } else { 10 }; // finalDmg
+                ev.counter = 0; // 已读页数
+            }
             _ => {}
         }
         ev
@@ -1100,6 +1132,54 @@ impl RunState {
                 ),
                 o("for", "[For] Bet 50 gold for 250.", self.player.gold < 50),
                 o("decline", "[Decline]", false),
+            ],
+            // ── 事件补缺（5 只）──
+            E::CursedTome => {
+                if ev.screen == 0 {
+                    vec![o("read", "[Read]", false), o("leave", "[Leave]", false)]
+                } else if ev.counter < 3 {
+                    vec![
+                        o(
+                            "next",
+                            format!("[Continue] Take {} damage.", ev.counter + 1),
+                            false,
+                        ),
+                        o("stop", "[Stop]", false),
+                    ]
+                } else {
+                    vec![
+                        o(
+                            "final",
+                            format!("[Continue] Take {} damage.", ev.damage),
+                            self.player.hp <= ev.damage,
+                        ),
+                        o("stop", "[Stop]", false),
+                    ]
+                }
+            }
+            E::MoaiHead => {
+                let has_idol = self.relics.iter().any(|r| r.kind == RelicKind::GoldenIdol);
+                vec![
+                    o("bite", format!("[Bite] Lose {} Max HP.", ev.damage), false),
+                    o("give", "[Give] Golden Idol → Gain 333 gold.", !has_idol),
+                    o("leave", "[Leave]", false),
+                ]
+            }
+            E::MatchAndKeep => vec![
+                o(
+                    "play",
+                    "[Play] Match cards from your deck.",
+                    self.deck.is_empty(),
+                ),
+                o("leave", "[Leave]", false),
+            ],
+            E::NoteForYourself => vec![
+                o("swap", "[Swap] Transform a card.", self.deck.is_empty()),
+                o("leave", "[Leave]", false),
+            ],
+            E::SecretPortal => vec![
+                o("enter", "[Enter] Skip to the Boss.", false),
+                o("leave", "[Leave]", false),
             ],
         }
     }
@@ -1855,6 +1935,78 @@ impl RunState {
                 }
                 ev.screen = 1;
             }
+            // ── 事件补缺（5 只）──
+            EventKind::CursedTome => {
+                if ev.screen == 0 {
+                    if idx == 0 {
+                        // 开始读：第 1 页 1 伤
+                        ev.screen = 1;
+                        ev.counter = 1;
+                        self.lose_hp(1);
+                    } else {
+                        ev.screen = 2;
+                        ev.done = true;
+                    }
+                } else if ev.counter < 3 {
+                    if idx == 0 {
+                        self.lose_hp(ev.counter + 1);
+                        ev.counter += 1;
+                    } else {
+                        ev.screen = 2;
+                        ev.done = true;
+                    }
+                } else if idx == 0 {
+                    // 最终：受伤 + 获得卡（⚠️ Necronomicon 卡不在数据层，以随机稀有卡替代）
+                    self.lose_hp(ev.damage);
+                    let rarity = self.roll_rarity_bases(3, 37);
+                    let card = self.pick_red_card(rarity);
+                    self.deck.push(card);
+                    ev.screen = 2;
+                    ev.done = true;
+                } else {
+                    ev.screen = 2;
+                    ev.done = true;
+                }
+            }
+            EventKind::MoaiHead => {
+                match idx {
+                    0 => {
+                        self.player.max_hp -= ev.damage;
+                        if self.player.max_hp < 1 {
+                            self.player.max_hp = 1;
+                        }
+                        self.player.hp = self.player.hp.min(self.player.max_hp);
+                    }
+                    1 => {
+                        // 金神像 → 333 金（无神像时禁用但仍可实现代码）
+                        self.relics.retain(|r| r.kind != RelicKind::GoldenIdol);
+                        self.player.gold += ev.gold;
+                    }
+                    _ => {}
+                }
+                ev.screen = 1;
+            }
+            EventKind::MatchAndKeep => {
+                if idx == 0 {
+                    // 简化：从自己牌组选 1 张复制（源码：翻牌配对，净效果同）
+                    ev.pending.push(PendingPick::Duplicate);
+                }
+                ev.screen = 1;
+            }
+            EventKind::NoteForYourself => {
+                if idx == 0 {
+                    // 选 1 张变形
+                    ev.pending.push(PendingPick::Transform);
+                }
+                ev.screen = 1;
+            }
+            EventKind::SecretPortal => {
+                if idx == 0 {
+                    // 传送到 Boss（跳到行 14）
+                    self.pos = (crate::run::MAP_HEIGHT - 1, self.pos.1);
+                }
+                ev.screen = 1;
+            }
         }
         self.event = Some(ev);
     }
@@ -2170,22 +2322,21 @@ mod tests {
         run
     }
 
-    /// 池初始化：Act1 11 / Act2 12（CursedTome 未入池）/ Act3 6 +
-    /// 神龛 5 + 一次性 12（城市专属 5 只本批接入）
+    /// 池初始化：Act1 11 / Act2 13 / Act3 7 + 神龛 6 + 一次性 14 = 全量
     #[test]
     fn pools_initialized() {
         let run = RunState::new(3, 0);
         assert_eq!(run.event_pool.len(), 11, "Act1 事件全量");
-        assert_eq!(run.shrine_pool.len(), 5, "Match and Keep! 未入池");
-        assert_eq!(run.special_pool.len(), 12);
+        assert_eq!(run.shrine_pool.len(), 6, "Match and Keep! 入池");
+        assert_eq!(run.special_pool.len(), 14);
         let mut run2 = RunState::new(3, 0);
         run2.act = 2;
         run2.init_event_pools();
-        assert_eq!(run2.event_pool.len(), 12, "Act2（CursedTome 偏差排除）");
+        assert_eq!(run2.event_pool.len(), 13, "Act2 全量（含 CursedTome）");
         let mut run3 = RunState::new(3, 0);
         run3.act = 3;
         run3.init_event_pools();
-        assert_eq!(run3.event_pool.len(), 6, "Act3 全量");
+        assert_eq!(run3.event_pool.len(), 7, "Act3 全量（含 MoaiHead）");
     }
 
     /// 事件抽取不重复：Act1 池 11 只各被抽到一次（floor=10 金币 99 全部可选；
