@@ -201,6 +201,10 @@ pub struct Power {
     pub kind: PowerKind,
     pub amount: i32,
     pub just_applied: bool,
+    /// Paper Crane 裁定：虚弱乘区 60%（战斗级标记，随 Power 传递）
+    pub has_paper_crane: bool,
+    /// Paper Frog 裁定：易伤乘区 175%
+    pub has_paper_frog: bool,
 }
 
 impl Power {
@@ -226,6 +230,8 @@ impl Power {
             kind,
             amount,
             just_applied,
+            has_paper_crane: false,
+            has_paper_frog: false,
         }
     }
 
@@ -323,7 +329,14 @@ impl Power {
     pub fn at_damage_give(&self, dmg: f32, ty: DamageType) -> f32 {
         match (self.kind, ty) {
             (PowerKind::Strength, DamageType::Normal) => dmg + self.amount as f32,
-            (PowerKind::Weak, DamageType::Normal) => dmg * 0.75,
+            (PowerKind::Weak, DamageType::Normal) => {
+                // Paper Crane：虚弱效果 60%（替代默认 75%）
+                if self.has_paper_crane {
+                    dmg * 0.6
+                } else {
+                    dmg * 0.75
+                }
+            }
             (PowerKind::Vigor, DamageType::Normal) => dmg + self.amount as f32,
             (PowerKind::PenNib, DamageType::Normal) => dmg * 2.0,
             _ => dmg,
@@ -333,7 +346,14 @@ impl Power {
     /// atDamageReceive：受击方的 power（VulnerablePower: ×1.5）
     pub fn at_damage_receive(&self, dmg: f32, ty: DamageType) -> f32 {
         match (self.kind, ty) {
-            (PowerKind::Vulnerable, DamageType::Normal) => dmg * 1.5,
+            (PowerKind::Vulnerable, DamageType::Normal) => {
+                // Paper Frog：易伤效果 175%（替代默认 150%）
+                if self.has_paper_frog {
+                    dmg * 1.75
+                } else {
+                    dmg * 1.5
+                }
+            }
             (PowerKind::Slow, DamageType::Normal) => dmg * (1.0 + self.amount as f32 * 0.1),
             _ => dmg,
         }

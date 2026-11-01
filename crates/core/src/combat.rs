@@ -2576,7 +2576,7 @@ impl Combat {
             }
         }
         self.player.creature.powers = keep;
-        // ② loseBlock（Barricade 豁免）
+        // ② loseBlock（Barricade 豁免；Calipers：只减 15）
         if !self
             .player
             .creature
@@ -2584,7 +2584,15 @@ impl Combat {
             .iter()
             .any(|pw| pw.kind == PowerKind::Barricade)
         {
-            self.player.creature.block = 0;
+            if self
+                .player_relics
+                .iter()
+                .any(|r| r.kind == crate::relics::RelicKind::Calipers)
+            {
+                self.player.creature.block = (self.player.creature.block - 15).max(0);
+            } else {
+                self.player.creature.block = 0;
+            }
         }
         // ③④ 能量重置（3+加成+Plasma）→ 抽 5
         {
@@ -2602,10 +2610,20 @@ impl Combat {
                 }
             }
         }
-        self.player.energy = 3 + bonus_energy; // ③ 能量重置（Plasma 加成合并）
-                                               // applyStartOfTurnRelics（atTurnStart：Lantern/HappyFlower/Art of War/
-                                               // 手里剑系清零/Mercury Hourglass/Brimstone…）——真游戏在 loseBlock 前同步
-                                               // 调用、动作入队在 loseBlock 后执行，格挡/能量类净效果与此时序一致
+        // Ice Cream：能量跨回合保留（叠加剩余）
+        let leftover = if self
+            .player_relics
+            .iter()
+            .any(|r| r.kind == crate::relics::RelicKind::IceCream)
+        {
+            self.player.energy
+        } else {
+            0
+        };
+        self.player.energy = 3 + bonus_energy + leftover; // ③ 能量重置（Plasma+IceCream 加成合并）
+                                                          // applyStartOfTurnRelics（atTurnStart：Lantern/HappyFlower/Art of War/
+                                                          // 手里剑系清零/Mercury Hourglass/Brimstone…）——真游戏在 loseBlock 前同步
+                                                          // 调用、动作入队在 loseBlock 后执行，格挡/能量类净效果与此时序一致
         self.relics_at_turn_start();
         if self.over {
             return;
@@ -6134,6 +6152,8 @@ impl Combat {
                             kind: PowerKind::Strength,
                             amount: angry,
                             just_applied: false,
+                            has_paper_crane: false,
+                            has_paper_frog: false,
                         });
                     }
                 }
@@ -6339,6 +6359,8 @@ impl Combat {
                     kind,
                     amount: encoded,
                     just_applied: false,
+                    has_paper_crane: false,
+                    has_paper_frog: false,
                 });
             }
         } else {

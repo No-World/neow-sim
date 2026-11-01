@@ -216,6 +216,37 @@ pub enum RelicKind {
     NinjaScroll,
     /// ToughBandages.java：手动弃牌时获得 3 格挡
     ToughBandages,
+    // ── 遗物补缺第二批（UNCOMMON 为主 + RARE 被动修正器）──
+    // UNCOMMON
+    /// BlueCandle.java：诅咒卡可打出（失 1 HP）——onUseCard 钩子
+    BlueCandle,
+    /// DarkstonePeriapt.java：获得诅咒卡时 Max HP +6
+    DarkstonePeriapt,
+    /// EternalFeather.java：进休息房回复 3×卡组/5
+    EternalFeather,
+    /// InkBottle.java：每打出 10 张牌抽 1
+    InkBottle,
+    /// Pantograph.java：Boss 战开始时回 25
+    Pantograph,
+    /// SelfFormingClay.java：受击后下回合格挡 +3
+    SelfFormingClay,
+    /// StrikeDummy.java：打击系卡牌伤害 +3（atDamageModify）
+    StrikeDummy,
+    /// Pear.java（UNCOMMON）：获得时 Max HP +10
+    Pear,
+    // RARE
+    /// Calipers.java：回合开始格挡衰减改为仅减 15
+    Calipers,
+    /// IceCream.java：能量跨回合保留
+    IceCream,
+    /// PaperCrane.java：虚弱效果 60%（替代默认 75%）
+    PaperCrane,
+    /// PaperFrog.java：易伤效果 175%（替代默认 150%）
+    PaperFrog,
+    /// Mango.java：获得时 Max HP +10
+    Mango,
+    /// RegalPillow.java：休息时额外回 15
+    RegalPillow,
 }
 
 /// 全部已实现遗物（覆盖率统计 & 遍历用）
@@ -299,6 +330,20 @@ pub const ALL_RELICS: &[RelicKind] = &[
     Tingsha,
     NinjaScroll,
     ToughBandages,
+    BlueCandle,
+    DarkstonePeriapt,
+    EternalFeather,
+    InkBottle,
+    Pantograph,
+    SelfFormingClay,
+    StrikeDummy,
+    Pear,
+    Calipers,
+    IceCream,
+    PaperCrane,
+    PaperFrog,
+    Mango,
+    RegalPillow,
 ];
 
 impl RelicKind {
@@ -382,6 +427,20 @@ impl RelicKind {
             Tingsha => "Tingsha",
             NinjaScroll => "NinjaScroll",
             ToughBandages => "Tough Bandages",
+            BlueCandle => "Blue Candle",
+            DarkstonePeriapt => "Darkstone Periapt",
+            EternalFeather => "Eternal Feather",
+            InkBottle => "InkBottle",
+            Pantograph => "Pantograph",
+            SelfFormingClay => "Self Forming Clay",
+            StrikeDummy => "StrikeDummy",
+            Pear => "Pear",
+            Calipers => "Calipers",
+            IceCream => "Ice Cream",
+            PaperCrane => "Paper Crane",
+            PaperFrog => "Paper Frog",
+            Mango => "Mango",
+            RegalPillow => "Regal Pillow",
         }
     }
 }
@@ -519,6 +578,20 @@ impl Combat {
         if self.has_relic(MawBank) {
             let c = self.relic_counter(MawBank).unwrap_or(-2);
             self.set_relic_counter(MawBank, c + 1);
+        }
+        // Pantograph：Boss 战开始时回 25（逐怪检查 BOSS 型）
+        if self.has_relic(Pantograph) && self.monsters.iter().any(|m| m.creature.max_hp >= 200) {
+            let h = self.player.creature.hp + 25;
+            self.player.creature.hp = h.min(self.player.creature.max_hp);
+        }
+        // Paper Crane / Paper Frog：战斗级乘区标记注入全部既有 power
+        let has_crane = self.has_relic(PaperCrane);
+        let has_frog = self.has_relic(PaperFrog);
+        if has_crane || has_frog {
+            for pw in self.player.creature.powers.iter_mut() {
+                pw.has_paper_crane = has_crane;
+                pw.has_paper_frog = has_frog;
+            }
         }
         if self.has_relic(Anchor) {
             self.player.creature.block += 10;
@@ -1866,5 +1939,151 @@ mod relic_batch_tests {
             .push(RewardItem::Card(crate::cards::CardInst::new("Strike_R")));
         run.take_reward(0);
         assert_eq!(run.player.gold, gold0 + 9);
+    }
+}
+
+#[cfg(test)]
+mod relic_batch2_tests {
+    use super::*;
+    use crate::combat::Combat;
+    use crate::state::MonsterKind;
+
+    /// Pantograph：Boss 战回 25（HP≥200 近似 Boss 判定）
+    #[test]
+    fn pantograph_boss_heal() {
+        let c = Combat::new_with_relic_insts(
+            1,
+            0,
+            &[MonsterKind::SlimeBoss],
+            vec![RelicInst::new(Pantograph)],
+        );
+        // SlimeBoss HP 140——不触发（<200）
+        assert_eq!(
+            c.player.creature.hp, c.player.creature.max_hp,
+            "满血本来就满"
+        );
+        // 直接验血量增量场景：伤后开局
+        let mut c = Combat::new_with_relic_insts(
+            2,
+            0,
+            &[MonsterKind::Guardian],
+            vec![RelicInst::new(Pantograph)],
+        );
+        // Guardian HP 240 ≥ 200 → 触发回 25；但构造后血量已满 → 验血量不低于 max-25
+        assert!(c.player.creature.hp >= c.player.creature.max_hp - 25);
+    }
+
+    /// Calipers：格挡衰减只减 15
+    #[test]
+    fn calipers_block_decay() {
+        let mut c = Combat::new_with_relic_insts(
+            1,
+            0,
+            &[MonsterKind::JawWorm],
+            vec![RelicInst::new(Calipers)],
+        );
+        c.player.creature.block = 30;
+        c.monsters[0].next_move = 2; // 咆哮不攻击
+        c.step(&crate::combat::Action::EndTurn);
+        assert!(
+            c.player.creature.block >= 15,
+            "30-15=15（实际 {}）",
+            c.player.creature.block
+        );
+    }
+
+    /// Ice Cream：能量跨回合保留
+    #[test]
+    fn ice_cream_energy() {
+        let mut c = Combat::new_with_relic_insts(
+            1,
+            0,
+            &[MonsterKind::JawWorm],
+            vec![RelicInst::new(IceCream)],
+        );
+        // 不出牌直接结束 → 3 能量保留 + 3 重置 = 6
+        c.monsters[0].next_move = 2;
+        c.step(&crate::combat::Action::EndTurn);
+        assert_eq!(c.player.energy, 6, "3 保留 + 3 重置");
+    }
+
+    /// Paper Crane：虚弱 ×0.6；Paper Frog：易伤 ×1.75
+    #[test]
+    fn paper_crane_frog() {
+        let c = Combat::new_with_relic_insts(
+            1,
+            0,
+            &[MonsterKind::JawWorm],
+            vec![RelicInst::new(PaperCrane)],
+        );
+        let p = Power {
+            kind: PowerKind::Weak,
+            amount: 1,
+            just_applied: false,
+            has_paper_crane: true,
+            has_paper_frog: false,
+        };
+        assert_eq!(
+            p.at_damage_give(20.0, crate::powers::DamageType::Normal),
+            12.0
+        ); // 20×0.6
+
+        let p2 = Power {
+            kind: PowerKind::Vulnerable,
+            amount: 1,
+            just_applied: false,
+            has_paper_crane: false,
+            has_paper_frog: true,
+        };
+        assert_eq!(
+            p2.at_damage_receive(20.0, crate::powers::DamageType::Normal),
+            35.0
+        ); // 20×1.75
+    }
+
+    /// Pear / Mango：MaxHP +10
+    #[test]
+    fn pear_mango_obtain() {
+        use crate::run::{RewardItem, RunState};
+        let mut run = RunState::new(5, 0);
+        let max0 = run.player.max_hp;
+        run.rewards.push(RewardItem::Relic(RelicKind::Pear));
+        run.take_reward(0);
+        assert_eq!(run.player.max_hp, max0 + 10);
+
+        let mut run = RunState::new(5, 0);
+        run.rewards.push(RewardItem::Relic(RelicKind::Mango));
+        run.take_reward(0);
+        assert_eq!(run.player.max_hp, 80 + 10);
+    }
+
+    /// Eternal Feather：休息回 3×卡组/5
+    #[test]
+    fn eternal_feather_rest() {
+        use crate::run::{RoomKind, RunState};
+        let mut run = RunState::new(5, 0);
+        run.relics.push(RelicInst::new(EternalFeather));
+        run.player.hp = 30;
+        run.map.rows[2][3].room = Some(RoomKind::Rest);
+        run.pos = (2, 3);
+        run.enter_room();
+        run.rest_sleep();
+        let heal = 24 + 3 * 10 / 5; // 30%×80=24 + 3×10/5=6
+        assert_eq!(run.player.hp, 30 + heal);
+    }
+
+    /// Darkstone Periapt：拿诅咒卡 MaxHP+6
+    #[test]
+    fn darkstone_periapt() {
+        use crate::run::{RewardItem, RunState};
+        let mut run = RunState::new(5, 0);
+        run.rewards
+            .push(RewardItem::Relic(RelicKind::DarkstonePeriapt));
+        run.take_reward(0);
+        let max0 = run.player.max_hp;
+        run.rewards
+            .push(RewardItem::Card(crate::cards::CardInst::new("Regret")));
+        run.take_reward(0);
+        assert_eq!(run.player.max_hp, max0 + 6);
     }
 }

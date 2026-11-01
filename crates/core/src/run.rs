@@ -1696,6 +1696,21 @@ impl RunState {
                 {
                     self.player.gold += 9;
                 }
+                // DarkstonePeriapt：获得诅咒卡时 Max HP +6
+                let is_curse = self
+                    .deck
+                    .last()
+                    .map(|c| c.def.color == "CURSE")
+                    .unwrap_or(false);
+                if is_curse
+                    && self
+                        .relics
+                        .iter()
+                        .any(|r| r.kind == crate::relics::RelicKind::DarkstonePeriapt)
+                {
+                    self.player.max_hp += 6;
+                    self.player.hp += 6;
+                }
             }
             RewardItem::Potion(k) => {
                 if let Some(slot) = self.potions.iter_mut().find(|s| s.is_none()) {
@@ -1717,6 +1732,16 @@ impl RunState {
             RelicKind::Strawberry => {
                 self.player.max_hp += 7;
                 self.player.hp += 7;
+            }
+            // Pear.java（UNCOMMON）: Max HP +10
+            RelicKind::Pear => {
+                self.player.max_hp += 10;
+                self.player.hp += 10;
+            }
+            // Mango.java（RARE）: Max HP +10
+            RelicKind::Mango => {
+                self.player.max_hp += 10;
+                self.player.hp += 10;
             }
             // PotionBelt.java：药水槽 +2
             RelicKind::PotionBelt => {
@@ -1866,6 +1891,23 @@ impl RunState {
         }
         let heal = (self.player.max_hp as f32 * 0.3) as i32;
         self.player.hp = (self.player.hp + heal).min(self.player.max_hp);
+        // Regal Pillow：休息额外回 15
+        if self
+            .relics
+            .iter()
+            .any(|r| r.kind == crate::relics::RelicKind::RegalPillow)
+        {
+            self.player.hp = (self.player.hp + 15).min(self.player.max_hp);
+        }
+        // Eternal Feather：进休息房回复 3×卡组/5
+        if self
+            .relics
+            .iter()
+            .any(|r| r.kind == crate::relics::RelicKind::EternalFeather)
+        {
+            let h = self.deck.len() as i32 / 5 * 3;
+            self.player.hp = (self.player.hp + h).min(self.player.max_hp);
+        }
         self.rest_available = false;
     }
 
