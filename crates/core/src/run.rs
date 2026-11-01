@@ -1684,8 +1684,17 @@ impl RunState {
             return;
         }
         let item = self.rewards.remove(idx);
+        // Ectoplasm：不能获得金币
+        let has_ectoplasm = self
+            .relics
+            .iter()
+            .any(|r| r.kind == crate::relics::RelicKind::Ectoplasm);
         match item {
-            RewardItem::Gold(g) => self.player.gold += g,
+            RewardItem::Gold(g) => {
+                if !has_ectoplasm {
+                    self.player.gold += g;
+                }
+            }
             RewardItem::Card(c) => {
                 self.deck.push(c);
                 // CeramicFish：获得卡牌时 +9 金币
@@ -1713,6 +1722,14 @@ impl RunState {
                 }
             }
             RewardItem::Potion(k) => {
+                // Sozu：不能获得药水
+                if self
+                    .relics
+                    .iter()
+                    .any(|r| r.kind == crate::relics::RelicKind::Sozu)
+                {
+                    return; // 不入槽
+                }
                 if let Some(slot) = self.potions.iter_mut().find(|s| s.is_none()) {
                     *slot = Some(crate::potions::PotionInst::new(k));
                 } // 满槽：弃（简化：满槽领取前应由调用方先 discard）
@@ -1743,6 +1760,24 @@ impl RunState {
                 self.player.max_hp += 10;
                 self.player.hp += 10;
             }
+            // TinyHouse.java：升级 2 随机卡 + MaxHP+5 + 金50 + 药水 + 遗物
+            RelicKind::TinyHouse => {
+                self.upgrade_random_cards("", 2); // 任意类型
+                self.player.max_hp += 5;
+                self.player.hp += 5;
+                self.player.gold += 50;
+                // 药水 + 遗物进奖励（引擎简化：直接给药水一瓶+遗物一件）
+                let pool = crate::potions::pool_for_class(self.char_kind.id());
+                let roll = self.rng.potion.random_range(pool.len() as i32 - 1).max(0) as usize;
+                if let Some(slot) = self.potions.iter_mut().find(|s| s.is_none()) {
+                    *slot = Some(crate::potions::PotionInst::new(
+                        pool[roll.min(pool.len() - 1)],
+                    ));
+                }
+                if let Some(k) = self.roll_relic_kind() {
+                    self.relics.push(crate::relics::RelicInst::new(k));
+                }
+            }
             // PotionBelt.java：药水槽 +2
             RelicKind::PotionBelt => {
                 self.potions.push(None);
@@ -1766,7 +1801,9 @@ impl RunState {
             .deck
             .iter()
             .enumerate()
-            .filter(|(_, c)| !c.upgraded && c.def.card_type == card_type)
+            .filter(|(_, c)| {
+                !c.upgraded && (card_type.is_empty() || c.def.card_type == card_type)
+            })
             .map(|(i, _)| i)
             .collect();
         // Fisher-Yates（miscRng）取前 n
@@ -1889,6 +1926,14 @@ impl RunState {
         if !self.rest_available {
             return;
         }
+        // Coffee Dripper：不能休息
+        if self
+            .relics
+            .iter()
+            .any(|r| r.kind == crate::relics::RelicKind::CoffeeDripper)
+        {
+            return;
+        }
         let heal = (self.player.max_hp as f32 * 0.3) as i32;
         self.player.hp = (self.player.hp + heal).min(self.player.max_hp);
         // Regal Pillow：休息额外回 15
@@ -1914,6 +1959,14 @@ impl RunState {
     /// 休息·锻造：升级主牌组一张卡（协议层 grid_select 后回调）
     pub fn rest_smith(&mut self, deck_idx: usize) {
         if !self.rest_available {
+            return;
+        }
+        // Fusion Hammer：不能锻造
+        if self
+            .relics
+            .iter()
+            .any(|r| r.kind == crate::relics::RelicKind::FusionHammer)
+        {
             return;
         }
         if let Some(c) = self.deck.get_mut(deck_idx) {

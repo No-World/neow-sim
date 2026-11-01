@@ -2498,8 +2498,15 @@ impl Combat {
             }
         }
         // DiscardAtEndOfTurn：无保留卡（retain）与 Runic Pyramid/Equilibrium 例外
-        let hand = std::mem::take(&mut self.player.hand);
-        self.player.discard.extend(hand);
+        let has_pyramid = self
+            .player_relics
+            .iter()
+            .any(|r| r.kind == crate::relics::RelicKind::RunicPyramid);
+        if !has_pyramid {
+            let hand = std::mem::take(&mut self.player.hand);
+            self.player.discard.extend(hand);
+        }
+        // Runic Pyramid：保留手牌（不清不弃）
         // MonsterStartTurnAction（AbstractRoom:406 单次入队）：
         // 怪物回合开始时对全部存活怪统一掉格挡（非逐怪；壁垒例外）
         for m in &mut self.monsters {
@@ -2674,7 +2681,17 @@ impl Combat {
             .find(|p| p.kind == PowerKind::DrawBonus)
             .map(|p| p.amount)
             .unwrap_or(0);
-        self.draw_cards((5 + hand_bonus) as usize);
+        // Ring of the Serpent：masterHandSize +1
+        let serpent = if self
+            .player_relics
+            .iter()
+            .any(|r| r.kind == crate::relics::RelicKind::RingOfTheSerpent)
+        {
+            1
+        } else {
+            0
+        };
+        self.draw_cards((5 + hand_bonus + serpent) as usize);
         // Night Terror 延迟副本
         let copies = std::mem::take(&mut self.next_turn_copies);
         for (card, count) in copies {

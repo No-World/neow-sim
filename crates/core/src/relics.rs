@@ -247,6 +247,37 @@ pub enum RelicKind {
     Mango,
     /// RegalPillow.java：休息时额外回 15
     RegalPillow,
+    // ── 遗物补缺第三批（BOSS 24 只中的 15 只）──
+    /// CoffeeDripper.java：+1 能量，不能休息
+    CoffeeDripper,
+    /// Ectoplasm.java：+1 能量，不能获得金币
+    Ectoplasm,
+    /// Sozu.java：+1 能量，不能获得药水
+    Sozu,
+    /// RunicDome.java：+1 能量，看不到意图（引擎层标记）
+    RunicDome,
+    /// VelvetChoker.java：+1 能量，每回合最多打 6 张牌
+    VelvetChoker,
+    /// CursedKey.java：+1 能量，宝箱给诅咒（简化：仅 +1 能量）
+    CursedKey,
+    /// FusionHammer.java：+1 能量，不能锻造
+    FusionHammer,
+    /// RunicPyramid.java：+1 能量，回合结束不弃手牌
+    RunicPyramid,
+    /// SneckoEye.java：+1 能量，战斗开始获得混乱（抽牌费随机）
+    SneckoEye,
+    /// SlaversCollar.java：偶数回合 +1 能量
+    SlaversCollar,
+    /// RingOfTheSerpent.java：每回合多抽 1 张
+    RingOfTheSerpent,
+    /// SacredBark.java：药水效果加倍
+    SacredBark,
+    /// WristBlade.java：沉默 ≤3 费攻击 +4 伤（atDamageModify）
+    WristBlade,
+    /// VioletLotus.java：球槽 +1
+    VioletLotus,
+    /// TinyHouse.java：升级 2 张 + MaxHP5 + 金 50 + 药水 + 遗物（简化）
+    TinyHouse,
 }
 
 /// 全部已实现遗物（覆盖率统计 & 遍历用）
@@ -344,6 +375,21 @@ pub const ALL_RELICS: &[RelicKind] = &[
     PaperFrog,
     Mango,
     RegalPillow,
+    CoffeeDripper,
+    Ectoplasm,
+    Sozu,
+    RunicDome,
+    VelvetChoker,
+    CursedKey,
+    FusionHammer,
+    RunicPyramid,
+    SneckoEye,
+    SlaversCollar,
+    RingOfTheSerpent,
+    SacredBark,
+    WristBlade,
+    VioletLotus,
+    TinyHouse,
 ];
 
 impl RelicKind {
@@ -441,6 +487,21 @@ impl RelicKind {
             PaperFrog => "Paper Frog",
             Mango => "Mango",
             RegalPillow => "Regal Pillow",
+            CoffeeDripper => "Coffee Dripper",
+            Ectoplasm => "Ectoplasm",
+            Sozu => "Sozu",
+            RunicDome => "Runic Dome",
+            VelvetChoker => "Velvet Choker",
+            CursedKey => "Cursed Key",
+            FusionHammer => "Fusion Hammer",
+            RunicPyramid => "Runic Pyramid",
+            SneckoEye => "Snecko Eye",
+            SlaversCollar => "SlaversCollar",
+            RingOfTheSerpent => "Ring of the Serpent",
+            SacredBark => "SacredBark",
+            WristBlade => "WristBlade",
+            VioletLotus => "VioletLotus",
+            TinyHouse => "Tiny House",
         }
     }
 }
@@ -593,6 +654,14 @@ impl Combat {
                 pw.has_paper_frog = has_frog;
             }
         }
+        // SneckoEye：战斗开始获得混乱（ConfusionPower，抽牌费 0-3 重掷）
+        if self.has_relic(SneckoEye) {
+            self.apply_power_to_player_checked(PowerKind::Confusion, 0, false);
+        }
+        // VioletLotus：球槽 +1
+        if self.has_relic(VioletLotus) {
+            self.player.max_orbs += 1;
+        }
         if self.has_relic(Anchor) {
             self.player.creature.block += 10;
         }
@@ -691,6 +760,27 @@ impl Combat {
         let first_turn = self.turn == 1;
         if first_turn && self.has_relic(Lantern) {
             self.player.energy += 1;
+        }
+        // BOSS 遗物能量加成（energyMaster +1）
+        let boss_energy = self.has_relic(CoffeeDripper)
+            || self.has_relic(Ectoplasm)
+            || self.has_relic(Sozu)
+            || self.has_relic(RunicDome)
+            || self.has_relic(VelvetChoker)
+            || self.has_relic(CursedKey)
+            || self.has_relic(FusionHammer)
+            || self.has_relic(RunicPyramid)
+            || self.has_relic(SneckoEye);
+        if boss_energy {
+            self.player.energy += 1;
+        }
+        // SlaversCollar：偶数回合 +1 能量（turn 从 1 起，偶数= turn%2==0）
+        if self.has_relic(SlaversCollar) && self.turn % 2 == 0 {
+            self.player.energy += 1;
+        }
+        // VelvetChoker：每回合出牌计数重置
+        if self.has_relic(VelvetChoker) {
+            self.set_relic_counter(VelvetChoker, 0);
         }
         // Ancient Tea Set：每场战斗第一回合 +2 能量（counter==-2 起手）
         if first_turn && self.has_relic(AncientTeaSet) {
@@ -805,6 +895,12 @@ impl Combat {
     // ── 出牌（onUseCard；效果追加到卡牌动作队列尾部 = 卡牌效果之后结算） ──
 
     pub(crate) fn relics_on_use_card(&mut self, card_type: &str, q: &mut Vec<crate::combat::Q>) {
+        // VelvetChoker：每回合最多 6 张牌（超限不可出——can_play 检查）
+        // 此处仅计数；can_play 由 legal_actions 查询 counter
+        if self.has_relic(VelvetChoker) {
+            let c = self.relic_counter(VelvetChoker).unwrap_or(0);
+            self.set_relic_counter(VelvetChoker, c + 1);
+        }
         use crate::combat::Q;
         match card_type {
             "ATTACK" => {
@@ -2086,5 +2182,163 @@ mod relic_batch2_tests {
             .push(RewardItem::Card(crate::cards::CardInst::new("Regret")));
         run.take_reward(0);
         assert_eq!(run.player.max_hp, max0 + 6);
+    }
+}
+
+#[cfg(test)]
+mod relic_batch3_tests {
+    use super::*;
+    use crate::combat::Combat;
+    use crate::state::MonsterKind;
+
+    /// BOSS 能量遗物：+1 能量（9 只共用）
+    #[test]
+    fn boss_energy_relics() {
+        for k in [
+            CoffeeDripper,
+            Ectoplasm,
+            Sozu,
+            RunicDome,
+            VelvetChoker,
+            CursedKey,
+            FusionHammer,
+            RunicPyramid,
+            SneckoEye,
+        ] {
+            let c = Combat::new_with_relic_insts(
+                1,
+                0,
+                &[MonsterKind::JawWorm],
+                vec![RelicInst::new(k)],
+            );
+            assert!(
+                c.player.energy >= 4,
+                "{:?} 能量应≥4（实际 {}）",
+                k,
+                c.player.energy
+            );
+        }
+    }
+
+    /// Runic Pyramid：EOT 不弃手牌
+    #[test]
+    fn runic_pyramid_retain() {
+        let mut c = Combat::new_with_relic_insts(
+            1,
+            0,
+            &[MonsterKind::JawWorm],
+            vec![RelicInst::new(RunicPyramid)],
+        );
+        let h0 = c.player.hand.len();
+        c.monsters[0].next_move = 2;
+        c.step(&crate::combat::Action::EndTurn);
+        assert_eq!(c.player.hand.len(), h0 + 5, "5 抽 + 原手牌保留");
+    }
+
+    /// SneckoEye：战斗开始获得混乱
+    #[test]
+    fn snecko_eye_confusion() {
+        let c = Combat::new_with_relic_insts(
+            1,
+            0,
+            &[MonsterKind::JawWorm],
+            vec![RelicInst::new(SneckoEye)],
+        );
+        assert!(c
+            .player
+            .creature
+            .powers
+            .iter()
+            .any(|p| p.kind == PowerKind::Confusion));
+    }
+
+    /// SlaversCollar：偶数回合 +1 能量
+    #[test]
+    fn slavers_collar() {
+        let mut c = Combat::new_with_relic_insts(
+            1,
+            0,
+            &[MonsterKind::JawWorm],
+            vec![RelicInst::new(SlaversCollar)],
+        );
+        c.monsters[0].next_move = 2;
+        c.step(&crate::combat::Action::EndTurn); // 进回合 2（偶数）
+        assert!(
+            c.player.energy >= 4,
+            "偶数回合 +1（实际 {}）",
+            c.player.energy
+        );
+    }
+
+    /// Ring of the Serpent：每回合多抽 1
+    #[test]
+    fn ring_of_serpent() {
+        let mut c = Combat::new_with_relic_insts(
+            1,
+            0,
+            &[MonsterKind::JawWorm],
+            vec![RelicInst::new(RingOfTheSerpent)],
+        );
+        c.monsters[0].next_move = 2;
+        c.step(&crate::combat::Action::EndTurn);
+        assert!(c.player.hand.len() >= 6, "5+1=6 张");
+    }
+
+    /// Sozu/Ectoplasm：奖励拿取阻断
+    #[test]
+    fn sozu_ectoplasm_block() {
+        use crate::run::{RewardItem, RunState};
+        let mut run = RunState::new(5, 0);
+        run.rewards.push(RewardItem::Relic(Sozu));
+        run.take_reward(0);
+        run.rewards
+            .push(RewardItem::Potion(crate::potions::PotionKind::Fire));
+        run.take_reward(0);
+        assert!(run.potions.iter().all(|p| p.is_none()), "Sozu 阻断药水");
+
+        let mut run = RunState::new(5, 0);
+        run.rewards.push(RewardItem::Relic(Ectoplasm));
+        run.take_reward(0);
+        let gold0 = run.player.gold;
+        run.rewards.push(RewardItem::Gold(50));
+        run.take_reward(0);
+        assert_eq!(run.player.gold, gold0, "Ectoplasm 阻断金币");
+    }
+
+    /// Coffee Dripper/Fusion Hammer：休息限制
+    #[test]
+    fn rest_restrictions() {
+        use crate::run::{RoomKind, RunState};
+        let mut run = RunState::new(5, 0);
+        run.relics.push(RelicInst::new(CoffeeDripper));
+        run.player.hp = 30;
+        run.map.rows[2][3].room = Some(RoomKind::Rest);
+        run.pos = (2, 3);
+        run.enter_room();
+        run.rest_sleep();
+        assert_eq!(run.player.hp, 30, "Coffee Dripper 不能睡觉");
+
+        let mut run = RunState::new(5, 0);
+        run.relics.push(RelicInst::new(FusionHammer));
+        run.map.rows[2][3].room = Some(RoomKind::Rest);
+        run.pos = (2, 3);
+        run.enter_room();
+        run.rest_smith(0);
+        assert!(!run.deck[0].upgraded, "Fusion Hammer 不能锻造");
+    }
+
+    /// Tiny House：升级 2 + MaxHP 5 + 金 50
+    #[test]
+    fn tiny_house_obtain() {
+        use crate::run::{RewardItem, RunState};
+        let mut run = RunState::new(5, 0);
+        let gold0 = run.player.gold;
+        let max0 = run.player.max_hp;
+        run.rewards.push(RewardItem::Relic(TinyHouse));
+        run.take_reward(0);
+        assert_eq!(run.player.gold, gold0 + 50);
+        assert_eq!(run.player.max_hp, max0 + 5);
+        let upg = run.deck.iter().filter(|c| c.upgraded).count();
+        assert!(upg >= 2, "升级 ≥2 张");
     }
 }
