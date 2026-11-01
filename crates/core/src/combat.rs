@@ -1549,7 +1549,10 @@ impl Combat {
                 types.len() as i32
             }
             Expr::NegXCost => -x_cost,
-            Expr::Const(_) | Expr::Raw(_) => unreachable!("can_play 已过滤不可求值表达式"),
+            // Const/Raw 兜底：数据提取残留——尝试解析数字，失败则 0
+            // （主效果 Damage/Block 已被 main_expr_ok 拦截，此处只有辅助参数）
+            Expr::Const(s) => s.parse::<i32>().unwrap_or(if s == "true" { 1 } else { 0 }),
+            Expr::Raw(_) => 0,
         }
     }
 

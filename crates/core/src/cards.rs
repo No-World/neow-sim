@@ -185,14 +185,23 @@ impl CardInst {
 
 /// 表达式在当前引擎下是否可求值（Const/Raw 为提取失败残留）
 fn expr_ok(e: Expr) -> bool {
+    // 数据提取残留的 Const/Raw：辅助参数（数量/修正器/意图检查等）接受——
+    // 只有 Damage/Block 主效應才需要精确值（见 main_expr_ok）
+    let _ = e;
+    true
+}
+
+/// 主效果（Damage/Block）的数值必须可精确求值
+fn main_expr_ok(e: Expr) -> bool {
     !matches!(e, Expr::Const(_) | Expr::Raw(_))
 }
 
 /// 单个效果是否被引擎支持（递归：Repeat 展开检查）
 fn effect_supported(e: &Effect) -> bool {
     match e {
-        Effect::Damage(t, x) => matches!(t, Target::Enemy) && expr_ok(*x),
-        Effect::DamageAll(x) | Effect::Block(x) | Effect::Draw(x) => expr_ok(*x),
+        Effect::Damage(t, x) => matches!(t, Target::Enemy) && main_expr_ok(*x),
+        Effect::DamageAll(x) | Effect::Block(x) => main_expr_ok(*x),
+        Effect::Draw(x) => expr_ok(*x),
         Effect::ApplyPower(_, pid, x) => expr_ok(*x) && ENGINE_POWERS.contains(pid),
         Effect::GainEnergy(x) | Effect::Heal(x) | Effect::LoseHP(x) => expr_ok(*x),
         Effect::CopySelfToDiscard => true,
