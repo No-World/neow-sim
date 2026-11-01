@@ -1497,6 +1497,14 @@ impl RunState {
                 self.rest_available = true;
             }
             Some(RoomKind::Shop) => {
+                // MealTicket：进商店房回 15 HP（justEnteredRoom）
+                if self
+                    .relics
+                    .iter()
+                    .any(|r| r.kind == crate::relics::RelicKind::MealTicket)
+                {
+                    self.player.hp = (self.player.hp + 15).min(self.player.max_hp);
+                }
                 // ShopScreen.init：进货（Merchant 构造）+ 定价 + 删卡价快照
                 let owned: Vec<_> = self.relics.iter().map(|r| r.kind).collect();
                 self.shop = Some(crate::shop::Shop::generate(
@@ -1720,6 +1728,28 @@ impl RunState {
                     self.player.max_hp += 6;
                     self.player.hp += 6;
                 }
+                // Egg 系遗物：获得对应类型卡牌自动升级（onObtainCard）
+                if let Some(last) = self.deck.last_mut() {
+                    let ct = last.def.card_type;
+                    let has_frozen = self
+                        .relics
+                        .iter()
+                        .any(|r| r.kind == crate::relics::RelicKind::FrozenEgg);
+                    let has_molten = self
+                        .relics
+                        .iter()
+                        .any(|r| r.kind == crate::relics::RelicKind::MoltenEgg);
+                    let has_toxic = self
+                        .relics
+                        .iter()
+                        .any(|r| r.kind == crate::relics::RelicKind::ToxicEgg);
+                    if (has_frozen && ct == "SKILL")
+                        || (has_molten && ct == "ATTACK")
+                        || (has_toxic && ct == "POWER")
+                    {
+                        last.upgraded = true;
+                    }
+                }
             }
             RewardItem::Potion(k) => {
                 // Sozu：不能获得药水
@@ -1761,6 +1791,32 @@ impl RunState {
                 self.player.hp += 10;
             }
             // TinyHouse.java：升级 2 随机卡 + MaxHP+5 + 金50 + 药水 + 遗物
+            // Old Coin（RARE）：获得 300 金币
+            RelicKind::OldCoin => {
+                self.player.gold += 300;
+            }
+            // Lee's Waffle（SHOP）：回满 + MaxHP +3
+            RelicKind::LeesWaffle => {
+                self.player.max_hp += 3;
+                self.player.hp = self.player.max_hp;
+            }
+            // Orrery（SHOP）：获得 5 张升级的卡牌——引擎简化：升 5 张随机
+            RelicKind::Orrery => {
+                self.upgrade_random_cards("", 5);
+            }
+            // Cauldron（SHOP）：获得 5 瓶随机药水
+            RelicKind::Cauldron => {
+                let pool = crate::potions::pool_for_class(self.char_kind.id());
+                for _ in 0..5 {
+                    if let Some(slot) = self.potions.iter_mut().find(|s| s.is_none()) {
+                        let roll =
+                            self.rng.potion.random_range(pool.len() as i32 - 1).max(0) as usize;
+                        *slot = Some(crate::potions::PotionInst::new(
+                            pool[roll.min(pool.len() - 1)],
+                        ));
+                    }
+                }
+            }
             RelicKind::TinyHouse => {
                 self.upgrade_random_cards("", 2); // 任意类型
                 self.player.max_hp += 5;

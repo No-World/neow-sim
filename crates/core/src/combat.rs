@@ -4697,6 +4697,19 @@ impl Combat {
                 kind,
                 amount,
             } => {
+                // Snake Skull：玩家施加的中毒 +1（ApplyPowerAction:38）
+                let mut amount = amount;
+                if kind == PowerKind::Poison && self.has_relic(crate::relics::RelicKind::SnakeSkull)
+                {
+                    amount += 1;
+                }
+                // Champion Belt：施加易伤时同时施加虚弱 1（ApplyPowerAction:105）
+                let mut extra_weak = false;
+                if kind == PowerKind::Vulnerable
+                    && self.has_relic(crate::relics::RelicKind::ChampionBelt)
+                {
+                    extra_weak = true;
+                }
                 if self.alive(target) {
                     // 怪物侧神器（SphericGuardian）：DEBUFF 被抵消
                     if kind.is_debuff() {
@@ -4722,6 +4735,16 @@ impl Combat {
                         false,
                         self.turn_has_ended,
                     );
+                    // Champion Belt：易伤后同时施加虚弱 1
+                    if extra_weak && self.alive(target) {
+                        apply_power(
+                            &mut self.monsters[target].creature.powers,
+                            PowerKind::Weak,
+                            1,
+                            false,
+                            self.turn_has_ended,
+                        );
+                    }
                 }
             }
             Q::ApplyPowerToSelf { kind, amount } => {
@@ -6342,7 +6365,10 @@ impl Combat {
         amount: i32,
         source_is_monster: bool,
     ) {
-        // ApplyPowerAction:125 —— 按 powerToApply.type == DEBUFF 判定，非硬编码清单
+        // Ginger：免疫虚弱（ApplyPowerAction:113）
+        if kind == PowerKind::Weak && self.has_relic(crate::relics::RelicKind::Ginger) {
+            return;
+        }
         if kind.is_debuff() {
             if let Some(idx) = self
                 .player

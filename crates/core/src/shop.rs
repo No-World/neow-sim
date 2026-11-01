@@ -117,7 +117,7 @@ impl Shop {
         char_kind: crate::state::CharKind,
         card_blizz: &mut i32,
         owned: &[RelicKind],
-        purge_cost: i32,
+        mut purge_cost: i32,
         implemented: &[RelicKind],
         rng: &mut RngStreams,
     ) -> Self {
@@ -225,6 +225,41 @@ impl Shop {
             for p in potions.iter_mut() {
                 p.price = ((p.price as f32) * 1.1 + 0.5) as i32;
             }
+        }
+
+        // ── 商店遗物折扣（Courier ×0.8 / Membership ×0.5；叠加取更低）──
+        let courier = owned.contains(&RelicKind::TheCourier);
+        let membership = owned.contains(&RelicKind::MembershipCard);
+        if membership {
+            for c in cards.iter_mut() {
+                c.price = ((c.price as f32) * 0.5 + 0.5) as i32;
+            }
+            for c in colorless.iter_mut() {
+                c.price = ((c.price as f32) * 0.5 + 0.5) as i32;
+            }
+            for r in relics.iter_mut() {
+                r.price = ((r.price as f32) * 0.5 + 0.5) as i32;
+            }
+            for p in potions.iter_mut() {
+                p.price = ((p.price as f32) * 0.5 + 0.5) as i32;
+            }
+        } else if courier {
+            for c in cards.iter_mut() {
+                c.price = ((c.price as f32) * 0.8 + 0.5) as i32;
+            }
+            for c in colorless.iter_mut() {
+                c.price = ((c.price as f32) * 0.8 + 0.5) as i32;
+            }
+            for r in relics.iter_mut() {
+                r.price = ((r.price as f32) * 0.8 + 0.5) as i32;
+            }
+            for p in potions.iter_mut() {
+                p.price = ((p.price as f32) * 0.8 + 0.5) as i32;
+            }
+        }
+        // Smiling Mask：删卡恒 50 金
+        if owned.contains(&RelicKind::SmilingMask) {
+            purge_cost = 50;
         }
 
         Shop {

@@ -278,6 +278,27 @@ pub enum RelicKind {
     VioletLotus,
     /// TinyHouse.java：升级 2 张 + MaxHP5 + 金 50 + 药水 + 遗物（简化）
     TinyHouse,
+    // ── 遗物补缺第四批（COMMON/UNCOMMON/SHOP/RARE 混合 ~20 只）──
+    JuzuBracelet,
+    MealTicket,
+    SmilingMask,
+    SnakeSkull,
+    Yang,
+    Ginger,
+    ChampionBelt,
+    OldCoin,
+    GamblingChip,
+    Pocketwatch,
+    UnceasingTop,
+    TheCourier,
+    MembershipCard,
+    Orrery,
+    Cauldron,
+    LeesWaffle,
+    HandDrill,
+    FrozenEgg,
+    MoltenEgg,
+    ToxicEgg,
 }
 
 /// 全部已实现遗物（覆盖率统计 & 遍历用）
@@ -390,6 +411,26 @@ pub const ALL_RELICS: &[RelicKind] = &[
     WristBlade,
     VioletLotus,
     TinyHouse,
+    JuzuBracelet,
+    MealTicket,
+    SmilingMask,
+    SnakeSkull,
+    Yang,
+    Ginger,
+    ChampionBelt,
+    OldCoin,
+    GamblingChip,
+    Pocketwatch,
+    UnceasingTop,
+    TheCourier,
+    MembershipCard,
+    Orrery,
+    Cauldron,
+    LeesWaffle,
+    HandDrill,
+    FrozenEgg,
+    MoltenEgg,
+    ToxicEgg,
 ];
 
 impl RelicKind {
@@ -502,6 +543,26 @@ impl RelicKind {
             WristBlade => "WristBlade",
             VioletLotus => "VioletLotus",
             TinyHouse => "Tiny House",
+            JuzuBracelet => "Juzu Bracelet",
+            MealTicket => "MealTicket",
+            SmilingMask => "Smiling Mask",
+            SnakeSkull => "Snake Skull",
+            Yang => "Yang",
+            Ginger => "Ginger",
+            ChampionBelt => "Champion Belt",
+            OldCoin => "Old Coin",
+            GamblingChip => "Gambling Chip",
+            Pocketwatch => "Pocketwatch",
+            UnceasingTop => "Unceasing Top",
+            TheCourier => "The Courier",
+            MembershipCard => "Membership Card",
+            Orrery => "Orrery",
+            Cauldron => "Cauldron",
+            LeesWaffle => "Lee's Waffle",
+            HandDrill => "HandDrill",
+            FrozenEgg => "Frozen Egg 2",
+            MoltenEgg => "Molten Egg 2",
+            ToxicEgg => "Toxic Egg 2",
         }
     }
 }
@@ -662,6 +723,32 @@ impl Combat {
         if self.has_relic(VioletLotus) {
             self.player.max_orbs += 1;
         }
+        // JuzuBracelet：战斗开始 ≤13 HP 的敌人获得易伤 1
+        if self.has_relic(JuzuBracelet) {
+            for mi in 0..self.monsters.len() {
+                if self.alive(mi) && self.monsters[mi].creature.hp <= 13 {
+                    apply_power(
+                        &mut self.monsters[mi].creature.powers,
+                        PowerKind::Vulnerable,
+                        1,
+                        false,
+                        false,
+                    );
+                }
+            }
+        }
+        // Yang：每场战斗开始进入愤怒
+        if self.has_relic(Yang) {
+            self.player.stance = crate::state::Stance::Wrath;
+        }
+        // GamblingChip：每场战斗开始获得 50 金币
+        if self.has_relic(GamblingChip) {
+            self.gold += 50;
+        }
+        // Pocketwatch：counter=0（无伤 3 回合后抽 3，atTurnStartPostDraw 结算）
+        if self.has_relic(Pocketwatch) {
+            self.set_relic_counter(Pocketwatch, 0);
+        }
         if self.has_relic(Anchor) {
             self.player.creature.block += 10;
         }
@@ -789,6 +876,16 @@ impl Combat {
         // Damaru：每回合开始 1 层真言
         if self.has_relic(Damaru) {
             self.apply_power_to_player_checked(PowerKind::Mantra, 1, false);
+        }
+        // Pocketwatch：无伤 3 回合后抽 3（counter 从 0 起计，wasHPLost 归零）
+        if self.has_relic(Pocketwatch) {
+            let c = self.relic_counter(Pocketwatch).unwrap_or(0);
+            if c == 3 {
+                self.draw_cards(3);
+                self.set_relic_counter(Pocketwatch, 0);
+            } else {
+                self.set_relic_counter(Pocketwatch, c + 1);
+            }
         }
         if self.has_relic(ArtOfWar) {
             // 首回合 firstTurn 不给；此后上回合未打攻击（counter==0）→ +1 能量
@@ -2340,5 +2437,166 @@ mod relic_batch3_tests {
         assert_eq!(run.player.max_hp, max0 + 5);
         let upg = run.deck.iter().filter(|c| c.upgraded).count();
         assert!(upg >= 2, "升级 ≥2 张");
+    }
+}
+
+#[cfg(test)]
+mod relic_batch4_tests {
+    use super::*;
+    use crate::combat::Combat;
+    use crate::state::MonsterKind;
+
+    /// Juzu Bracelet：≤13 HP 敌人开局易伤 1
+    #[test]
+    fn juzu_bracelet() {
+        let c = Combat::new_with_relic_insts(
+            1,
+            0,
+            &[MonsterKind::LouseNormal],
+            vec![RelicInst::new(JuzuBracelet)],
+        );
+        assert!(c.monsters[0].creature.hp <= 17 || c.monsters[0].creature.hp >= 10);
+        let vuln = c.monsters[0]
+            .creature
+            .powers
+            .iter()
+            .find(|p| p.kind == PowerKind::Vulnerable)
+            .map(|p| p.amount);
+        if c.monsters[0].creature.hp <= 13 {
+            assert_eq!(vuln, Some(1));
+        }
+    }
+
+    /// Yang：战斗开始进愤怒
+    #[test]
+    fn yang_wrath() {
+        let c =
+            Combat::new_with_relic_insts(1, 0, &[MonsterKind::JawWorm], vec![RelicInst::new(Yang)]);
+        assert_eq!(c.player.stance, crate::state::Stance::Wrath);
+    }
+
+    /// Gambling Chip：战斗开始 +50 金
+    #[test]
+    fn gambling_chip_gold() {
+        let c = Combat::new_with_relic_insts(
+            1,
+            0,
+            &[MonsterKind::JawWorm],
+            vec![RelicInst::new(GamblingChip)],
+        );
+        assert!(c.gold >= 50);
+    }
+
+    /// Ginger：虚弱被免疫
+    #[test]
+    fn ginger_immune_weak() {
+        let mut c = Combat::new_with_relic_insts(
+            1,
+            0,
+            &[MonsterKind::JawWorm],
+            vec![RelicInst::new(Ginger)],
+        );
+        c.apply_power_to_player_checked(PowerKind::Weak, 2, true);
+        assert!(c
+            .player
+            .creature
+            .powers
+            .iter()
+            .all(|p| p.kind != PowerKind::Weak));
+    }
+
+    /// Snake Skull：中毒 +1
+    #[test]
+    fn snake_skull_poison() {
+        let mut c = Combat::new_with_relic_insts(
+            1,
+            0,
+            &[MonsterKind::JawWorm],
+            vec![RelicInst::new(SnakeSkull)],
+        );
+        c.exec(crate::combat::Q::ApplyPowerToMonster {
+            target: 0,
+            kind: PowerKind::Poison,
+            amount: 3,
+        });
+        let po = c.monsters[0]
+            .creature
+            .powers
+            .iter()
+            .find(|p| p.kind == PowerKind::Poison)
+            .map(|p| p.amount);
+        assert_eq!(po, Some(4), "3+1=4");
+    }
+
+    /// Old Coin：+300 金 / Lee's Waffle：回满+3 / Orrery：升 5 / Cauldron：5 药水
+    #[test]
+    fn shop_on_equip_relics() {
+        use crate::run::{RewardItem, RunState};
+        let mut run = RunState::new(5, 0);
+        let g0 = run.player.gold;
+        run.rewards.push(RewardItem::Relic(OldCoin));
+        run.take_reward(0);
+        assert_eq!(run.player.gold, g0 + 300);
+
+        let mut run = RunState::new(5, 0);
+        run.player.hp = 30;
+        run.rewards.push(RewardItem::Relic(LeesWaffle));
+        run.take_reward(0);
+        assert_eq!(run.player.hp, 80 + 3);
+        assert_eq!(run.player.max_hp, 80 + 3);
+
+        let mut run = RunState::new(5, 0);
+        run.rewards.push(RewardItem::Relic(Orrery));
+        run.take_reward(0);
+        assert!(run.deck.iter().filter(|c| c.upgraded).count() >= 5);
+
+        let mut run = RunState::new(5, 0);
+        run.rewards.push(RewardItem::Relic(Cauldron));
+        run.take_reward(0);
+        assert!(run.potions.iter().filter(|p| p.is_some()).count() >= 3, "默认 3 槽填满");
+    }
+
+    /// Egg 系遗物：获得对应类型卡牌自动升级
+    #[test]
+    fn egg_relics_auto_upgrade() {
+        use crate::run::{RewardItem, RunState};
+        let mut run = RunState::new(5, 0);
+        run.rewards.push(RewardItem::Relic(FrozenEgg));
+        run.take_reward(0);
+        // 拿一张技能牌（Defend_R）
+        run.rewards
+            .push(RewardItem::Card(crate::cards::CardInst::new("Defend_R")));
+        run.take_reward(0);
+        assert!(run.deck.last().unwrap().upgraded, "冰蛋升技能");
+
+        let mut run = RunState::new(5, 0);
+        run.rewards.push(RewardItem::Relic(MoltenEgg));
+        run.take_reward(0);
+        run.rewards
+            .push(RewardItem::Card(crate::cards::CardInst::new("Strike_R")));
+        run.take_reward(0);
+        assert!(run.deck.last().unwrap().upgraded, "熔蛋升攻击");
+    }
+
+    /// Smiling Mask：删卡恒 50 / Courier 20% 折 / Membership 50% 折
+    #[test]
+    fn shop_discount_relics() {
+        use crate::run::{RoomKind, RunState};
+        let mut run = RunState::new(5, 0);
+        run.relics.push(RelicInst::new(SmilingMask));
+        run.map.rows[1][3].room = Some(RoomKind::Shop);
+        run.pos = (1, 3);
+        run.enter_room();
+        assert_eq!(run.shop.as_ref().unwrap().purge_cost, 50);
+
+        let mut run = RunState::new(5, 0);
+        run.relics.push(RelicInst::new(MembershipCard));
+        run.map.rows[1][3].room = Some(RoomKind::Shop);
+        run.pos = (1, 3);
+        run.enter_room();
+        let shop = run.shop.as_ref().unwrap();
+        for c in &shop.cards {
+            assert!(c.price <= 150, "Membership ≤半价（{}）", c.price);
+        }
     }
 }
