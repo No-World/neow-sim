@@ -199,7 +199,7 @@ fn main_expr_ok(e: Expr) -> bool {
 /// 单个效果是否被引擎支持（递归：Repeat 展开检查）
 fn effect_supported(e: &Effect) -> bool {
     match e {
-        Effect::Damage(t, x) => matches!(t, Target::Enemy) && main_expr_ok(*x),
+        Effect::Damage(t, x) => matches!(t, Target::Enemy | Target::Unknown) && main_expr_ok(*x),
         Effect::DamageAll(x) | Effect::Block(x) => main_expr_ok(*x),
         Effect::Draw(x) => expr_ok(*x),
         Effect::ApplyPower(_, pid, x) => expr_ok(*x) && ENGINE_POWERS.contains(pid),

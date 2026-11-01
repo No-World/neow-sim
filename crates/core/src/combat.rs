@@ -2147,7 +2147,18 @@ impl Combat {
             Effect::Unsupported(_) => {
                 unreachable!("can_play 已过滤不可玩效果")
             }
-            Effect::Damage(_, _) => unreachable!("can_play 已过滤非敌方目标伤害"),
+            // Unknown 目标当作 Enemy 处理（数据提取占位）
+            Effect::Damage(_, e) => {
+                let base = self.eval(e, card, x_cost);
+                let d = calc_player_card_damage(
+                    base,
+                    DamageType::Normal,
+                    &self.player.creature.powers,
+                    &self.monsters[ti].creature.powers,
+                    self.player.stance,
+                );
+                q.push(Q::DamageMonster { target: ti, dmg: d });
+            }
         }
     }
 
