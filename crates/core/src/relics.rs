@@ -1946,6 +1946,7 @@ mod relic_batch_tests {
 mod relic_batch2_tests {
     use super::*;
     use crate::combat::Combat;
+    use crate::powers::Power;
     use crate::state::MonsterKind;
 
     /// Pantograph：Boss 战回 25（HP≥200 近似 Boss 判定）
@@ -1963,7 +1964,7 @@ mod relic_batch2_tests {
             "满血本来就满"
         );
         // 直接验血量增量场景：伤后开局
-        let mut c = Combat::new_with_relic_insts(
+        let c = Combat::new_with_relic_insts(
             2,
             0,
             &[MonsterKind::Guardian],
@@ -2010,7 +2011,7 @@ mod relic_batch2_tests {
     /// Paper Crane：虚弱 ×0.6；Paper Frog：易伤 ×1.75
     #[test]
     fn paper_crane_frog() {
-        let c = Combat::new_with_relic_insts(
+        let _c = Combat::new_with_relic_insts(
             1,
             0,
             &[MonsterKind::JawWorm],
