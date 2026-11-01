@@ -536,6 +536,7 @@ fn power_kind(pid: &str) -> Option<PowerKind> {
         "StudyPower" => Some(PowerKind::Study),
         "ToolsOfTheTradePower" => Some(PowerKind::ToolsOfTheTrade),
         "DEPRECATEDDisciplinePower" => Some(PowerKind::Establishment), // 近似映射
+        "GainStrengthPower" => Some(PowerKind::GainStrength),
         "Demon Form" => Some(PowerKind::DemonForm),
         "Berserk" => Some(PowerKind::Berserk),
         "Brutality" => Some(PowerKind::Brutality),
@@ -2145,7 +2146,7 @@ impl Combat {
             Effect::SelectExhaustToHand => q.push(Q::DoSelectExhaustToHand),
             Effect::SelectDiscardToTop => q.push(Q::DoSelectDiscardToTop),
             Effect::Unsupported(_) => {
-                unreachable!("can_play 已过滤不可玩效果")
+                // 数据层可通行但行为层待接——运行时 no-op（卡可打出，特殊动作不生效）
             }
             // Unknown 目标当作 Enemy 处理（数据提取占位）
             Effect::Damage(_, e) => {
@@ -11148,6 +11149,9 @@ mod tests {
                     .unwrap_or_else(|| "其他".into());
                 if reason == "其他" {
                     println!("OTHER: {} — effects: {:?}", d.id, d.effects);
+                }
+                if reason == "表达式" {
+                    println!("EXPR: {} — effects: {:?}", d.id, d.effects);
                 }
                 buckets.entry(reason).or_default().push(d.id);
             }

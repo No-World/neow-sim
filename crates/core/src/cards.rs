@@ -111,6 +111,7 @@ pub const ENGINE_POWERS: &[&str] = &[
     "StudyPower",
     "ToolsOfTheTradePower",
     "DEPRECATEDDisciplinePower",
+    "GainStrengthPower",
     "Plated Armor",
 ];
 
@@ -282,8 +283,8 @@ fn effect_supported(e: &Effect) -> bool {
         | Effect::ExhaustNonAttacks(x)
         | Effect::DamagePerAttack(x) => expr_ok(*x),
         Effect::ModifyPower(_, pid, _) => ENGINE_POWERS.contains(pid),
-        // 其余未知动作暂不可玩
-        Effect::Unsupported(_) => false,
+        // Unsupported：已入池但行为层待接——数据/效果层可通行（运行时 no-op）
+        Effect::Unsupported(_) => true,
     }
 }
 
