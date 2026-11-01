@@ -1801,9 +1801,7 @@ impl RunState {
             .deck
             .iter()
             .enumerate()
-            .filter(|(_, c)| {
-                !c.upgraded && (card_type.is_empty() || c.def.card_type == card_type)
-            })
+            .filter(|(_, c)| !c.upgraded && (card_type.is_empty() || c.def.card_type == card_type))
             .map(|(i, _)| i)
             .collect();
         // Fisher-Yates（miscRng）取前 n
