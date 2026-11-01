@@ -483,6 +483,31 @@ fn power_kind(pid: &str) -> Option<PowerKind> {
         "BrutalityPower" => Some(PowerKind::Brutality),
         "EnergizedBluePower" => Some(PowerKind::Energized),
         "VigorPower" => Some(PowerKind::Vigor),
+        // ── power 补缺第二批 ──
+        "AccuracyPower" => Some(PowerKind::Accuracy),
+        "BlurPower" => Some(PowerKind::Blur),
+        "Buffer" => Some(PowerKind::Buffer),
+        "BurstPower" => Some(PowerKind::Burst),
+        "DoubleTapPower" => Some(PowerKind::DoubleTap),
+        "EchoPower" => Some(PowerKind::EchoForm),
+        "EnvenomPower" => Some(PowerKind::Envenom),
+        "EvolvePower" => Some(PowerKind::Evolve),
+        "FireBreathingPower" => Some(PowerKind::FireBreathing),
+        "FlameBarrierPower" => Some(PowerKind::FlameBarrier),
+        "JuggernautPower" => Some(PowerKind::Juggernaut),
+        "LockOnPower" => Some(PowerKind::LockOn),
+        "MagnetismPower" => Some(PowerKind::Magnetism),
+        "MayhemPower" => Some(PowerKind::Mayhem),
+        "NirvanaPower" => Some(PowerKind::Nirvana),
+        "NoBlockPower" => Some(PowerKind::NoBlock),
+        "OmegaPower" => Some(PowerKind::Omega),
+        "PhantasmalPower" => Some(PowerKind::Phantasmal),
+        "RushdownPower" => Some(PowerKind::Rushdown),
+        "SadisticPower" => Some(PowerKind::Sadistic),
+        "StaticDischargePower" => Some(PowerKind::StaticDischarge),
+        "ThousandCutsPower" => Some(PowerKind::ThousandCuts),
+        "WaveOfTheHandPower" => Some(PowerKind::WaveOfTheHand),
+        "WraithFormPower" => Some(PowerKind::WraithForm),
         "Demon Form" => Some(PowerKind::DemonForm),
         "Berserk" => Some(PowerKind::Berserk),
         "Brutality" => Some(PowerKind::Brutality),
@@ -2320,6 +2345,7 @@ impl Combat {
         let mut combust_damage = 0;
         let mut combust_hp_loss = 0;
         let mut bomb_damage = 0;
+        let mut wraith_dex_loss = 0;
         {
             let mut keep: Vec<Power> = Vec::new();
             let mut strength_deltas: Vec<i32> = Vec::new();
@@ -2356,6 +2382,16 @@ impl Combat {
                     }
                     // Rage：仅本回合有效，EOT 移除
                     PowerKind::Rage => {}
+                    // Omega：回合结束 50 THORNS 全体
+                    PowerKind::Omega => {
+                        bomb_damage = bomb_damage.max(50);
+                        keep.push(p);
+                    }
+                    // WraithForm：每回合 -1 敏捷（延迟到 drain 后结算）
+                    PowerKind::WraithForm => {
+                        wraith_dex_loss += 1;
+                        keep.push(p);
+                    }
                     // 如水：平静中回合结束 → 获 amount 格挡（PreEndTurnCards）
                     PowerKind::LikeWater => {
                         if self.player.stance == crate::state::Stance::Calm {
@@ -2380,6 +2416,16 @@ impl Combat {
                 }
             }
             self.player.creature.powers = keep;
+            // WraithForm：每回合 -1 敏捷
+            if wraith_dex_loss > 0 {
+                apply_power(
+                    &mut self.player.creature.powers,
+                    PowerKind::Dexterity,
+                    -wraith_dex_loss,
+                    false,
+                    false,
+                );
+            }
             // Combust 的 LoseHPAction（HP_LOSS：绕格挡；TungstenRod 每次失血 -1）
             if combust_hp_loss > 0 {
                 self.player_deal_damage(combust_hp_loss, DamageType::HpLoss);
@@ -2748,12 +2794,18 @@ impl Combat {
         let mut fumes_poison = 0;
         let mut devotion = 0;
         let mut predator_draw = 0;
+        let mut magnetism_n = 0;
         {
             let mut keep: Vec<Power> = Vec::new();
             for pw in self.player.creature.powers.drain(..) {
                 match pw.kind {
                     PowerKind::NoxiousFumes => {
                         fumes_poison += pw.amount;
+                        keep.push(pw);
+                    }
+                    // Magnetism：回合开始充能等离子球（延迟到 drain 后）
+                    PowerKind::Magnetism => {
+                        magnetism_n += pw.amount;
                         keep.push(pw);
                     }
                     PowerKind::Devotion => {
@@ -2786,6 +2838,15 @@ impl Combat {
         }
         if predator_draw > 0 {
             self.draw_cards(predator_draw as usize);
+        }
+        // Magnetism：充能等离子球（drain 后执行）
+        if magnetism_n > 0 {
+            for _ in 0..magnetism_n {
+                self.exec(Q::Channel {
+                    kind: crate::state::OrbKind::Plasma,
+                    auto_evoke: false,
+                });
+            }
         }
     }
 
@@ -4894,6 +4955,19 @@ impl Combat {
                     {
                         self.player.creature.block += amt;
                     }
+                    // RushdownPower.onChangeStance：换姿态后抽 2
+                    if let Some(amt) = self
+                        .player
+                        .creature
+                        .powers
+                        .iter()
+                        .find(|p| p.kind == PowerKind::Rushdown)
+                        .map(|p| p.amount)
+                    {
+                        if amt > 0 {
+                            self.draw_cards(amt as usize);
+                        }
+                    }
                 }
             }
             Q::Channel { kind, auto_evoke } => {
@@ -6382,6 +6456,8 @@ impl Combat {
         if kind == PowerKind::Frail && self.has_relic(crate::relics::RelicKind::Turnip) {
             return;
         }
+        // SadisticPower：施加 debuff → 该敌人受 4 伤（简化：在 apply 后结算）
+        // 由 Q::ApplyPowerToMonster 的调用方在 apply_power 时检查
         if kind.is_debuff() {
             if let Some(idx) = self
                 .player
