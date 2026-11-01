@@ -2076,7 +2076,7 @@ impl RunState {
     }
 
     /// getCard：指定稀有度红卡均匀抽取（cardRng；无类型筛）
-    fn pick_red_card(&mut self, rarity: &str) -> CardInst {
+    pub(crate) fn pick_red_card(&mut self, rarity: &str) -> CardInst {
         let pool: Vec<&'static crate::effects::CardDef> = CARDS
             .iter()
             .filter(|d| {

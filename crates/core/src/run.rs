@@ -1834,6 +1834,61 @@ impl RunState {
                     self.relics.push(crate::relics::RelicInst::new(k));
                 }
             }
+            // PandorasBox：将全部打击/防御变形为随机同色卡
+            RelicKind::PandorasBox => {
+                let count = self
+                    .deck
+                    .iter()
+                    .filter(|c| c.def.id.starts_with("Strike") || c.def.id.starts_with("Defend"))
+                    .count();
+                self.deck
+                    .retain(|c| !c.def.id.starts_with("Strike") && !c.def.id.starts_with("Defend"));
+                for _ in 0..count {
+                    let rarity = self.roll_rarity_bases(3, 37);
+                    let card = self.pick_red_card(rarity);
+                    self.deck.push(card);
+                }
+            }
+            // EmptyCage：删除 2 张牌（简化：删前两张非诅咒）
+            RelicKind::EmptyCage => {
+                let mut removed = 0;
+                let mut i = 0;
+                while removed < 2 && i < self.deck.len() {
+                    if self.deck[i].def.color != "CURSE" {
+                        self.deck.remove(i);
+                        removed += 1;
+                    } else {
+                        i += 1;
+                    }
+                }
+            }
+            // Astrolabe：变形 3 张牌（简化：删前 3 非诅咒加随机）
+            RelicKind::Astrolabe => {
+                let mut removed = 0;
+                let mut i = 0;
+                while removed < 3 && i < self.deck.len() {
+                    if self.deck[i].def.color != "CURSE" {
+                        self.deck.remove(i);
+                        removed += 1;
+                    } else {
+                        i += 1;
+                    }
+                }
+                for _ in 0..removed {
+                    let rarity = self.roll_rarity_bases(3, 37);
+                    let card = self.pick_red_card(rarity);
+                    self.deck.push(card);
+                }
+            }
+            // CallingBell：遗物+诅咒+遗物（简化：遗物+遗物）
+            RelicKind::CallingBell => {
+                if let Some(k) = self.roll_relic_kind() {
+                    self.relics.push(crate::relics::RelicInst::new(k));
+                }
+                if let Some(k) = self.roll_relic_kind() {
+                    self.relics.push(crate::relics::RelicInst::new(k));
+                }
+            }
             // PotionBelt.java：药水槽 +2
             RelicKind::PotionBelt => {
                 self.potions.push(None);

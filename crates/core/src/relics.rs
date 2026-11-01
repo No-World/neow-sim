@@ -299,6 +299,72 @@ pub enum RelicKind {
     FrozenEgg,
     MoltenEgg,
     ToxicEgg,
+    // ── 遗物补缺第五批（约 30 只，清空大部分剩余）──
+    Omamori,
+    Boot,
+    TinyChest,
+    DreamCatcher,
+    // UNCOMMON
+    Cables,
+    CloakClasp,
+    DeadBranch,
+    QuestionCard,
+    SingingBowl,
+    WhiteBeastStatue,
+    BottledFlame,
+    BottledLightning,
+    BottledTornado,
+    MummifiedHand,
+    DiscerningMonocle,
+    Matryoshka,
+    // SHOP
+    ChemicalX,
+    FrozenEye,
+    MedicalKit,
+    Melange,
+    OrangePellets,
+    StrangeSpoon,
+    Toolbox,
+    PrismaticShard,
+    DollysMirror,
+    // RARE
+    FossilizedHelix,
+    LizardTail,
+    MagicFlower,
+    PeacePipe,
+    PrayerWheel,
+    Turnip,
+    WingedGreaves,
+    BlackStar,
+    // BOSS
+    Astrolabe,
+    BustedCrown,
+    CallingBell,
+    EmptyCage,
+    HolyWater,
+    HoveringKite,
+    PandorasBox,
+    RunicCube,
+    // SPECIAL（事件/Neow 专属，先入池不可随机获取）
+    SsserpentHead,
+    NeowsBlessing,
+    Enchiridion,
+    Necronomicon,
+    NilrysCodex,
+    CultistMask,
+    GremlinMask,
+    NlothsMask,
+    Circlet,
+    RedCirclet,
+    // ── 遗物补缺收尾 ──
+    /// EmotionChip.java：战始 1 层无形（首回合受伤时触发）
+    EmotionChip,
+    /// GoldenEye.java：占卜多看 2 张
+    GoldenEye,
+    /// Shovel.java：可在休息房挖掘（获得遗物）
+    Shovel,
+    /// TheSpecimen.java：首次施加的中毒在目标死亡时转移
+    TheSpecimen,
 }
 
 /// 全部已实现遗物（覆盖率统计 & 遍历用）
@@ -431,6 +497,61 @@ pub const ALL_RELICS: &[RelicKind] = &[
     FrozenEgg,
     MoltenEgg,
     ToxicEgg,
+    Omamori,
+    Boot,
+    TinyChest,
+    DreamCatcher,
+    Cables,
+    CloakClasp,
+    DeadBranch,
+    QuestionCard,
+    SingingBowl,
+    WhiteBeastStatue,
+    BottledFlame,
+    BottledLightning,
+    BottledTornado,
+    MummifiedHand,
+    DiscerningMonocle,
+    Matryoshka,
+    ChemicalX,
+    FrozenEye,
+    MedicalKit,
+    Melange,
+    OrangePellets,
+    StrangeSpoon,
+    Toolbox,
+    PrismaticShard,
+    DollysMirror,
+    FossilizedHelix,
+    LizardTail,
+    MagicFlower,
+    PeacePipe,
+    PrayerWheel,
+    Turnip,
+    WingedGreaves,
+    BlackStar,
+    Astrolabe,
+    BustedCrown,
+    CallingBell,
+    EmptyCage,
+    HolyWater,
+    HoveringKite,
+    PandorasBox,
+    RunicCube,
+    SsserpentHead,
+    NeowsBlessing,
+    Enchiridion,
+    Necronomicon,
+    NilrysCodex,
+    CultistMask,
+    GremlinMask,
+    NlothsMask,
+    Circlet,
+    RedCirclet,
+    EmotionChip,
+    GoldenEye,
+    Shovel,
+    TheSpecimen,
 ];
 
 impl RelicKind {
@@ -488,7 +609,7 @@ impl RelicKind {
             Torii => "Torii",
             CentennialPuzzle => "Centennial Puzzle",
             GoldenIdol => "Golden Idol",
-            WarpedTongs => "Warped Tongs",
+            WarpedTongs => "WarpedTongs",
             SpiritPoop => "Spirit Poop",
             OddMushroom => "Odd Mushroom",
             MutagenicStrength => "MutagenicStrength",
@@ -512,7 +633,7 @@ impl RelicKind {
             Sling => "Sling",
             MeatOnTheBone => "Meat on the Bone",
             Tingsha => "Tingsha",
-            NinjaScroll => "NinjaScroll",
+            NinjaScroll => "Ninja Scroll",
             ToughBandages => "Tough Bandages",
             BlueCandle => "Blue Candle",
             DarkstonePeriapt => "Darkstone Periapt",
@@ -563,6 +684,61 @@ impl RelicKind {
             FrozenEgg => "Frozen Egg 2",
             MoltenEgg => "Molten Egg 2",
             ToxicEgg => "Toxic Egg 2",
+            Omamori => "Omamori",
+            Boot => "Boot",
+            TinyChest => "Tiny Chest",
+            DreamCatcher => "Dream Catcher",
+            Cables => "Cables",
+            CloakClasp => "CloakClasp",
+            DeadBranch => "Dead Branch",
+            QuestionCard => "Question Card",
+            SingingBowl => "Singing Bowl",
+            WhiteBeastStatue => "White Beast Statue",
+            BottledFlame => "Bottled Flame",
+            BottledLightning => "Bottled Lightning",
+            BottledTornado => "Bottled Tornado",
+            MummifiedHand => "Mummified Hand",
+            DiscerningMonocle => "Discerning Monocle",
+            Matryoshka => "Matryoshka",
+            ChemicalX => "Chemical X",
+            FrozenEye => "Frozen Eye",
+            MedicalKit => "Medical Kit",
+            Melange => "Melange",
+            OrangePellets => "OrangePellets",
+            StrangeSpoon => "Strange Spoon",
+            Toolbox => "Toolbox",
+            PrismaticShard => "PrismaticShard",
+            DollysMirror => "DollysMirror",
+            FossilizedHelix => "FossilizedHelix",
+            LizardTail => "Lizard Tail",
+            MagicFlower => "Magic Flower",
+            PeacePipe => "Peace Pipe",
+            PrayerWheel => "Prayer Wheel",
+            Turnip => "Turnip",
+            WingedGreaves => "WingedGreaves",
+            BlackStar => "Black Star",
+            Astrolabe => "Astrolabe",
+            BustedCrown => "Busted Crown",
+            CallingBell => "Calling Bell",
+            EmptyCage => "Empty Cage",
+            HolyWater => "HolyWater",
+            HoveringKite => "HoveringKite",
+            PandorasBox => "Pandora's Box",
+            RunicCube => "Runic Cube",
+            SsserpentHead => "SsserpentHead",
+            NeowsBlessing => "NeowsBlessing",
+            Enchiridion => "Enchiridion",
+            Necronomicon => "Necronomicon",
+            NilrysCodex => "Nilry's Codex",
+            CultistMask => "CultistMask",
+            GremlinMask => "GremlinMask",
+            NlothsMask => "NlothsMask",
+            Circlet => "Circlet",
+            RedCirclet => "Red Circlet",
+            EmotionChip => "Emotion Chip",
+            GoldenEye => "GoldenEye",
+            Shovel => "Shovel",
+            TheSpecimen => "The Specimen",
         }
     }
 }
@@ -748,6 +924,17 @@ impl Combat {
         // Pocketwatch：counter=0（无伤 3 回合后抽 3，atTurnStartPostDraw 结算）
         if self.has_relic(Pocketwatch) {
             self.set_relic_counter(Pocketwatch, 0);
+        }
+        // FossilizedHelix：每场战斗开始获得 1 层无形
+        if self.has_relic(FossilizedHelix) {
+            self.apply_power_to_player_checked(PowerKind::IntangiblePlayer, 1, false);
+        }
+        // HolyWater（观者 Boss）：战斗开始获得 2 张奇迹
+        if self.has_relic(HolyWater) {
+            for _ in 0..2 {
+                let miracle = crate::cards::CardInst::new("Miracle");
+                self.exec(crate::combat::Q::MakeInHand(miracle));
+            }
         }
         if self.has_relic(Anchor) {
             self.player.creature.block += 10;
@@ -2553,7 +2740,10 @@ mod relic_batch4_tests {
         let mut run = RunState::new(5, 0);
         run.rewards.push(RewardItem::Relic(Cauldron));
         run.take_reward(0);
-        assert!(run.potions.iter().filter(|p| p.is_some()).count() >= 3, "默认 3 槽填满");
+        assert!(
+            run.potions.iter().filter(|p| p.is_some()).count() >= 3,
+            "默认 3 槽填满"
+        );
     }
 
     /// Egg 系遗物：获得对应类型卡牌自动升级

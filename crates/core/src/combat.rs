@@ -2497,6 +2497,15 @@ impl Combat {
                 }
             }
         }
+        // CloakClasp：回合结束手牌每张 +1 格挡
+        if self
+            .player_relics
+            .iter()
+            .any(|r| r.kind == crate::relics::RelicKind::CloakClasp)
+        {
+            let h = self.player.hand.len() as i32;
+            self.player.creature.block += h;
+        }
         // DiscardAtEndOfTurn：无保留卡（retain）与 Runic Pyramid/Equilibrium 例外
         let has_pyramid = self
             .player_relics
@@ -6367,6 +6376,10 @@ impl Combat {
     ) {
         // Ginger：免疫虚弱（ApplyPowerAction:113）
         if kind == PowerKind::Weak && self.has_relic(crate::relics::RelicKind::Ginger) {
+            return;
+        }
+        // Turnip：免疫脆弱
+        if kind == PowerKind::Frail && self.has_relic(crate::relics::RelicKind::Turnip) {
             return;
         }
         if kind.is_debuff() {
