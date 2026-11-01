@@ -202,12 +202,16 @@ fn effect_supported(e: &Effect) -> bool {
         Effect::DamageRandom(x) => expr_ok(*x),
         Effect::MakeInHand(cls, x)
         | Effect::MakeInDrawRandom(cls, x)
-        | Effect::MakeInDrawTop(cls, x) => expr_ok(*x) && CardInst::new_by_class(cls).is_some(),
+        | Effect::MakeInDrawTop(cls, x) => {
+            expr_ok(*x) && (*cls == "?" || CardInst::new_by_class(cls).is_some())
+        }
         Effect::CopySelfToHand(x) => expr_ok(*x),
         Effect::HandDiscard(x, _) | Effect::Scry(x) => expr_ok(*x),
         // 姿态 id 必须已知
         Effect::ChangeStance(sid) => crate::state::Stance::from_id(sid).is_some(),
-        Effect::Channel(orb, x, _) => expr_ok(*x) && crate::state::OrbKind::from_id(orb).is_some(),
+        Effect::Channel(orb, x, _) => {
+            expr_ok(*x) && (*orb == "?" || crate::state::OrbKind::from_id(orb).is_some())
+        }
         Effect::EvokeLeftmost | Effect::EvokeNoRemove => true,
         Effect::OrbSlots(x) => expr_ok(*x),
         Effect::ShuffleDraw

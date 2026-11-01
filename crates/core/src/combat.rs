@@ -11132,6 +11132,9 @@ mod tests {
                     .iter()
                     .find_map(&why)
                     .unwrap_or_else(|| "其他".into());
+                if reason == "其他" {
+                    println!("OTHER: {} — effects: {:?}", d.id, d.effects);
+                }
                 buckets.entry(reason).or_default().push(d.id);
             }
         }
