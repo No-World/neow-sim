@@ -134,8 +134,10 @@ impl GymEnv {
     fn new(seed: u64, ascension: i32, character: &str) -> PyResult<Self> {
         let ch = CharKind::from_id(character)
             .ok_or_else(|| PyRuntimeError::new_err(format!("Unknown character: {character}")))?;
+        let mut run = RunState::new_for(seed, ascension, ch);
+        Self::fix_start_pos(&mut run);
         let mut env = Self {
-            run: RunState::new_for(seed, ascension, ch),
+            run,
             state: GameState::MapNode,
             obs: None,
             legal: None,
@@ -151,7 +153,9 @@ impl GymEnv {
         let ch = self.run.char_kind;
         let seed = self.run.seed;
         let asc = self.run.ascension;
-        self.run = RunState::new_for(seed, asc, ch);
+        let mut run = RunState::new_for(seed, asc, ch);
+        Self::fix_start_pos(&mut run);
+        self.run = run;
         self.done = false;
         self.total_reward = 0.0;
         self.step_count = 0;
@@ -214,46 +218,72 @@ impl GymEnv {
 // ── 内部实现 ─────────────────────────────────────
 
 impl GymEnv {
-    /// 进入下一个房间并更新状态机
+    /// 找有边的行 0 节点作为起点（非路径节点无边）
+    fn fix_start_pos(run: &mut RunState) {
+        if run.map.rows[0][run.pos.1].edges.is_empty() {
+            for x in 0..7 {
+                if !run.map.rows[0][x].edges.is_empty() {
+                    run.pos = (0, x);
+                    break;
+                }
+            }
+        }
+    }
+
+    /// 进入下一个房间并更新状态机（非递归——用循环防止栈溢出）
     fn enter_next_room(&mut self) {
-        if self.run.over {
-            self.set_done();
-            return;
-        }
+        let mut guard = 0;
+        loop {
+            guard += 1;
+            if guard > 100 {
+                self.set_done();
+                return;
+            }
+            if self.run.over {
+                self.set_done();
+                return;
+            }
 
-        // 选边 0 前进（AI 可通过 ChooseMap 动作改变）
-        let pos = self.run.pos;
-        let edges = self.run.map.rows[pos.0][pos.1].edges.len();
-        if pos.0 + 1 < MAP_HEIGHT && edges > 0 {
-            self.run.choose_node(0);
-        } else if pos.0 == MAP_HEIGHT - 1 {
-            // Boss 行
-            self.run.map.rows[pos.0][pos.1].room = Some(RoomKind::Boss);
-        }
-        self.run.enter_room();
-        self.run.floor += 1;
+            // 选边 0 前进
+            let pos = self.run.pos;
+            let edges = self.run.map.rows[pos.0][pos.1].edges.len();
+            if pos.0 + 1 < MAP_HEIGHT && edges > 0 {
+                self.run.choose_node(0);
+            } else if pos.0 == MAP_HEIGHT - 1 {
+                // Boss 行
+                self.run.map.rows[pos.0][pos.1].room = Some(RoomKind::Boss);
+            } else {
+                // 无法前进——游戏结束
+                self.set_done();
+                return;
+            }
+            self.run.enter_room();
+            self.run.floor += 1;
 
-        // 根据房间类型设置状态
-        let room = self.run.map.rows[self.run.pos.0][self.run.pos.1].room;
-        if self.run.combat.is_some() {
-            self.state = GameState::Combat;
-            self.update_combat_obs();
-        } else if self.run.event.is_some() {
-            self.state = GameState::EventChoice;
-            self.update_event_obs();
-        } else if !self.run.rewards.is_empty() {
-            self.state = GameState::RewardScreen;
-            self.update_reward_obs();
-        } else if self.run.rest_available {
-            self.state = GameState::RestChoice;
-            self.update_rest_obs();
-        } else if self.run.shop.is_some() {
-            self.state = GameState::ShopScreen;
-            self.update_shop_obs();
-        } else {
-            // 空房间（宝箱等）→ 直接领奖励
+            // 根据房间类型设置状态
+            if self.run.combat.is_some() {
+                self.state = GameState::Combat;
+                self.update_combat_obs();
+                return;
+            } else if self.run.event.is_some() {
+                self.state = GameState::EventChoice;
+                self.update_event_obs();
+                return;
+            } else if !self.run.rewards.is_empty() {
+                self.state = GameState::RewardScreen;
+                self.update_reward_obs();
+                return;
+            } else if self.run.rest_available {
+                self.state = GameState::RestChoice;
+                self.update_rest_obs();
+                return;
+            } else if self.run.shop.is_some() {
+                self.state = GameState::ShopScreen;
+                self.update_shop_obs();
+                return;
+            }
+            // 空房间 → 领奖励 → 继续循环到下一房
             self.run.take_all_rewards_skip_cards();
-            self.enter_next_room();
         }
     }
 

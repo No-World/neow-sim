@@ -102,11 +102,11 @@ impl CharKind {
     }
 
     pub fn from_id(id: &str) -> Option<Self> {
-        match id {
-            "Ironclad" => Some(CharKind::Ironclad),
-            "TheSilent" | "Silent" => Some(CharKind::Silent),
-            "Defect" => Some(CharKind::Defect),
-            "Watcher" => Some(CharKind::Watcher),
+        match id.to_lowercase().as_str() {
+            "ironclad" => Some(CharKind::Ironclad),
+            "thesilent" | "silent" => Some(CharKind::Silent),
+            "defect" => Some(CharKind::Defect),
+            "watcher" => Some(CharKind::Watcher),
             _ => None,
         }
     }
