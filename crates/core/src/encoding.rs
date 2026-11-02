@@ -229,12 +229,13 @@ fn intent_numeric(intent: &Intent) -> (f32, f32, i32) {
         AttackDebuff => 4.0,
         Buff => 5.0,
         Debuff => 6.0,
-        Defend => 7.0,
-        Sleep => 8.0,
-        Unknown => 9.0,
-        Escape => 10.0,
+        StrongDebuff => 7.0,
+        Defend => 8.0,
+        Sleep => 9.0,
+        Unknown => 10.0,
+        Escape => 11.0,
     };
-    (ty / 10.0, 0.0, 1)
+    (ty / 11.0, 0.0, 1)
 }
 
 // ── 遗物 token 特征（P1-7: -1/0 语义区分）────────

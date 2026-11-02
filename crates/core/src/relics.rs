@@ -877,6 +877,10 @@ impl Combat {
             let c = self.relic_counter(MawBank).unwrap_or(-2);
             self.set_relic_counter(MawBank, c + 1);
         }
+        // LizardTail：每场战斗开始重置免死（counter 0 = 可用）
+        if self.has_relic(LizardTail) {
+            self.set_relic_counter(LizardTail, 0);
+        }
         // Pantograph：Boss 战开始时回 25（逐怪检查 BOSS 型）
         if self.has_relic(Pantograph) && self.monsters.iter().any(|m| m.creature.max_hp >= 200) {
             let h = self.player.creature.hp + 25;

@@ -327,6 +327,7 @@ fn pick_from_pool(
             damage_bonus: 0,
             block_bonus: 0,
             cost_delta: 0,
+                upgrade_times: 0,
         };
     }
     CardInst::new("Strike_R") // 兜底（防数据空洞）

@@ -270,6 +270,7 @@ pub enum Intent {
     Sleep,
     Unknown,
     AttackBuff,
+    StrongDebuff,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]

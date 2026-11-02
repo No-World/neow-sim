@@ -119,6 +119,8 @@ pub const ENGINE_POWERS: &[&str] = &[
 pub struct CardInst {
     pub def: &'static CardDef,
     pub upgraded: bool,
+    /// 升级次数（Searing Blow 可反复升级；一般卡最多 1）
+    pub upgrade_times: u8,
     /// 战斗内永久修改（Rampage/GlassKnife/Streamline 等自改效果）
     pub damage_bonus: i32,
     pub block_bonus: i32,
@@ -133,6 +135,7 @@ impl CardInst {
             damage_bonus: 0,
             block_bonus: 0,
             cost_delta: 0,
+                upgrade_times: 0,
         }
     }
 
@@ -140,6 +143,7 @@ impl CardInst {
         crate::generated::find_card_by_class(cls).map(|def| Self {
             def,
             upgraded: false,
+            upgrade_times: 0,
             damage_bonus: 0,
             block_bonus: 0,
             cost_delta: 0,

@@ -1682,6 +1682,7 @@ impl RunState {
                 damage_bonus: 0,
                 block_bonus: 0,
                 cost_delta: 0,
+                    upgrade_times: 0,
             };
         }
     }
@@ -2406,6 +2407,7 @@ fn bench_full_run() {
                         damage_bonus: 0,
                         block_bonus: 0,
                         cost_delta: 0,
+                            upgrade_times: 0,
                     });
                 }
             }

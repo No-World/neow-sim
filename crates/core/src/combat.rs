@@ -1849,6 +1849,7 @@ impl Combat {
             damage_bonus: 0,
             block_bonus: 0,
             cost_delta: 0,
+                upgrade_times: 0,
         }
     }
 
@@ -8339,6 +8340,7 @@ mod tests {
                 damage_bonus: 0,
                 block_bonus: 0,
                 cost_delta: 0,
+                    upgrade_times: 0,
             }];
             for _ in 0..3 {
                 c.player.hand.push(CardInst::new("Strike_R"));
@@ -8552,6 +8554,7 @@ mod tests {
             damage_bonus: 0,
             block_bonus: 0,
             cost_delta: 0,
+                upgrade_times: 0,
         }];
         c.step(&Action::PlayCard {
             index: 0,

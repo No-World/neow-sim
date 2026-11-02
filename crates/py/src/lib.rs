@@ -43,13 +43,13 @@ pub mod action_type {
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 enum GameState {
-    MapNode,     // 选下一个地图节点
-    Combat,      // 战斗中（出牌/结束回合）
-    EventChoice, // 事件选项
-    RewardScreen,// 奖励屏
-    RestChoice,  // 休息选项
-    ShopScreen,  // 商店（简化：跳过）
-    Done,        // 游戏结束
+    MapNode,      // 选下一个地图节点
+    Combat,       // 战斗中（出牌/结束回合）
+    EventChoice,  // 事件选项
+    RewardScreen, // 奖励屏
+    RestChoice,   // 休息选项
+    ShopScreen,   // 商店（简化：跳过）
+    Done,         // 游戏结束
 }
 
 // ── 观测包装 ─────────────────────────────────────
@@ -68,8 +68,14 @@ impl From<EncodedObservation> for Observation {
     fn from(e: EncodedObservation) -> Self {
         Self {
             raw_types: e.token_types[..e.seq_len].to_vec(),
-            raw_ids: e.token_ids[..e.seq_len].iter().flat_map(|a| a.iter().copied()).collect(),
-            raw_feats: e.token_feats[..e.seq_len].iter().flat_map(|f| f.iter().copied()).collect(),
+            raw_ids: e.token_ids[..e.seq_len]
+                .iter()
+                .flat_map(|a| a.iter().copied())
+                .collect(),
+            raw_feats: e.token_feats[..e.seq_len]
+                .iter()
+                .flat_map(|f| f.iter().copied())
+                .collect(),
             seq_len: e.seq_len,
             screen: 0,
         }
@@ -102,10 +108,14 @@ impl Observation {
     }
 
     #[getter]
-    fn seq_len(&self) -> usize { self.seq_len }
+    fn seq_len(&self) -> usize {
+        self.seq_len
+    }
 
     #[getter]
-    fn screen(&self) -> i32 { self.screen }
+    fn screen(&self) -> i32 {
+        self.screen
+    }
 }
 
 impl Observation {
@@ -192,9 +202,12 @@ impl GymEnv {
     }
 
     #[pyo3(signature = (action_type, entity=-1, target=-1))]
-    fn step(&mut self, action_type: i32, entity: i32, target: i32)
-        -> PyResult<(Observation, f64, bool, String)>
-    {
+    fn step(
+        &mut self,
+        action_type: i32,
+        entity: i32,
+        target: i32,
+    ) -> PyResult<(Observation, f64, bool, String)> {
         if self.done {
             return Err(PyRuntimeError::new_err("Environment is done."));
         }
@@ -208,7 +221,8 @@ impl GymEnv {
         }
 
         let obs = self.obs.clone().unwrap();
-        let info = format!(
+        let info =
+            format!(
             "{{\"step\":{}, \"state\":\"{:?}\", \"act\":{}, \"floor\":{}, \"hp\":{}, \"gold\":{}}}",
             self.step_count, self.state, self.run.act, self.run.floor,
             self.run.player.hp, self.run.player.gold
@@ -218,12 +232,16 @@ impl GymEnv {
 
     #[getter]
     fn observation(&self) -> PyResult<Observation> {
-        self.obs.clone().ok_or_else(|| PyRuntimeError::new_err("No observation."))
+        self.obs
+            .clone()
+            .ok_or_else(|| PyRuntimeError::new_err("No observation."))
     }
 
     #[getter]
     fn legal_actions(&self) -> PyResult<LegalActions> {
-        self.legal.clone().ok_or_else(|| PyRuntimeError::new_err("No legal actions."))
+        self.legal
+            .clone()
+            .ok_or_else(|| PyRuntimeError::new_err("No legal actions."))
     }
 
     #[getter]
@@ -237,10 +255,14 @@ impl GymEnv {
     }
 
     #[getter]
-    fn is_done(&self) -> bool { self.done }
+    fn is_done(&self) -> bool {
+        self.done
+    }
 
     #[getter]
-    fn game_state(&self) -> String { format!("{:?}", self.state) }
+    fn game_state(&self) -> String {
+        format!("{:?}", self.state)
+    }
 }
 
 // ── 内部实现 ─────────────────────────────────────
@@ -365,7 +387,9 @@ impl GymEnv {
             GameState::MapNode => {
                 // 改变选边（如果 entity > 0）
                 if entity > 0 {
-                    let edges = self.run.map.rows[self.run.pos.0][self.run.pos.1].edges.len();
+                    let edges = self.run.map.rows[self.run.pos.0][self.run.pos.1]
+                        .edges
+                        .len();
                     if (entity as usize) < edges {
                         self.run.choose_node(entity as usize);
                         self.run.enter_room();
@@ -390,13 +414,27 @@ impl GymEnv {
         let action = match ty {
             action_type::PLAY_CARD => {
                 let idx = entity.max(0) as usize;
-                let tgt = if target >= 0 { Some(target as usize) } else { None };
-                Action::PlayCard { index: idx, target: tgt }
+                let tgt = if target >= 0 {
+                    Some(target as usize)
+                } else {
+                    None
+                };
+                Action::PlayCard {
+                    index: idx,
+                    target: tgt,
+                }
             }
             action_type::USE_POTION => {
                 let idx = entity.max(0) as usize;
-                let tgt = if target >= 0 { Some(target as usize) } else { None };
-                Action::UsePotion { index: idx, target: tgt }
+                let tgt = if target >= 0 {
+                    Some(target as usize)
+                } else {
+                    None
+                };
+                Action::UsePotion {
+                    index: idx,
+                    target: tgt,
+                }
             }
             _ => Action::EndTurn,
         };
@@ -407,24 +445,14 @@ impl GymEnv {
         if c.pending.is_some() {
             use neow_sim_core::combat::Pending;
             match c.pending.as_ref().unwrap() {
-                Pending::Scry { .. } => {
-                    c.step(&Action::ScryChoice { discard_indices: vec![] })
-                }
-                Pending::HandPick { .. } => {
-                    c.step(&Action::HandPickResponse { index: 0 })
-                }
-                Pending::PilePick { .. } => {
-                    c.step(&Action::PilePickResponse { index: 0 })
-                }
-                Pending::Discovery { .. } => {
-                    c.step(&Action::DiscoveryResponse { index: 0 })
-                }
-                Pending::StanceChoice => {
-                    c.step(&Action::StanceResponse { wrath: false })
-                }
-                _ => {
-                    c.step(&Action::HandSelect { indices: vec![0] })
-                }
+                Pending::Scry { .. } => c.step(&Action::ScryChoice {
+                    discard_indices: vec![],
+                }),
+                Pending::HandPick { .. } => c.step(&Action::HandPickResponse { index: 0 }),
+                Pending::PilePick { .. } => c.step(&Action::PilePickResponse { index: 0 }),
+                Pending::Discovery { .. } => c.step(&Action::DiscoveryResponse { index: 0 }),
+                Pending::StanceChoice => c.step(&Action::StanceResponse { wrath: false }),
+                _ => c.step(&Action::HandSelect { indices: vec![0] }),
             }
         }
 
@@ -492,30 +520,58 @@ impl GymEnv {
                 let n = self.run.event_options().len();
                 let mut flat = Vec::new();
                 for i in 0..n {
-                    flat.push(FlatAction { action_type: action_type::CHOOSE_EVENT, entity: i as i32, target: -1 });
+                    flat.push(FlatAction {
+                        action_type: action_type::CHOOSE_EVENT,
+                        entity: i as i32,
+                        target: -1,
+                    });
                 }
                 LegalActions { flat, screen: 2 }
             }
             GameState::RewardScreen => LegalActions {
                 flat: vec![
-                    FlatAction { action_type: action_type::TAKE_REWARD, entity: 0, target: -1 },
-                    FlatAction { action_type: action_type::SKIP_REWARD, entity: -1, target: -1 },
+                    FlatAction {
+                        action_type: action_type::TAKE_REWARD,
+                        entity: 0,
+                        target: -1,
+                    },
+                    FlatAction {
+                        action_type: action_type::SKIP_REWARD,
+                        entity: -1,
+                        target: -1,
+                    },
                 ],
                 screen: 3,
             },
             GameState::RestChoice => LegalActions {
                 flat: vec![
-                    FlatAction { action_type: action_type::REST_ACTION, entity: 0, target: -1 },
-                    FlatAction { action_type: action_type::REST_ACTION, entity: 1, target: -1 },
+                    FlatAction {
+                        action_type: action_type::REST_ACTION,
+                        entity: 0,
+                        target: -1,
+                    },
+                    FlatAction {
+                        action_type: action_type::REST_ACTION,
+                        entity: 1,
+                        target: -1,
+                    },
                 ],
                 screen: 4,
             },
             GameState::ShopScreen => LegalActions {
-                flat: vec![FlatAction { action_type: action_type::PROCEED, entity: -1, target: -1 }],
+                flat: vec![FlatAction {
+                    action_type: action_type::PROCEED,
+                    entity: -1,
+                    target: -1,
+                }],
                 screen: 5,
             },
             _ => LegalActions {
-                flat: vec![FlatAction { action_type: action_type::PROCEED, entity: -1, target: -1 }],
+                flat: vec![FlatAction {
+                    action_type: action_type::PROCEED,
+                    entity: -1,
+                    target: -1,
+                }],
                 screen: 1,
             },
         }
@@ -535,20 +591,36 @@ impl GymEnv {
     fn make_combat_legal(&self, c: &Combat) -> LegalActions {
         let mut flat = Vec::new();
         for (i, card) in c.player.hand.iter().enumerate() {
-            if !neow_sim_core::cards::engine_playable(card.def) { continue; }
+            if !neow_sim_core::cards::engine_playable(card.def) {
+                continue;
+            }
             let cost = card.cost_pay().max(0);
-            if cost > c.player.energy { continue; }
+            if cost > c.player.energy {
+                continue;
+            }
             if Combat::needs_target(card) {
                 for (m, mon) in c.monsters.iter().enumerate() {
                     if !mon.creature.is_dead() {
-                        flat.push(FlatAction { action_type: action_type::PLAY_CARD, entity: i as i32, target: m as i32 });
+                        flat.push(FlatAction {
+                            action_type: action_type::PLAY_CARD,
+                            entity: i as i32,
+                            target: m as i32,
+                        });
                     }
                 }
             } else {
-                flat.push(FlatAction { action_type: action_type::PLAY_CARD, entity: i as i32, target: -1 });
+                flat.push(FlatAction {
+                    action_type: action_type::PLAY_CARD,
+                    entity: i as i32,
+                    target: -1,
+                });
             }
         }
-        flat.push(FlatAction { action_type: action_type::END_TURN, entity: -1, target: -1 });
+        flat.push(FlatAction {
+            action_type: action_type::END_TURN,
+            entity: -1,
+            target: -1,
+        });
 
         // 药水
         for (i, slot) in c.player.potions.iter().enumerate() {
@@ -557,14 +629,26 @@ impl GymEnv {
                     if p.kind.target_required() {
                         for m in 0..c.monsters.len() {
                             if c.monsters[m].creature.hp > 0 {
-                                flat.push(FlatAction { action_type: action_type::USE_POTION, entity: i as i32, target: m as i32 });
+                                flat.push(FlatAction {
+                                    action_type: action_type::USE_POTION,
+                                    entity: i as i32,
+                                    target: m as i32,
+                                });
                             }
                         }
                     } else {
-                        flat.push(FlatAction { action_type: action_type::USE_POTION, entity: i as i32, target: -1 });
+                        flat.push(FlatAction {
+                            action_type: action_type::USE_POTION,
+                            entity: i as i32,
+                            target: -1,
+                        });
                     }
                 }
-                flat.push(FlatAction { action_type: action_type::DISCARD_POTION, entity: i as i32, target: -1 });
+                flat.push(FlatAction {
+                    action_type: action_type::DISCARD_POTION,
+                    entity: i as i32,
+                    target: -1,
+                });
             }
         }
 

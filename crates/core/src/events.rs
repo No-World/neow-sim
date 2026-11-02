@@ -2146,6 +2146,7 @@ impl RunState {
             damage_bonus: 0,
             block_bonus: 0,
             cost_delta: 0,
+                upgrade_times: 0,
         }
     }
 
@@ -2245,6 +2246,7 @@ impl RunState {
             damage_bonus: 0,
             block_bonus: 0,
             cost_delta: 0,
+                upgrade_times: 0,
         }
     }
 
@@ -2278,6 +2280,7 @@ impl RunState {
             damage_bonus: 0,
             block_bonus: 0,
             cost_delta: 0,
+                upgrade_times: 0,
         }
     }
 
@@ -2589,6 +2592,7 @@ mod tests {
             damage_bonus: 0,
             block_bonus: 0,
             cost_delta: 0,
+                upgrade_times: 0,
         });
         run.player.hp = 10;
         run.choose_event_option(0);
