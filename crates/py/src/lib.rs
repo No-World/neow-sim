@@ -17,8 +17,10 @@ use neow_sim_core::combat::{Action, Combat};
 use neow_sim_core::encoding::{self, EncodedObservation};
 use neow_sim_core::run::{RewardItem, RoomKind, RunState, MAP_HEIGHT};
 use neow_sim_core::state::CharKind;
+use numpy::{PyArray1, PyArray2};
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
+use pyo3::types::PyTuple;
 
 // ── 动作类型常量（与 observation-encoding.md §2.2 对齐）──
 
@@ -55,37 +57,63 @@ enum GameState {
 #[pyclass]
 #[derive(Clone)]
 struct Observation {
-    #[pyo3(get)]
-    token_types: Vec<i8>,
-    #[pyo3(get)]
-    token_ids: Vec<(i32, i32, i32)>,
-    #[pyo3(get)]
-    token_feats: Vec<Vec<f32>>,
-    #[pyo3(get)]
+    raw_types: Vec<i8>,
+    raw_ids: Vec<i32>,
+    raw_feats: Vec<f32>,
     seq_len: usize,
-    /// 屏幕类型：0=combat 1=map 2=event 3=reward 4=rest 5=done
-    #[pyo3(get)]
     screen: i32,
 }
 
 impl From<EncodedObservation> for Observation {
     fn from(e: EncodedObservation) -> Self {
         Self {
-            token_types: e.token_types[..e.seq_len].to_vec(),
-            token_ids: e.token_ids[..e.seq_len].iter().map(|a| (a[0], a[1], a[2])).collect(),
-            token_feats: e.token_feats[..e.seq_len].iter().map(|f| f.to_vec()).collect(),
+            raw_types: e.token_types[..e.seq_len].to_vec(),
+            raw_ids: e.token_ids[..e.seq_len].iter().flat_map(|a| a.iter().copied()).collect(),
+            raw_feats: e.token_feats[..e.seq_len].iter().flat_map(|f| f.iter().copied()).collect(),
             seq_len: e.seq_len,
             screen: 0,
         }
     }
 }
 
+#[pymethods]
+impl Observation {
+    #[getter]
+    fn token_types_np<'py>(&self, py: Python<'py>) -> Bound<'py, PyArray1<i8>> {
+        PyArray1::from_slice(py, &self.raw_types[..self.seq_len])
+    }
+
+    #[getter]
+    fn token_ids_np<'py>(&self, py: Python<'py>) -> Bound<'py, PyArray2<i32>> {
+        let rows: Vec<Vec<i32>> = self.raw_ids[..self.seq_len * 3]
+            .chunks(3)
+            .map(|c| vec![c[0], c[1], c[2]])
+            .collect();
+        PyArray2::from_vec2(py, &rows).unwrap()
+    }
+
+    #[getter]
+    fn token_feats_np<'py>(&self, py: Python<'py>) -> Bound<'py, PyArray2<f32>> {
+        let rows: Vec<Vec<f32>> = self.raw_feats[..self.seq_len * encoding::FEAT_DIM]
+            .chunks(encoding::FEAT_DIM)
+            .map(|c| c.to_vec())
+            .collect();
+        PyArray2::from_vec2(py, &rows).unwrap()
+    }
+
+    #[getter]
+    fn seq_len(&self) -> usize { self.seq_len }
+
+    #[getter]
+    fn screen(&self) -> i32 { self.screen }
+}
+
 impl Observation {
     fn simple(screen: i32) -> Self {
         Self {
-            token_types: vec![1, 2],
-            token_ids: vec![(-1, -1, -1), (-1, -1, -1)],
-            token_feats: vec![vec![0.0; encoding::FEAT_DIM]; 2],
+            raw_types: vec![1, 2],
+            raw_ids: vec![-1, -1, -1, -1, -1, -1],
+            raw_feats: vec![0.0; 2 * encoding::FEAT_DIM],
             seq_len: 2,
             screen,
         }
