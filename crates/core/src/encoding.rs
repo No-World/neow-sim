@@ -15,12 +15,17 @@
 //! P1-6 power just_applied 标志
 //! P1-7 遗物 counter -1/0 语义区分
 //! P1-8 Frozen Eye 条件化（DRAW_SEQ token）
-//! P2-9..12 待后续批次
+//! P2-9 非战斗屏 SCREEN_SPECIFIC token（事件/奖励/地图/休息/商店）
+//! P2-10 Pile attention pool（占位）
+//! P2-11 Energy cap（待接）
+//! P2-12 Fairy rescue flag（待接）
 
 use crate::cards::CardInst;
 use crate::combat::Combat;
+use crate::events::EventOption;
 use crate::powers::{DamageType, PowerKind};
 use crate::relics::{RelicInst, RelicKind};
+use crate::run::{RewardItem, RoomKind, RunState, MAP_HEIGHT, MAP_WIDTH};
 use crate::state::{Intent, MonsterState, Stance};
 
 pub const MAX_T: usize = 224;
@@ -515,6 +520,249 @@ mod tests {
                 obs.token_feats[ri][0], -1.0,
                 "BurningBlood counter=-1 → -1.0"
             );
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// 非战斗屏观测编码（P2-9）
+// ═══════════════════════════════════════════════════════════════
+
+/// 编码 RunState（非战斗屏）：事件/奖励/地图/休息/商店
+pub fn encode_run(run: &RunState) -> EncodedObservation {
+    let mut w = TokenWriter::new();
+
+    // [CLS]
+    w.push(token_type::CLS, [-1, -1, -1], [0.0; FEAT_DIM]);
+
+    // [GLOBAL]
+    let mut gf = [0.0; FEAT_DIM];
+    gf[0] = ratio(run.player.hp, run.player.max_hp.max(1));
+    gf[1] = log_norm(run.player.max_hp, 999);
+    gf[3] = 0.0; // energy: 非战斗无能量
+    gf[4] = log_norm(run.player.gold, 9999);
+    let stance = 0.0; // 非战斗 Neutral
+    gf[5] = stance / 3.0;
+    gf[8] = run.act as f32 / 3.0; // act 归一化
+    gf[9] = run.floor as f32 / 51.0; // floor 归一化
+    w.push(token_type::GLOBAL, [-1, -1, -1], gf);
+
+    // [PILE] — 4 堆（主牌组 + 弃牌堆 + 消耗堆，非战斗无抽牌堆概念）
+    let piles = [
+        (0.0f32, run.deck.len()), // deck as "draw" proxy
+        (1.0, 0),                 // discard empty
+        (2.0, run.deck.len()),    // deck
+        (3.0, 0),                 // exhaust empty
+    ];
+    for (pile_ty, count) in piles.iter() {
+        for qi in 0..5 {
+            let mut f = [0.0; FEAT_DIM];
+            f[0] = pile_ty / 3.0;
+            f[1] = (*count as f32) / 60.0;
+            f[2] = qi as f32 / 4.0;
+            w.push(token_type::PILE, [-1, -1, -1], f);
+        }
+    }
+
+    // [RELIC]
+    for r in run.relics.iter().take(32) {
+        let relic_id_val = r.kind as i32;
+        w.push(token_type::RELIC, [-1, relic_id_val, -1], relic_feats(r));
+    }
+
+    // [POTION]
+    for (i, slot) in run.potions.iter().take(6).enumerate() {
+        if let Some(p) = slot {
+            let mut f = [0.0; FEAT_DIM];
+            f[0] = ratio(p.potency, 20);
+            f[1] = i as f32 / 5.0;
+            let pot_id = p.kind as i32;
+            w.push(token_type::POTION, [-1, -1, pot_id], f);
+        }
+    }
+
+    // ── SCREEN_SPECIFIC：按当前屏类型展开 ──
+
+    if run.event.is_some() {
+        // 事件屏：选项 token
+        let opts = run.event_options();
+        for opt in opts.iter().take(8) {
+            let mut f = [0.0; FEAT_DIM];
+            f[0] = if opt.disabled { 0.0 } else { 1.0 };
+            f[1] = opt.tag.len() as f32 / 20.0; // tag 长度近似（正式版应用 tag vocab）
+            w.push(token_type::SCREEN, [-1, -1, -1], f);
+        }
+    } else if !run.rewards.is_empty() {
+        // 奖励屏：奖励项 token
+        for item in run.rewards.iter().take(6) {
+            let mut f = [0.0; FEAT_DIM];
+            match item {
+                RewardItem::Gold(g) => {
+                    f[0] = 0.0; // kind: gold
+                    f[1] = sat(*g as f32);
+                    w.push(token_type::SCREEN, [-1, -1, -1], f);
+                }
+                RewardItem::Card(c) => {
+                    f[0] = 1.0; // kind: card
+                    let ids = [crate::vocab::card_id(c.def.id), -1, -1];
+                    w.push(token_type::SCREEN, ids, f);
+                }
+                RewardItem::Potion(k) => {
+                    f[0] = 2.0; // kind: potion
+                    let ids = [-1, -1, *k as i32];
+                    w.push(token_type::SCREEN, ids, f);
+                }
+                RewardItem::Relic(k) => {
+                    f[0] = 3.0; // kind: relic
+                    let ids = [-1, *k as i32, -1];
+                    w.push(token_type::SCREEN, ids, f);
+                }
+            }
+        }
+    } else if run.rest_available {
+        // 休息屏：选项 token（sleep/smith）
+        let opts = [("sleep", true), ("smith", true)];
+        for (i, (name, usable)) in opts.iter().enumerate() {
+            let mut f = [0.0; FEAT_DIM];
+            f[0] = if *usable { 1.0 } else { 0.0 };
+            f[1] = i as f32; // 0=sleep, 1=smith
+            f[2] = name.len() as f32 / 10.0;
+            w.push(token_type::SCREEN, [-1, -1, -1], f);
+        }
+    } else if run.shop.is_some() {
+        // 商店屏：商品 token
+        let shop = run.shop.as_ref().unwrap();
+        // 色卡 5 张
+        for sc in shop.cards.iter().take(5) {
+            if sc.sold { continue; }
+            let ids = [crate::vocab::card_id(sc.card.def.id), -1, -1];
+            let mut f = [0.0; FEAT_DIM];
+            f[0] = 0.0; // kind: card
+            f[1] = log_norm(sc.price, 999);
+            w.push(token_type::SCREEN, ids, f);
+        }
+        // 无色 2 张
+        for sc in shop.colorless.iter().take(2) {
+            if sc.sold { continue; }
+            let ids = [crate::vocab::card_id(sc.card.def.id), -1, -1];
+            let mut f = [0.0; FEAT_DIM];
+            f[0] = 1.0; // kind: colorless
+            f[1] = log_norm(sc.price, 999);
+            w.push(token_type::SCREEN, ids, f);
+        }
+        // 遗物 3 件
+        for sr in shop.relics.iter().take(3) {
+            if sr.sold { continue; }
+            let ids = [-1, sr.kind as i32, -1];
+            let mut f = [0.0; FEAT_DIM];
+            f[0] = 2.0; // kind: relic
+            f[1] = log_norm(sr.price, 999);
+            w.push(token_type::SCREEN, ids, f);
+        }
+        // 药水 3 瓶
+        for sp in shop.potions.iter().take(3) {
+            if sp.sold { continue; }
+            let ids = [-1, -1, sp.kind as i32];
+            let mut f = [0.0; FEAT_DIM];
+            f[0] = 3.0; // kind: potion
+            f[1] = log_norm(sp.price, 999);
+            w.push(token_type::SCREEN, ids, f);
+        }
+        // 删卡服务
+        let mut f = [0.0; FEAT_DIM];
+        f[0] = 4.0; // kind: purge
+        f[1] = log_norm(shop.purge_cost, 999);
+        w.push(token_type::SCREEN, [-1, -1, -1], f);
+    } else {
+        // 地图屏：候选可达节点 token（当前节点 edges 指向的节点）
+        let (py, px) = run.pos;
+        let node = &run.map.rows[py][px];
+        for &next_x in node.edges.iter().take(7) {
+            if py + 1 >= MAP_HEIGHT { break; }
+            let next = &run.map.rows[py + 1][next_x];
+            let mut f = [0.0; FEAT_DIM];
+            // 房间类型归一化
+            let rt = match next.room {
+                Some(RoomKind::Monster) => 0.0,
+                Some(RoomKind::Elite) => 1.0,
+                Some(RoomKind::Rest) => 2.0,
+                Some(RoomKind::Treasury) => 3.0,
+                Some(RoomKind::Shop) => 4.0,
+                Some(RoomKind::Event) => 5.0,
+                Some(RoomKind::Boss) => 6.0,
+                None => 7.0,
+            };
+            f[0] = rt / 7.0;
+            f[1] = (py + 1) as f32 / (MAP_HEIGHT as f32); // 行位置
+            f[2] = next_x as f32 / (MAP_WIDTH as f32);     // 列位置
+            w.push(token_type::SCREEN, [-1, -1, -1], f);
+        }
+    }
+
+    w.obs
+}
+
+#[cfg(test)]
+mod run_tests {
+    use super::*;
+
+    #[test]
+    fn encode_event_screen() {
+        let mut run = crate::run::RunState::new(5, 0);
+        run.map.rows[1][3].room = Some(crate::run::RoomKind::Event);
+        run.pos = (1, 3);
+        run.enter_room();
+        let obs = encode_run(&run);
+        assert!(obs.seq_len > 0 && obs.seq_len <= MAX_T);
+        assert!(
+            obs.token_types.iter().take(obs.seq_len).any(|&t| t == token_type::SCREEN),
+            "事件屏应有 SCREEN token"
+        );
+    }
+
+    #[test]
+    fn encode_reward_screen() {
+        let mut run = crate::run::RunState::new(5, 0);
+        run.rewards.push(crate::run::RewardItem::Gold(50));
+        run.rewards.push(crate::run::RewardItem::Relic(crate::relics::RelicKind::Lantern));
+        let obs = encode_run(&run);
+        assert!(
+            obs.token_types.iter().take(obs.seq_len).any(|&t| t == token_type::SCREEN),
+            "奖励屏应有 SCREEN token"
+        );
+    }
+
+    #[test]
+    fn encode_rest_screen() {
+        let mut run = crate::run::RunState::new(5, 0);
+        run.map.rows[2][3].room = Some(crate::run::RoomKind::Rest);
+        run.pos = (2, 3);
+        run.enter_room();
+        let obs = encode_run(&run);
+        assert!(
+            obs.token_types.iter().take(obs.seq_len).any(|&t| t == token_type::SCREEN),
+            "休息屏应有 SCREEN token"
+        );
+    }
+
+    #[test]
+    fn encode_map_screen() {
+        let run = crate::run::RunState::new(5, 0);
+        let obs = encode_run(&run);
+        // 地图屏：应有 SCREEN token（候选节点）
+        assert!(obs.seq_len > 2, "地图屏至少有 CLS+GLOBAL+SCREEN");
+        assert!(
+            obs.token_types.iter().take(obs.seq_len).any(|&t| t == token_type::SCREEN),
+            "地图屏应有 SCREEN token（候选节点）"
+        );
+    }
+
+    #[test]
+    fn encode_run_budget() {
+        for seed in [1u64, 42, 999] {
+            let run = crate::run::RunState::new(seed, 0);
+            let obs = encode_run(&run);
+            assert!(obs.seq_len <= MAX_T, "seed={seed} seq_len={}", obs.seq_len);
         }
     }
 }

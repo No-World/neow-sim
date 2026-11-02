@@ -267,19 +267,19 @@ impl GymEnv {
                 return;
             } else if self.run.event.is_some() {
                 self.state = GameState::EventChoice;
-                self.update_event_obs();
+                self.update_run_obs();
                 return;
             } else if !self.run.rewards.is_empty() {
                 self.state = GameState::RewardScreen;
-                self.update_reward_obs();
+                self.update_run_obs();
                 return;
             } else if self.run.rest_available {
                 self.state = GameState::RestChoice;
-                self.update_rest_obs();
+                self.update_run_obs();
                 return;
             } else if self.run.shop.is_some() {
                 self.state = GameState::ShopScreen;
-                self.update_shop_obs();
+                self.update_run_obs();
                 return;
             }
             // 空房间 → 领奖励 → 继续循环到下一房
@@ -445,45 +445,52 @@ impl GymEnv {
         }
     }
 
-    fn update_event_obs(&mut self) {
-        let opts = self.run.event_options();
-        let n = opts.len().max(1);
-        let mut legal = Vec::new();
-        for i in 0..n {
-            legal.push(FlatAction { action_type: action_type::CHOOSE_EVENT, entity: i as i32, target: -1 });
+    fn update_run_obs(&mut self) {
+        let mut obs = Observation::from(encoding::encode_run(&self.run));
+        obs.screen = match self.state {
+            GameState::EventChoice => 2,
+            GameState::RewardScreen => 3,
+            GameState::RestChoice => 4,
+            GameState::ShopScreen => 5,
+            _ => 1, // map
+        };
+        self.obs = Some(obs);
+        self.legal = Some(self.make_run_legal());
+    }
+
+    fn make_run_legal(&self) -> LegalActions {
+        match self.state {
+            GameState::EventChoice => {
+                let n = self.run.event_options().len();
+                let mut flat = Vec::new();
+                for i in 0..n {
+                    flat.push(FlatAction { action_type: action_type::CHOOSE_EVENT, entity: i as i32, target: -1 });
+                }
+                LegalActions { flat, screen: 2 }
+            }
+            GameState::RewardScreen => LegalActions {
+                flat: vec![
+                    FlatAction { action_type: action_type::TAKE_REWARD, entity: 0, target: -1 },
+                    FlatAction { action_type: action_type::SKIP_REWARD, entity: -1, target: -1 },
+                ],
+                screen: 3,
+            },
+            GameState::RestChoice => LegalActions {
+                flat: vec![
+                    FlatAction { action_type: action_type::REST_ACTION, entity: 0, target: -1 },
+                    FlatAction { action_type: action_type::REST_ACTION, entity: 1, target: -1 },
+                ],
+                screen: 4,
+            },
+            GameState::ShopScreen => LegalActions {
+                flat: vec![FlatAction { action_type: action_type::PROCEED, entity: -1, target: -1 }],
+                screen: 5,
+            },
+            _ => LegalActions {
+                flat: vec![FlatAction { action_type: action_type::PROCEED, entity: -1, target: -1 }],
+                screen: 1,
+            },
         }
-        self.obs = Some(Observation::simple(2));
-        self.legal = Some(LegalActions { flat: legal, screen: 2 });
-    }
-
-    fn update_reward_obs(&mut self) {
-        let n = self.run.rewards.len();
-        let mut legal = vec![
-            FlatAction { action_type: action_type::TAKE_REWARD, entity: 0, target: -1 },
-            FlatAction { action_type: action_type::SKIP_REWARD, entity: -1, target: -1 },
-        ];
-        let _ = n;
-        self.obs = Some(Observation::simple(3));
-        self.legal = Some(LegalActions { flat: legal, screen: 3 });
-    }
-
-    fn update_rest_obs(&mut self) {
-        self.obs = Some(Observation::simple(4));
-        self.legal = Some(LegalActions {
-            flat: vec![
-                FlatAction { action_type: action_type::REST_ACTION, entity: 0, target: -1 }, // sleep
-                FlatAction { action_type: action_type::REST_ACTION, entity: 1, target: -1 }, // smith
-            ],
-            screen: 4,
-        });
-    }
-
-    fn update_shop_obs(&mut self) {
-        self.obs = Some(Observation::simple(5));
-        self.legal = Some(LegalActions {
-            flat: vec![FlatAction { action_type: action_type::PROCEED, entity: -1, target: -1 }],
-            screen: 5,
-        });
     }
 
     fn set_done(&mut self) {
