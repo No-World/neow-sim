@@ -342,14 +342,50 @@ impl GymEnv {
         match self.state {
             GameState::Combat => self.combat_step(ty, entity, target),
             GameState::EventChoice => {
-                self.run.choose_event_option(entity.max(0) as usize);
-                // 事件内选牌（如果有 pending）
-                if let Some(ev) = self.run.event.as_ref() {
-                    if !ev.pending.is_empty() && !self.run.deck.is_empty() {
+                let Some(ev) = self.run.event.as_ref() else {
+                    self.enter_next_room();
+                    self.update_state();
+                    return Ok(0.0);
+                };
+
+                // 优先处理挂起选牌/选库
+                if !ev.pending.is_empty() {
+                    if !self.run.deck.is_empty() {
                         self.run.event_pick_card(0);
                     }
+                    // pending 可能还有后续
+                    if self.run.event.as_ref().map(|e| !e.pending.is_empty()) == Some(true)
+                        && !self.run.deck.is_empty()
+                    {
+                        self.run.event_pick_card(1);
+                    }
+                    // 图书馆选卡
+                    if self.run.event.as_ref().map(|e| !e.library.is_empty()) == Some(true) {
+                        self.run.event_library_pick(0);
+                    }
+                } else if !ev.library.is_empty() {
+                    self.run.event_library_pick(0);
+                } else {
+                    // 正常选项
+                    let opts = self.run.event_options();
+                    let pick = if entity >= 0 && (entity as usize) < opts.len() && !opts[entity as usize].disabled {
+                        entity as usize
+                    } else {
+                        // 选最后一个（通常是离开）
+                        opts.len().saturating_sub(1)
+                    };
+                    self.run.choose_event_option(pick);
                 }
-                // 事件结束 → 领奖励 → 下一房
+
+                // 事件未完成 → 留在事件屏
+                let ev_done = self.run.event.as_ref().map(|e| e.done).unwrap_or(true);
+                if !ev_done && self.run.event.is_some() {
+                    self.update_run_obs();
+                    self.legal = Some(self.make_event_legal());
+                    return Ok(0.0);
+                }
+
+                // 事件完成 → 领奖励 → 下一房
                 self.run.take_all_rewards_skip_cards();
                 self.enter_next_room();
                 self.update_state();
@@ -359,19 +395,46 @@ impl GymEnv {
                 if ty == action_type::SKIP_REWARD {
                     self.run.rewards.clear();
                 } else {
-                    self.run.take_all_rewards_skip_cards();
+                    // 按下标领取指定项（而非全拿）
+                    let idx = entity.max(0) as usize;
+                    if idx < self.run.rewards.len() {
+                        self.run.take_reward(idx);
+                    }
+                    // 如果还有奖励项，停留在奖励屏
+                    if !self.run.rewards.is_empty() {
+                        self.update_run_obs();
+                        return Ok(0.0);
+                    }
                 }
+                // 奖励屏空 → 离开
+                self.run.take_all_rewards_skip_cards();
                 self.enter_next_room();
                 self.update_state();
                 Ok(0.0)
             }
             GameState::RestChoice => {
                 match entity {
-                    0 => self.run.rest_sleep(),
-                    _ => {
-                        if !self.run.deck.is_empty() {
-                            self.run.rest_smith(0);
+                    0 => {
+                        // sleep：回 30% HP
+                        self.run.rest_sleep();
+                    }
+                    1 => {
+                        // smith：升级第一张可升级牌
+                        if let Some(idx) = self.run.deck_upgradable().first() {
+                            self.run.rest_smith(*idx);
+                        } else {
+                            // 无可升级 → 退回睡觉
+                            self.run.rest_sleep();
                         }
+                    }
+                    2 => {
+                        // toke：删第一张牌
+                        if let Some(idx) = self.run.deck_purgeable().first() {
+                            self.run.deck.remove(*idx);
+                        }
+                    }
+                    _ => {
+                        self.run.rest_sleep(); // 默认睡觉
                     }
                 }
                 self.enter_next_room();
@@ -379,9 +442,50 @@ impl GymEnv {
                 Ok(0.0)
             }
             GameState::ShopScreen => {
-                // 简化：跳过商店
-                self.enter_next_room();
-                self.update_state();
+                let Some(shop) = self.run.shop.as_mut() else {
+                    self.enter_next_room();
+                    self.update_state();
+                    return Ok(0.0);
+                };
+                match ty {
+                    action_type::SHOP_BUY => {
+                        let idx = entity.max(0) as usize;
+                        // entity 编码：0-4=色卡, 5-6=无色, 7-9=遗物, 10-12=药水, 13=删卡
+                        match idx {
+                            0..=4 => {
+                                let _ = self.run.shop_buy_card(idx);
+                            }
+                            5..=6 => {
+                                let _ = self.run.shop_buy_colorless(idx - 5);
+                            }
+                            7..=9 => {
+                                let _ = self.run.shop_buy_relic(idx - 7);
+                            }
+                            10..=12 => {
+                                let _ = self.run.shop_buy_potion(idx - 10);
+                            }
+                            13 => {
+                                // 删卡：选第一张可删牌
+                                let purge_idx = self
+                                    .run
+                                    .deck
+                                    .iter()
+                                    .position(|c| !c.def.id.starts_with("Strike"))
+                                    .unwrap_or(0);
+                                let _ = self.run.shop_purge(purge_idx);
+                            }
+                            _ => {}
+                        }
+                    }
+                    _ => {
+                        // 离开商店
+                        self.enter_next_room();
+                        self.update_state();
+                        return Ok(0.0);
+                    }
+                }
+                // 更新商店观测（物品已售出后变化）
+                self.update_run_obs();
                 Ok(0.0)
             }
             GameState::MapNode => {
@@ -488,6 +592,22 @@ impl GymEnv {
             // 非战斗——进入下一个决策点
             self.enter_next_room();
         }
+    }
+
+    /// 事件屏合法动作
+    fn make_event_legal(&self) -> LegalActions {
+        let opts = self.run.event_options();
+        let mut flat = Vec::new();
+        for (i, opt) in opts.iter().enumerate() {
+            if !opt.disabled {
+                flat.push(FlatAction {
+                    action_type: action_type::CHOOSE_EVENT,
+                    entity: i as i32,
+                    target: -1,
+                });
+            }
+        }
+        LegalActions { flat, screen: 2 }
     }
 
     // ── 观测生成 ─────────────────────────────────
