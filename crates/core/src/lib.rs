@@ -17,6 +17,7 @@ pub mod cards;
 pub mod combat;
 pub mod damage;
 pub mod effects;
+pub mod encoding;
 pub mod events;
 pub mod generated;
 pub mod potions;

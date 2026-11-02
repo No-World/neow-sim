@@ -566,8 +566,8 @@ pub struct Combat {
     /// 选择屏挂起时暂存的动作队列
     pending_queue: Option<Vec<Q>>,
     pub attacks_this_turn: i32,
-    hand_cost_zero_this_turn: bool,
-    hand_cost_max_one: bool,
+    pub(crate) hand_cost_zero_this_turn: bool,
+    pub(crate) hand_cost_max_one: bool,
     pub next_turn_draw: i32,
     pub next_turn_energy: i32,
     pub gold: i32,
