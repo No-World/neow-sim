@@ -27,3 +27,4 @@ pub mod rng;
 pub mod run;
 pub mod shop;
 pub mod state;
+pub mod vocab;

@@ -99,7 +99,7 @@ impl TokenWriter {
 }
 
 fn card_id(c: &CardInst) -> i32 {
-    c.def.id.len() as i32 // TODO: 正式 vocab 查表
+    crate::vocab::card_id(c.def.id)
 }
 
 // ── P0-1: 卡牌特征用修正值 ───────────────────
