@@ -1021,7 +1021,7 @@ impl Combat {
             .all(|m| m.creature.is_dead() || m.escaped)
     }
 
-    fn needs_target(card: &CardInst) -> bool {
+    pub fn needs_target(card: &CardInst) -> bool {
         matches!(card.def.target, "ENEMY" | "SELF_AND_ENEMY")
     }
 
