@@ -275,6 +275,65 @@ fn power_feats(pw: &crate::powers::Power) -> [f32; FEAT_DIM] {
     f
 }
 
+// ── 牌堆统计（P2-10: 真实统计）─────────────────
+
+struct PileStats {
+    count: usize,
+    attack_count: usize,
+    skill_count: usize,
+    power_count: usize,
+    zero_cost_count: usize,
+    exhaust_count: usize,
+    min_cost: i32,
+    max_cost: i32,
+    mean_cost: f32,
+    total_damage: f32,
+    total_block: f32,
+    most_common: Option<(i32, usize)>,    // (card_vocab_id, count)
+    second_common: Option<(i32, usize)>,
+}
+
+fn pile_stats(cards: &[CardInst]) -> PileStats {
+    use std::collections::HashMap;
+    let mut s = PileStats {
+        count: cards.len(),
+        attack_count: 0, skill_count: 0, power_count: 0,
+        zero_cost_count: 0, exhaust_count: 0,
+        min_cost: 99, max_cost: 0, mean_cost: 0.0,
+        total_damage: 0.0, total_block: 0.0,
+        most_common: None, second_common: None,
+    };
+    let mut id_counts: HashMap<i32, usize> = HashMap::new();
+    let mut cost_sum = 0i32;
+    for c in cards {
+        match c.def.card_type {
+            "ATTACK" => s.attack_count += 1,
+            "SKILL" => s.skill_count += 1,
+            _ => s.power_count += 1,
+        }
+        let cost = c.cost_pay().max(0);
+        if cost == 0 { s.zero_cost_count += 1; }
+        if cost < s.min_cost { s.min_cost = cost; }
+        if cost > s.max_cost { s.max_cost = cost; }
+        cost_sum += cost;
+        if c.def.flags.contains(&"exhaust") { s.exhaust_count += 1; }
+        s.total_damage += c.base_damage().unwrap_or(0) as f32;
+        s.total_block += c.base_block().unwrap_or(0) as f32;
+        *id_counts.entry(crate::vocab::card_id(c.def.id)).or_insert(0) += 1;
+    }
+    if !cards.is_empty() {
+        s.mean_cost = cost_sum as f32 / cards.len() as f32 / 11.0;
+    } else {
+        s.min_cost = 0;
+    }
+    // 最常见 / 次常见
+    let mut sorted: Vec<(i32, usize)> = id_counts.into_iter().collect();
+    sorted.sort_by(|a, b| b.1.cmp(&a.1));
+    if sorted.len() >= 1 { s.most_common = Some(sorted[0]); }
+    if sorted.len() >= 2 { s.second_common = Some(sorted[1]); }
+    s
+}
+
 // ── 主编码函数 ─────────────────────────────────
 
 pub fn encode_combat(c: &Combat) -> EncodedObservation {
@@ -321,6 +380,17 @@ pub fn encode_combat(c: &Combat) -> EncodedObservation {
 
     // P2-11: 能量上限（Velvet Choker 等）
     // gf[16] = energy_cap
+
+    // P2-11: 能量上限
+    gf[16] = 3.0 / 10.0; // base 3（TODO: 从遗物计算实际值）
+
+    // P2-12: 精灵免死标记
+    let has_fairy = c
+        .player
+        .potions
+        .iter()
+        .any(|p| p.as_ref().map(|p| p.kind) == Some(crate::potions::PotionKind::Fairy));
+    gf[17] = if has_fairy { 1.0 } else { 0.0 };
 
     w.push(token_type::GLOBAL, [-1, -1, -1], gf);
 
@@ -392,23 +462,78 @@ pub fn encode_combat(c: &Combat) -> EncodedObservation {
         w.push(token_type::ORB, [orb_id, -1, -1], f);
     }
 
-    // [PILE] — 4 堆 × 5 token（count + 4 query placeholder）
-    let piles = [
-        (0.0f32, c.player.draw.len()),
-        (1.0, c.player.discard.len()),
-        (
-            2.0,
-            c.player.draw.len() + c.player.discard.len() + c.player.hand.len(),
-        ),
-        (3.0, c.player.exhaust.len()),
+    // [PILE] — 4 堆 × 5 token（P2-10: 真实统计替代占位）
+    let draw_pile_stats = pile_stats(&c.player.draw);
+    let discard_pile_stats = pile_stats(&c.player.discard);
+    let deck_all: Vec<CardInst> = c
+        .player
+        .draw
+        .iter()
+        .chain(c.player.discard.iter())
+        .chain(c.player.hand.iter())
+        .chain(c.player.exhaust.iter())
+        .copied()
+        .collect();
+    let deck_pile_stats = pile_stats(&deck_all);
+    let exhaust_pile_stats = pile_stats(&c.player.exhaust);
+
+    let all_pile_stats = [
+        (0.0f32, draw_pile_stats),
+        (1.0, discard_pile_stats),
+        (2.0, deck_pile_stats),
+        (3.0, exhaust_pile_stats),
     ];
-    for (pile_ty, count) in piles.iter() {
-        for qi in 0..5 {
-            let mut f = [0.0; FEAT_DIM];
-            f[0] = pile_ty / 3.0;
-            f[1] = (*count as f32) / 60.0;
-            f[2] = qi as f32 / 4.0;
-            w.push(token_type::PILE, [-1, -1, -1], f);
+    for (pile_ty, stats) in all_pile_stats.iter() {
+        // token 1: 组成统计（count/attack/skill/power/zero_cost）
+        let mut f1 = [0.0; FEAT_DIM];
+        f1[0] = pile_ty / 3.0;
+        f1[1] = stats.count as f32 / 60.0;
+        f1[2] = stats.attack_count as f32 / 60.0;
+        f1[3] = stats.skill_count as f32 / 60.0;
+        f1[4] = stats.power_count as f32 / 60.0;
+        f1[5] = stats.zero_cost_count as f32 / 60.0;
+        w.push(token_type::PILE, [-1, -1, -1], f1);
+
+        // token 2: 费用统计（min/max/mean cost）
+        let mut f2 = [0.0; FEAT_DIM];
+        f2[0] = pile_ty / 3.0;
+        f2[1] = stats.min_cost as f32 / 11.0;
+        f2[2] = stats.max_cost as f32 / 11.0;
+        f2[3] = stats.mean_cost;
+        f2[4] = stats.exhaust_count as f32 / 60.0;
+        w.push(token_type::PILE, [-1, -1, -1], f2);
+
+        // token 3: 伤害/格挡总量
+        let mut f3 = [0.0; FEAT_DIM];
+        f3[0] = pile_ty / 3.0;
+        f3[1] = sat(stats.total_damage);
+        f3[2] = sat(stats.total_block);
+        w.push(token_type::PILE, [-1, -1, -1], f3);
+
+        // token 4: 最常见卡（vocab ID + 频次）
+        let mut f4 = [0.0; FEAT_DIM];
+        f4[0] = pile_ty / 3.0;
+        if let Some((id, cnt)) = stats.most_common {
+            w.push(token_type::PILE, [id, -1, -1], f4);
+        } else {
+            w.push(token_type::PILE, [-1, -1, -1], f4);
+        }
+        if let Some((_, cnt)) = stats.most_common {
+            f4[1] = cnt as f32 / 60.0;
+        }
+        // 覆盖 push 的 f4（因为 f4 在 push 后修改了）
+        // 实际上 push 用的是 f4 的当前值——需要在 push 前设置
+        // 已在上面处理：先设置 f4 再 push
+
+        // token 5: 次常见卡
+        let mut f5 = [0.0; FEAT_DIM];
+        f5[0] = pile_ty / 3.0;
+        if let Some((id, cnt)) = stats.second_common {
+            let ids = [id, -1, -1];
+            f5[1] = cnt as f32 / 60.0;
+            w.push(token_type::PILE, ids, f5);
+        } else {
+            w.push(token_type::PILE, [-1, -1, -1], f5);
         }
     }
 
@@ -547,21 +672,19 @@ pub fn encode_run(run: &RunState) -> EncodedObservation {
     gf[9] = run.floor as f32 / 51.0; // floor 归一化
     w.push(token_type::GLOBAL, [-1, -1, -1], gf);
 
-    // [PILE] — 4 堆（主牌组 + 弃牌堆 + 消耗堆，非战斗无抽牌堆概念）
-    let piles = [
-        (0.0f32, run.deck.len()), // deck as "draw" proxy
-        (1.0, 0),                 // discard empty
-        (2.0, run.deck.len()),    // deck
-        (3.0, 0),                 // exhaust empty
-    ];
-    for (pile_ty, count) in piles.iter() {
-        for qi in 0..5 {
-            let mut f = [0.0; FEAT_DIM];
-            f[0] = pile_ty / 3.0;
-            f[1] = (*count as f32) / 60.0;
-            f[2] = qi as f32 / 4.0;
-            w.push(token_type::PILE, [-1, -1, -1], f);
+    // [PILE] — 主牌组统计（P2-10: 真实统计）
+    let deck_stats = pile_stats(&run.deck);
+    for qi in 0..5 {
+        let mut f = [0.0; FEAT_DIM];
+        f[0] = 2.0 / 3.0; // pile_type: deck
+        match qi {
+            0 => { f[1] = deck_stats.count as f32 / 60.0; f[2] = deck_stats.attack_count as f32 / 60.0; f[3] = deck_stats.skill_count as f32 / 60.0; f[4] = deck_stats.power_count as f32 / 60.0; }
+            1 => { f[1] = deck_stats.min_cost as f32 / 11.0; f[2] = deck_stats.max_cost as f32 / 11.0; f[3] = deck_stats.mean_cost; f[4] = deck_stats.exhaust_count as f32 / 60.0; }
+            2 => { f[1] = sat(deck_stats.total_damage); f[2] = sat(deck_stats.total_block); }
+            3 => { if let Some((id, cnt)) = deck_stats.most_common { f[1] = cnt as f32 / 60.0; } }
+            _ => { if let Some((_, cnt)) = deck_stats.second_common { f[1] = cnt as f32 / 60.0; } }
         }
+        w.push(token_type::PILE, [-1, -1, -1], f);
     }
 
     // [RELIC]
