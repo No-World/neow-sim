@@ -1,0 +1,490 @@
+12:38:29.928 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:29.930 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:29.930 INFO map.RoomTypeAssigner> INFO: Node=(6,13):[(6,14)] was null. Changed to a MonsterRoom.
+12:38:29.948 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:29.948 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:29.949 INFO map.RoomTypeAssigner> INFO: Node=(6,13):[(6,14)] was null. Changed to a MonsterRoom.
+12:38:29.955 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:29.958 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:29.960 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:29.960 INFO map.RoomTypeAssigner> INFO: Node=(6,13):[(6,14)] was null. Changed to a MonsterRoom.
+12:38:29.964 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:29.964 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:29.965 INFO map.RoomTypeAssigner> INFO: Node=(3,13):[(3,14), (4,14)] was null. Changed to a MonsterRoom.
+12:38:29.966 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:29.966 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:29.966 INFO map.RoomTypeAssigner> INFO: Node=(5,13):[(6,14)] was null. Changed to a MonsterRoom.
+12:38:29.968 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:29.969 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:29.971 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:29.972 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:29.972 INFO map.RoomTypeAssigner> INFO: Node=(5,13):[(4,14)] was null. Changed to a MonsterRoom.
+12:38:29.975 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:29.978 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:29.979 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.MonsterRoom
+12:38:29.979 INFO map.RoomTypeAssigner> INFO: Node=(6,13):[(6,14)] was null. Changed to a MonsterRoom.
+12:38:29.981 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:29.983 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:29.983 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.MonsterRoom
+12:38:29.984 INFO map.RoomTypeAssigner> INFO: Node=(3,13):[(4,14)] was null. Changed to a MonsterRoom.
+12:38:29.985 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:29.987 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:29.987 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:29.987 INFO map.RoomTypeAssigner> INFO: Node=(4,13):[(3,14), (5,14)] was null. Changed to a MonsterRoom.
+12:38:29.989 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:29.991 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:29.991 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:29.992 INFO map.RoomTypeAssigner> INFO: Node=(3,13):[(2,14), (3,14)] was null. Changed to a MonsterRoom.
+12:38:29.994 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:29.996 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:29.997 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:29.997 INFO map.RoomTypeAssigner> INFO: Node=(5,13):[(5,14), (6,14)] was null. Changed to a MonsterRoom.
+12:38:29.999 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.000 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.001 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.003 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.005 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.005 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.005 INFO map.RoomTypeAssigner> INFO: Node=(4,13):[(4,14)] was null. Changed to a MonsterRoom.
+12:38:30.006 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.008 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.008 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.MonsterRoom
+12:38:30.008 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.MonsterRoom
+12:38:30.008 INFO map.RoomTypeAssigner> INFO: Node=(4,13):[(3,14)] was null. Changed to a MonsterRoom.
+12:38:30.009 INFO map.RoomTypeAssigner> INFO: Node=(6,13):[(6,14)] was null. Changed to a MonsterRoom.
+12:38:30.010 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.012 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.013 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.013 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.013 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.014 INFO map.RoomTypeAssigner> INFO: Node=(4,13):[(4,14)] was null. Changed to a MonsterRoom.
+12:38:30.014 INFO map.RoomTypeAssigner> INFO: Node=(5,13):[(5,14)] was null. Changed to a MonsterRoom.
+12:38:30.015 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.016 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.016 INFO map.RoomTypeAssigner> INFO: Node=(5,13):[(4,14), (5,14)] was null. Changed to a MonsterRoom.
+12:38:30.018 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.018 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.019 INFO map.RoomTypeAssigner> INFO: Node=(6,13):[(6,14)] was null. Changed to a MonsterRoom.
+12:38:30.020 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.021 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.EventRoom
+12:38:30.021 INFO map.RoomTypeAssigner> INFO: Node=(3,13):[(3,14)] was null. Changed to a MonsterRoom.
+12:38:30.022 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.024 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.024 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.MonsterRoom
+12:38:30.024 INFO map.RoomTypeAssigner> INFO: Node=(4,13):[(3,14), (4,14), (5,14)] was null. Changed to a MonsterRoom.
+12:38:30.025 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.026 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.027 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.MonsterRoom
+12:38:30.027 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.MonsterRoom
+12:38:30.027 INFO map.RoomTypeAssigner> INFO: Node=(5,12):[(5,13), (6,13)] was null. Changed to a MonsterRoom.
+12:38:30.027 INFO map.RoomTypeAssigner> INFO: Node=(6,13):[(6,14)] was null. Changed to a MonsterRoom.
+12:38:30.029 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.030 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.032 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.033 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.034 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.034 INFO map.RoomTypeAssigner> INFO: Node=(6,13):[(5,14)] was null. Changed to a MonsterRoom.
+12:38:30.040 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.040 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.040 INFO map.RoomTypeAssigner> INFO: Node=(6,13):[(6,14)] was null. Changed to a MonsterRoom.
+12:38:30.041 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.041 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.042 INFO map.RoomTypeAssigner> INFO: Node=(6,13):[(6,14)] was null. Changed to a MonsterRoom.
+12:38:30.043 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.043 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.043 INFO map.RoomTypeAssigner> INFO: Node=(6,13):[(6,14)] was null. Changed to a MonsterRoom.
+12:38:30.046 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.046 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.046 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.046 INFO map.RoomTypeAssigner> INFO: Node=(5,13):[(4,14)] was null. Changed to a MonsterRoom.
+12:38:30.046 INFO map.RoomTypeAssigner> INFO: Node=(6,13):[(5,14)] was null. Changed to a MonsterRoom.
+12:38:30.048 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.049 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.049 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.049 INFO map.RoomTypeAssigner> INFO: Node=(4,13):[(3,14), (4,14), (5,14)] was null. Changed to a MonsterRoom.
+12:38:30.051 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.051 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.MonsterRoom
+12:38:30.051 INFO map.RoomTypeAssigner> INFO: Node=(5,13):[(5,14), (6,14)] was null. Changed to a MonsterRoom.
+12:38:30.052 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.053 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.053 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.053 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.054 INFO map.RoomTypeAssigner> INFO: Node=(5,13):[(5,14)] was null. Changed to a MonsterRoom.
+12:38:30.054 INFO map.RoomTypeAssigner> INFO: Node=(6,13):[(5,14), (6,14)] was null. Changed to a MonsterRoom.
+12:38:30.055 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.055 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.056 INFO map.RoomTypeAssigner> INFO: Node=(6,13):[(6,14)] was null. Changed to a MonsterRoom.
+12:38:30.056 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.057 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.059 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.060 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.060 INFO map.RoomTypeAssigner> INFO: Node=(4,13):[(4,14), (5,14)] was null. Changed to a MonsterRoom.
+12:38:30.061 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.061 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.062 INFO map.RoomTypeAssigner> INFO: Node=(4,2):[(4,3)] was null. Changed to a MonsterRoom.
+12:38:30.063 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.065 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.066 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.MonsterRoom
+12:38:30.067 INFO map.RoomTypeAssigner> INFO: Node=(6,13):[(5,14), (6,14)] was null. Changed to a MonsterRoom.
+12:38:30.069 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.071 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.071 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.072 INFO map.RoomTypeAssigner> INFO: Node=(2,12):[(3,13)] was null. Changed to a MonsterRoom.
+12:38:30.072 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.073 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.073 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.074 INFO map.RoomTypeAssigner> INFO: Node=(6,13):[(5,14)] was null. Changed to a MonsterRoom.
+12:38:30.075 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.076 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.078 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.079 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.080 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.080 INFO map.RoomTypeAssigner> INFO: Node=(4,13):[(3,14)] was null. Changed to a MonsterRoom.
+12:38:30.082 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.083 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.083 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.084 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.084 INFO map.RoomTypeAssigner> INFO: Node=(3,13):[(4,14)] was null. Changed to a MonsterRoom.
+12:38:30.084 INFO map.RoomTypeAssigner> INFO: Node=(5,13):[(5,14), (6,14)] was null. Changed to a MonsterRoom.
+12:38:30.086 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.086 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.087 INFO map.RoomTypeAssigner> INFO: Node=(6,13):[(6,14)] was null. Changed to a MonsterRoom.
+12:38:30.087 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.088 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.088 INFO map.RoomTypeAssigner> INFO: Node=(6,13):[(5,14), (6,14)] was null. Changed to a MonsterRoom.
+12:38:30.089 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.089 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.089 INFO map.RoomTypeAssigner> INFO: Node=(4,13):[(4,14)] was null. Changed to a MonsterRoom.
+12:38:30.090 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.090 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.MonsterRoom
+12:38:30.090 INFO map.RoomTypeAssigner> INFO: Node=(6,13):[(5,14)] was null. Changed to a MonsterRoom.
+12:38:30.091 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.091 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.091 INFO map.RoomTypeAssigner> INFO: Node=(6,13):[(6,14)] was null. Changed to a MonsterRoom.
+12:38:30.092 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.093 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.093 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.MonsterRoom
+12:38:30.093 INFO map.RoomTypeAssigner> INFO: Node=(5,13):[(5,14)] was null. Changed to a MonsterRoom.
+12:38:30.093 INFO map.RoomTypeAssigner> INFO: Node=(6,13):[(6,14)] was null. Changed to a MonsterRoom.
+12:38:30.094 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.095 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.095 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.095 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.MonsterRoom
+12:38:30.096 INFO map.RoomTypeAssigner> INFO: Node=(2,12):[(1,13), (2,13)] was null. Changed to a MonsterRoom.
+12:38:30.096 INFO map.RoomTypeAssigner> INFO: Node=(2,13):[(2,14), (3,14)] was null. Changed to a MonsterRoom.
+12:38:30.096 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.097 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.097 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.098 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.098 INFO map.RoomTypeAssigner> INFO: Node=(2,13):[(1,14)] was null. Changed to a MonsterRoom.
+12:38:30.098 INFO map.RoomTypeAssigner> INFO: Node=(6,13):[(5,14)] was null. Changed to a MonsterRoom.
+12:38:30.099 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.100 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.100 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.MonsterRoomElite
+12:38:30.100 INFO map.RoomTypeAssigner> INFO: Node=(6,3):[(5,4), (6,4)] was null. Changed to a MonsterRoom.
+12:38:30.101 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.101 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.101 INFO map.RoomTypeAssigner> INFO: Node=(3,13):[(3,14)] was null. Changed to a MonsterRoom.
+12:38:30.102 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.102 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.102 INFO map.RoomTypeAssigner> INFO: Node=(3,13):[(2,14), (4,14)] was null. Changed to a MonsterRoom.
+12:38:30.103 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.103 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.104 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.MonsterRoom
+12:38:30.104 INFO map.RoomTypeAssigner> INFO: Node=(4,13):[(4,14)] was null. Changed to a MonsterRoom.
+12:38:30.104 INFO map.RoomTypeAssigner> INFO: Node=(6,13):[(5,14)] was null. Changed to a MonsterRoom.
+12:38:30.105 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.106 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.107 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.107 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.107 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.107 INFO map.RoomTypeAssigner> INFO: Node=(3,13):[(3,14)] was null. Changed to a MonsterRoom.
+12:38:30.108 INFO map.RoomTypeAssigner> INFO: Node=(4,13):[(4,14), (5,14)] was null. Changed to a MonsterRoom.
+12:38:30.108 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.108 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.MonsterRoom
+12:38:30.109 INFO map.RoomTypeAssigner> INFO: Node=(5,12):[(6,13)] was null. Changed to a MonsterRoom.
+12:38:30.110 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.110 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.110 INFO map.RoomTypeAssigner> INFO: Node=(5,13):[(4,14), (6,14)] was null. Changed to a MonsterRoom.
+12:38:30.111 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.111 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.MonsterRoom
+12:38:30.111 INFO map.RoomTypeAssigner> INFO: Node=(1,13):[(1,14)] was null. Changed to a MonsterRoom.
+12:38:30.112 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.112 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.113 INFO map.RoomTypeAssigner> INFO: Node=(3,13):[(4,14)] was null. Changed to a MonsterRoom.
+12:38:30.113 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.114 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.115 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.MonsterRoom
+12:38:30.115 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.MonsterRoom
+12:38:30.115 INFO map.RoomTypeAssigner> INFO: Node=(4,13):[(4,14)] was null. Changed to a MonsterRoom.
+12:38:30.115 INFO map.RoomTypeAssigner> INFO: Node=(5,13):[(6,14)] was null. Changed to a MonsterRoom.
+12:38:30.116 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.116 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.116 INFO map.RoomTypeAssigner> INFO: Node=(5,13):[(4,14)] was null. Changed to a MonsterRoom.
+12:38:30.117 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.117 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.118 INFO map.RoomTypeAssigner> INFO: Node=(6,13):[(5,14)] was null. Changed to a MonsterRoom.
+12:38:30.119 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.119 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.119 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.119 INFO map.RoomTypeAssigner> INFO: Node=(1,13):[(1,14)] was null. Changed to a MonsterRoom.
+12:38:30.120 INFO map.RoomTypeAssigner> INFO: Node=(2,13):[(1,14), (3,14)] was null. Changed to a MonsterRoom.
+12:38:30.121 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.122 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.MonsterRoom
+12:38:30.122 INFO map.RoomTypeAssigner> INFO: Node=(3,13):[(3,14)] was null. Changed to a MonsterRoom.
+12:38:30.123 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.123 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.MonsterRoom
+12:38:30.123 INFO map.RoomTypeAssigner> INFO: Node=(3,13):[(2,14)] was null. Changed to a MonsterRoom.
+12:38:30.124 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.124 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.MonsterRoom
+12:38:30.124 INFO map.RoomTypeAssigner> INFO: Node=(6,13):[(5,14)] was null. Changed to a MonsterRoom.
+12:38:30.125 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.126 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.126 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.127 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.127 INFO map.RoomTypeAssigner> INFO: Node=(4,13):[(4,14), (5,14)] was null. Changed to a MonsterRoom.
+12:38:30.127 INFO map.RoomTypeAssigner> INFO: Node=(6,13):[(6,14)] was null. Changed to a MonsterRoom.
+12:38:30.128 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.128 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.MonsterRoom
+12:38:30.128 INFO map.RoomTypeAssigner> INFO: Node=(6,13):[(6,14)] was null. Changed to a MonsterRoom.
+12:38:30.129 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.129 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.129 INFO map.RoomTypeAssigner> INFO: Node=(5,13):[(6,14)] was null. Changed to a MonsterRoom.
+12:38:30.130 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.130 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.131 INFO map.RoomTypeAssigner> INFO: Node=(5,13):[(6,14)] was null. Changed to a MonsterRoom.
+12:38:30.132 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.133 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.134 INFO map.RoomTypeAssigner> INFO: Node=(6,13):[(5,14)] was null. Changed to a MonsterRoom.
+12:38:30.135 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.136 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.137 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.137 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.137 INFO map.RoomTypeAssigner> INFO: Node=(6,13):[(5,14)] was null. Changed to a MonsterRoom.
+12:38:30.138 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.138 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.138 INFO map.RoomTypeAssigner> INFO: Node=(5,13):[(6,14)] was null. Changed to a MonsterRoom.
+12:38:30.139 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.140 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.140 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.141 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.142 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.143 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.144 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.144 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.145 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.145 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.145 INFO map.RoomTypeAssigner> INFO: Node=(6,13):[(6,14)] was null. Changed to a MonsterRoom.
+12:38:30.146 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.146 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.146 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.146 INFO map.RoomTypeAssigner> INFO: Node=(1,13):[(1,14)] was null. Changed to a MonsterRoom.
+12:38:30.147 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.147 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.MonsterRoom
+12:38:30.147 INFO map.RoomTypeAssigner> INFO: Node=(6,13):[(6,14)] was null. Changed to a MonsterRoom.
+12:38:30.148 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.148 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.148 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.148 INFO map.RoomTypeAssigner> INFO: Node=(1,13):[(1,14), (2,14)] was null. Changed to a MonsterRoom.
+12:38:30.149 INFO map.RoomTypeAssigner> INFO: Node=(4,13):[(4,14)] was null. Changed to a MonsterRoom.
+12:38:30.149 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.149 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.150 INFO map.RoomTypeAssigner> INFO: Node=(5,13):[(4,14), (5,14)] was null. Changed to a MonsterRoom.
+12:38:30.150 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.151 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.152 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.152 INFO map.RoomTypeAssigner> INFO: Node=(6,13):[(5,14)] was null. Changed to a MonsterRoom.
+12:38:30.152 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.153 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.153 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.153 INFO map.RoomTypeAssigner> INFO: Node=(6,13):[(6,14)] was null. Changed to a MonsterRoom.
+12:38:30.154 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.154 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.MonsterRoom
+12:38:30.154 INFO map.RoomTypeAssigner> INFO: Node=(6,13):[(6,14)] was null. Changed to a MonsterRoom.
+12:38:30.155 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.156 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.156 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.157 INFO map.RoomTypeAssigner> INFO: Node=(6,13):[(5,14)] was null. Changed to a MonsterRoom.
+12:38:30.158 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.158 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.158 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.158 INFO map.RoomTypeAssigner> INFO: Node=(5,13):[(4,14), (5,14)] was null. Changed to a MonsterRoom.
+12:38:30.159 INFO map.RoomTypeAssigner> INFO: Node=(6,13):[(6,14)] was null. Changed to a MonsterRoom.
+12:38:30.160 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.160 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.161 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.161 INFO map.RoomTypeAssigner> INFO: Node=(6,13):[(5,14), (6,14)] was null. Changed to a MonsterRoom.
+12:38:30.162 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.163 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.164 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.164 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.MonsterRoom
+12:38:30.164 INFO map.RoomTypeAssigner> INFO: Node=(6,13):[(5,14)] was null. Changed to a MonsterRoom.
+12:38:30.165 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.165 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.165 INFO map.RoomTypeAssigner> INFO: Node=(5,13):[(6,14)] was null. Changed to a MonsterRoom.
+12:38:30.166 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.166 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.167 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.167 INFO map.RoomTypeAssigner> INFO: Node=(5,13):[(5,14)] was null. Changed to a MonsterRoom.
+12:38:30.167 INFO map.RoomTypeAssigner> INFO: Node=(6,13):[(6,14)] was null. Changed to a MonsterRoom.
+12:38:30.168 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.168 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.169 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.EventRoom
+12:38:30.169 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.169 INFO map.RoomTypeAssigner> INFO: Node=(5,10):[(5,11), (6,11)] was null. Changed to a MonsterRoom.
+12:38:30.169 INFO map.RoomTypeAssigner> INFO: Node=(6,13):[(5,14)] was null. Changed to a MonsterRoom.
+12:38:30.170 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.171 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.171 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.171 INFO map.RoomTypeAssigner> INFO: Node=(6,13):[(5,14)] was null. Changed to a MonsterRoom.
+12:38:30.172 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.173 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.173 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.174 INFO map.RoomTypeAssigner> INFO: Node=(6,13):[(5,14)] was null. Changed to a MonsterRoom.
+12:38:30.174 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.175 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.175 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.176 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.176 INFO map.RoomTypeAssigner> INFO: Node=(4,13):[(4,14), (5,14)] was null. Changed to a MonsterRoom.
+12:38:30.176 INFO map.RoomTypeAssigner> INFO: Node=(5,13):[(5,14)] was null. Changed to a MonsterRoom.
+12:38:30.177 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.177 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.177 INFO map.RoomTypeAssigner> INFO: Node=(5,13):[(6,14)] was null. Changed to a MonsterRoom.
+12:38:30.178 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.179 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.179 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.EventRoom
+12:38:30.179 INFO map.RoomTypeAssigner> INFO: Node=(2,13):[(1,14)] was null. Changed to a MonsterRoom.
+12:38:30.180 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.180 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.MonsterRoomElite
+12:38:30.180 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.181 INFO map.RoomTypeAssigner> INFO: Node=(5,13):[(4,14)] was null. Changed to a MonsterRoom.
+12:38:30.181 INFO map.RoomTypeAssigner> INFO: Node=(6,13):[(6,14)] was null. Changed to a MonsterRoom.
+12:38:30.181 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.182 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.183 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.184 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.184 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.MonsterRoomElite
+12:38:30.185 INFO map.RoomTypeAssigner> INFO: Node=(5,13):[(5,14), (6,14)] was null. Changed to a MonsterRoom.
+12:38:30.185 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.186 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.187 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.187 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.187 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.188 INFO map.RoomTypeAssigner> INFO: Node=(4,13):[(5,14)] was null. Changed to a MonsterRoom.
+12:38:30.188 INFO map.RoomTypeAssigner> INFO: Node=(6,13):[(5,14), (6,14)] was null. Changed to a MonsterRoom.
+12:38:30.188 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.189 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.190 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.MonsterRoom
+12:38:30.190 INFO map.RoomTypeAssigner> INFO: Node=(4,13):[(4,14), (5,14)] was null. Changed to a MonsterRoom.
+12:38:30.191 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.191 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.191 INFO map.RoomTypeAssigner> INFO: Node=(5,13):[(5,14)] was null. Changed to a MonsterRoom.
+12:38:30.191 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.192 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.193 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.194 INFO map.RoomTypeAssigner> INFO: Node=(3,13):[(3,14)] was null. Changed to a MonsterRoom.
+12:38:30.195 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.196 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.196 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.MonsterRoom
+12:38:30.196 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.MonsterRoom
+12:38:30.196 INFO map.RoomTypeAssigner> INFO: Node=(4,13):[(5,14)] was null. Changed to a MonsterRoom.
+12:38:30.196 INFO map.RoomTypeAssigner> INFO: Node=(5,13):[(5,14)] was null. Changed to a MonsterRoom.
+12:38:30.197 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.198 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.198 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.MonsterRoomElite
+12:38:30.198 INFO map.RoomTypeAssigner> INFO: Node=(6,13):[(6,14)] was null. Changed to a MonsterRoom.
+12:38:30.199 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.200 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.200 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.201 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.MonsterRoom
+12:38:30.201 INFO map.RoomTypeAssigner> INFO: Node=(6,13):[(6,14)] was null. Changed to a MonsterRoom.
+12:38:30.202 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.202 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.202 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.203 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.MonsterRoomElite
+12:38:30.203 INFO map.RoomTypeAssigner> INFO: Node=(5,13):[(4,14)] was null. Changed to a MonsterRoom.
+12:38:30.203 INFO map.RoomTypeAssigner> INFO: Node=(6,13):[(6,14)] was null. Changed to a MonsterRoom.
+12:38:30.204 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.205 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.205 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.205 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.205 INFO map.RoomTypeAssigner> INFO: Node=(4,13):[(4,14)] was null. Changed to a MonsterRoom.
+12:38:30.205 INFO map.RoomTypeAssigner> INFO: Node=(6,13):[(5,14), (6,14)] was null. Changed to a MonsterRoom.
+12:38:30.206 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.207 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.207 INFO map.RoomTypeAssigner> INFO: Node=(5,4):[(4,5), (5,5), (6,5)] was null. Changed to a MonsterRoom.
+12:38:30.208 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.209 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.209 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.209 INFO map.RoomTypeAssigner> INFO: Node=(5,13):[(5,14), (6,14)] was null. Changed to a MonsterRoom.
+12:38:30.210 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.210 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.210 INFO map.RoomTypeAssigner> INFO: Node=(3,13):[(3,14)] was null. Changed to a MonsterRoom.
+12:38:30.211 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.211 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.211 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.211 INFO map.RoomTypeAssigner> INFO: Node=(4,13):[(3,14)] was null. Changed to a MonsterRoom.
+12:38:30.211 INFO map.RoomTypeAssigner> INFO: Node=(5,13):[(4,14)] was null. Changed to a MonsterRoom.
+12:38:30.212 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.212 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.212 INFO map.RoomTypeAssigner> INFO: Node=(3,13):[(3,14)] was null. Changed to a MonsterRoom.
+12:38:30.213 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.213 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.213 INFO map.RoomTypeAssigner> INFO: Node=(6,13):[(5,14)] was null. Changed to a MonsterRoom.
+12:38:30.218 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.218 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.MonsterRoomElite
+12:38:30.219 INFO map.RoomTypeAssigner> INFO: Node=(6,3):[(5,4)] was null. Changed to a MonsterRoom.
+12:38:30.219 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.219 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.219 INFO map.RoomTypeAssigner> INFO: Node=(3,13):[(2,14), (3,14)] was null. Changed to a MonsterRoom.
+12:38:30.220 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.220 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.MonsterRoomElite
+12:38:30.220 INFO map.RoomTypeAssigner> INFO: Node=(6,13):[(5,14), (6,14)] was null. Changed to a MonsterRoom.
+12:38:30.221 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.221 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.222 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.222 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.MonsterRoom
+12:38:30.222 INFO map.RoomTypeAssigner> INFO: Node=(4,13):[(4,14)] was null. Changed to a MonsterRoom.
+12:38:30.222 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.223 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.223 INFO map.RoomTypeAssigner> INFO: Node=(6,13):[(5,14)] was null. Changed to a MonsterRoom.
+12:38:30.223 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.224 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.224 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.224 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.224 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.224 INFO map.RoomTypeAssigner> INFO: Node=(2,13):[(3,14)] was null. Changed to a MonsterRoom.
+12:38:30.225 INFO map.RoomTypeAssigner> INFO: Node=(4,13):[(3,14)] was null. Changed to a MonsterRoom.
+12:38:30.225 INFO map.RoomTypeAssigner> INFO: Node=(5,13):[(4,14)] was null. Changed to a MonsterRoom.
+12:38:30.226 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.226 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.226 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.226 INFO map.RoomTypeAssigner> INFO: Node=(5,13):[(4,14)] was null. Changed to a MonsterRoom.
+12:38:30.226 INFO map.RoomTypeAssigner> INFO: Node=(6,13):[(5,14)] was null. Changed to a MonsterRoom.
+12:38:30.227 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.227 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.228 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.228 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.228 INFO map.RoomTypeAssigner> INFO: Node=(5,12):[(4,13), (5,13)] was null. Changed to a MonsterRoom.
+12:38:30.228 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.229 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.229 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.MonsterRoom
+12:38:30.229 INFO map.RoomTypeAssigner> INFO: Node=(3,13):[(4,14)] was null. Changed to a MonsterRoom.
+12:38:30.229 INFO map.RoomTypeAssigner> INFO: Node=(6,13):[(5,14)] was null. Changed to a MonsterRoom.
+12:38:30.230 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.230 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.230 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.230 INFO map.RoomTypeAssigner> INFO: Node=(5,13):[(5,14), (6,14)] was null. Changed to a MonsterRoom.
+12:38:30.231 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.232 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.233 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.233 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.234 INFO map.RoomTypeAssigner> INFO: Node=(6,13):[(5,14)] was null. Changed to a MonsterRoom.
+12:38:30.234 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.235 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.235 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.235 INFO map.RoomTypeAssigner> INFO: Node=(4,13):[(3,14)] was null. Changed to a MonsterRoom.
+12:38:30.235 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
+12:38:30.236 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
+12:38:30.236 INFO map.RoomTypeAssigner> INFO: Node=(2,13):[(2,14)] was null. Changed to a MonsterRoom.
+12:38:30.236 INFO map.RoomTypeAssigner> #### Unassigned Rooms:

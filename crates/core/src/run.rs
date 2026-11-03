@@ -88,6 +88,15 @@ fn rand_range(rng: &mut StsRandom, min: i32, max: i32) -> i32 {
     rng.random_range(max - min) + min
 }
 
+/// MapRoomNode.addEdge：同目标不重复加（Java 逐边 compareTo 判重）
+fn add_edge(edges: &mut Vec<usize>, dst: usize) {
+    if !edges.contains(&dst) {
+        edges.push(dst);
+        // EdgeComparator 排序：srcY 升序 → srcX 升序 → dstX 升序；此处只比 dstX
+        edges.sort_unstable();
+    }
+}
+
 /// MapGenerator.generateDungeon + AbstractDungeon.generateMap
 /// 幕地图 RNG 播种（Java 三个 dungeon 类各自的公式）：
 /// - Act1 Exordium：`seed + actNum`
@@ -146,7 +155,7 @@ fn create_paths(rows: &mut [Vec<MapNode>], path_density: usize, rng: &mut StsRan
 fn create_paths_rec(rows: &mut [Vec<MapNode>], start_x: i32, start_y: usize, rng: &mut StsRandom) {
     // 到顶：Boss 边（dstY+2=15；哨兵 = 值 3）
     if start_y + 1 >= rows.len() {
-        rows[start_y][start_x as usize].edges.push(3);
+        add_edge(&mut rows[start_y][start_x as usize].edges, 3);
         return;
     }
     let row_end = MAP_WIDTH as i32 - 1;
@@ -226,11 +235,11 @@ fn create_paths_rec(rows: &mut [Vec<MapNode>], start_x: i32, start_y: usize, rng
         }
     }
 
-    // 加边 + 记父
+    // 加边 + 记父（Java：addEdge 去重；Edges 恒按 EdgeComparator 排序）
     let dst = new_x as usize;
-    let cur = &mut rows[start_y][start_x as usize];
-    cur.edges.push(dst);
-    cur.edges.sort_unstable();
+    add_edge(&mut rows[start_y][start_x as usize].edges, dst);
+    // MapRoomNode.addParent 是**纯追加**（不去重）：同一父可能被登记多次，
+    // 祖先检查会对它重复执行，从而多消耗 randRange。去重会让地图分叉。
     rows[new_y][dst].parents.push(start_x as usize);
 
     create_paths_rec(rows, new_x, new_y, rng);
@@ -280,19 +289,21 @@ fn common_ancestor(
 
 /// filterRedundantEdgesFromRow：首行同目标重边只留一条
 fn filter_redundant_edges(rows: &mut [Vec<MapNode>]) {
+    // 逐行 0 节点处理，但 `existing_edges` **跨节点累积**（Java 的 existingEdges 声明在
+    // 循环外）。若每个节点重置，跨节点的同目标重边就删不掉——表现为多出整条边。
+    let mut existing_edges: Vec<usize> = Vec::new();
     for node in rows[0].iter_mut() {
         if node.edges.is_empty() {
             continue;
         }
-        let mut seen: Vec<usize> = Vec::new();
-        let mut kept: Vec<usize> = Vec::new();
+        let mut delete_list: Vec<usize> = Vec::new();
         for &e in &node.edges {
-            if !seen.contains(&e) {
-                seen.push(e);
-                kept.push(e);
+            if existing_edges.contains(&e) {
+                delete_list.push(e);
             }
+            existing_edges.push(e);
         }
-        node.edges = kept;
+        node.edges.retain(|e| !delete_list.contains(e));
     }
 }
 
@@ -344,19 +355,18 @@ fn assign_room_types(_act: u8, ascension: i32, rows: &mut [Vec<MapNode>], rng: &
     for _ in 0..jround(f * ACT_CHANCES.event) {
         rooms.push(RoomKind::Event);
     }
-    // 补战斗到节点数（源码 while 循环）；超出截断
-    while rooms.len() < count {
-        rooms.push(RoomKind::Monster);
-    }
-    rooms.truncate(count);
+    // ⚠️ 此处**不补** Monster：Java 的 generateRoomTypes 只放 shop/rest/elite/event，
+    // 补 Monster 发生在 distributeRoomsAcrossMap 里、固定行赋值**之后**，且补到
+    // nodeCount（有边且尚未赋房间的节点数，不含 row 0/8/14）。若提前按 count 补齐，
+    // 池的长度与内容都变，洗牌结果全错（实测房间类型分布不一致）。
 
-    // 3) 固定行：0=战斗 8=宝箱 14=休息（assignRowAsRoomType 只改未分配节点；
-    //    池按全部节点数生成——固定行使部分池项被弃用，与源码一致）
+    // 3) 固定行：0=战斗 8=宝箱 14=休息
+    //
+    // ⚠️ RoomTypeAssigner.assignRowAsRoomType 只判断 `room == null`，
+    // **不看 hasEdges**——所以孤立节点（没有出边）也会被赋成该行的固定类型。
+    // 若在这里跳过无出边节点，房间总数会比真游戏少（实测 57 vs 68）。
     for row in rows.iter_mut() {
         for n in row.iter_mut() {
-            if n.edges.is_empty() {
-                continue;
-            }
             if n.y == 0 {
                 n.room = Some(RoomKind::Monster);
             } else if n.y == 8 {
@@ -366,6 +376,17 @@ fn assign_room_types(_act: u8, ascension: i32, rows: &mut [Vec<MapNode>], rng: &
             }
         }
     }
+
+    // 3.5) distributeRoomsAcrossMap：先补 Monster 到 nodeCount，再洗牌
+    let node_count = rows
+        .iter()
+        .flat_map(|r| r.iter())
+        .filter(|n| !n.edges.is_empty() && n.room.is_none())
+        .count();
+    while rooms.len() < node_count {
+        rooms.push(RoomKind::Monster);
+    }
+    // 源码此时若 rooms 比 nodeCount 长只告警、不截断
 
     // 4) Collections.shuffle(roomList, rng.random)
     //
@@ -792,7 +813,11 @@ mod tests {
         // 跳到 Act 2（直接重建）
         run.act = 2;
         run.map = generate_dungeon(2, 20, &mut run.rng.map);
-        run.pos = (0, 0);
+        // 跳过 Neow/首次选列：直接落到 row 0 上有出边的列，然后沿边推进
+        let start = run.start_columns()[0];
+        run.pos = (0, start);
+        run.map_started = true;
+        run.floor = 1;
         run.populate_act();
         run.player.hp = 9999;
         run.player.max_hp = 9999;
@@ -1065,14 +1090,14 @@ pub fn act1_bosses() -> Vec<EncInfo> {
             kinds: &[Guardian],
         },
         EncInfo {
-            name: "Slime Boss",
-            weight: 1.0,
-            kinds: &[SlimeBoss],
-        },
-        EncInfo {
             name: "Hexaghost",
             weight: 1.0,
             kinds: &[Hexaghost],
+        },
+        EncInfo {
+            name: "Slime Boss",
+            weight: 1.0,
+            kinds: &[SlimeBoss],
         },
     ]
 }
@@ -1353,6 +1378,10 @@ pub struct RunState {
     pub encounter_list: Vec<&'static str>,
     pub encounter_idx: usize,
     pub elite_list: Vec<&'static [MonsterKind]>,
+    /// 精英遭遇名（与 elite_list 同序，对拍/日志用）
+    pub elite_names: Vec<&'static str>,
+    /// Boss 遭遇名（洗牌后取 [0]）
+    pub boss_name: &'static str,
     pub elite_idx: usize,
     pub boss: &'static [MonsterKind],
     pub combat: Option<Combat>,
@@ -1472,6 +1501,8 @@ impl RunState {
             encounter_list: Vec::new(),
             encounter_idx: 0,
             elite_list: Vec::new(),
+            elite_names: Vec::new(),
+            boss_name: "",
             elite_idx: 0,
             boss: &[],
             combat: None,
@@ -1536,8 +1567,14 @@ impl RunState {
         let mut list: Vec<&'static str> = Vec::new();
         while list.len() < weak_count {
             let name = enc_roll(&weak, self.rng.monster.random_float());
-            if list.last() == Some(&name) {
-                continue; // 与上一个相同 → 重掷（源码 --i 重来）
+            // populateMonsterList（非精英）：同时防「上一个」与「上上个」重复。
+            // 只查上一个会让弱怪段在长列表里漏掉 --i 重掷（实测 12/40 种子对不上）。
+            let n = list.len();
+            if n >= 1 && name == list[n - 1] {
+                continue;
+            }
+            if n >= 2 && name == list[n - 2] {
+                continue;
             }
             list.push(name);
         }
@@ -1580,6 +1617,7 @@ impl RunState {
             elist.push(name);
         }
         self.elite_list = elist.iter().map(|&n| enc_kinds(&elites, n)).collect();
+        self.elite_names = elist.clone();
         // initializeBoss：Collections.shuffle(bossList, new java.util.Random(monsterRng.randomLong()))
         // 消耗 1 次 monsterRng，然后取洗牌后的第 0 项。
         let sh_seed = self.rng.monster.random_long();
@@ -1587,6 +1625,7 @@ impl RunState {
         let mut jr = crate::rng::JavaRandom::new(sh_seed);
         crate::rng::java_shuffle(&mut boss_names, &mut jr);
         let boss_name = boss_names[0];
+        self.boss_name = boss_name;
         self.boss = enc_kinds(&bosses, boss_name);
     }
 
@@ -2451,12 +2490,15 @@ impl RunState {
             0 => CAT0.get(p.idx).copied().unwrap_or("?").to_string(),
             1 => CAT1.get(p.idx).copied().unwrap_or("?").to_string(),
             2 => {
-                let base = match p.idx {
-                    0 => "Obtain a random colorless card",
-                    1 => "Remove 2 cards",
-                    2 => "Obtain a random rare relic",
-                    3 => "Obtain 3 rare cards",
-                    4 => "Gain 250 gold",
+                let names = cat2_option_names(p.drawback);
+                let base = match names.get(p.idx).copied().unwrap_or("") {
+                    "RANDOM_COLORLESS_2" => "Obtain a random colorless card",
+                    "REMOVE_TWO" => "Remove 2 cards",
+                    "ONE_RARE_RELIC" => "Obtain a random rare relic",
+                    "THREE_RARE_CARDS" => "Obtain 3 rare cards",
+                    "TWO_FIFTY_GOLD" => "Gain 250 gold",
+                    "TRANSFORM_TWO_CARDS" => "Transform 2 cards",
+                    "TWENTY_PERCENT_HP_BONUS" => "Max HP +20%",
                     _ => "?",
                 };
                 let dw = match p.drawback {
