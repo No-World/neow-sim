@@ -374,6 +374,13 @@ impl GymEnv {
             o.push(']');
             o.push('}');   // 闭合非战斗分支的 player 对象
         }
+        // 主牌组（顶层字段，对拍用）
+        o.push_str(",\"deck\":[");
+        for (i, cd) in self.run.deck.iter().enumerate() {
+            if i > 0 { o.push(','); }
+            o.push_str(&format!("{{\"id\":\"{}\",\"upgraded\":{}}}", cd.def.id, cd.upgraded));
+        }
+        o.push(']');
         o.push('}');       // 闭合顶层
         o
     }

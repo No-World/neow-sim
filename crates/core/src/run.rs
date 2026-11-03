@@ -2437,7 +2437,18 @@ impl RunState {
     /// 池 = 本角色 COMMON + UNCOMMON + RARE（排除 prohibited）。
     fn transform_card_neow(&mut self, prohibited: &str) -> crate::cards::CardInst {
         let color = self.char_kind.color();
-        let pool: Vec<&'static crate::effects::CardDef> = crate::generated::CARDS
+        // 池序必须与真游戏一致：
+        //   initializeCardPools 把 tmpPool（= addRedCards 的**类名升序**）按稀有度
+        //   分别 append 到 commonCardPool / uncommonCardPool / rareCardPool，
+        //   returnTrulyRandomCardFromAvailable 再按 common → uncommon → rare 串起来。
+        // 所以排序键 = (稀有度序号, 类名)。
+        let rarity_rank = |r: &str| match r {
+            "COMMON" => 0u8,
+            "UNCOMMON" => 1,
+            "RARE" => 2,
+            _ => 3,
+        };
+        let mut pool: Vec<&'static crate::effects::CardDef> = crate::generated::CARDS
             .iter()
             .filter(|d| {
                 d.color == color
@@ -2445,6 +2456,11 @@ impl RunState {
                     && matches!(d.rarity, "COMMON" | "UNCOMMON" | "RARE")
             })
             .collect();
+        pool.sort_by(|a, b| {
+            rarity_rank(a.rarity)
+                .cmp(&rarity_rank(b.rarity))
+                .then_with(|| a.cls.cmp(b.cls))
+        });
         if pool.is_empty() {
             return crate::cards::CardInst::new("Strike_R");
         }
@@ -3350,6 +3366,24 @@ mod parity_golden_tests {
         // miscRng：两只 Louse 的种类各掷一次
         assert_eq!(c.rng.misc.counter, 2);
         assert_eq!(c.rng.shuffle.counter, 1, "起手洗牌一次");
+    }
+
+    #[test]
+    fn neow_transform_uses_neow_rng_not_card_rng() {
+        // NeowEvent.rng 前 5 次：cat0/cat1/drawback/cat2/cat3；transform 是第 6 次。
+        // 池 = 红 COMMON(20)+UNCOMMON(36)+RARE(16)=72，按 (稀有度, 类名) 排序；
+        // 第 6 次 nextInt(72) = 53 → Spot Weakness。
+        // 关键：整个 Neow 流程 **不动 cardRng**（真游戏 card counter 恒 0）。
+        let mut run = RunState::new(SEED, 0);
+        assert_eq!(run.rng.card.counter, 0);
+        run.choose_neow_pick(0); // cat0 = Transform a card
+        assert_eq!(run.rng.card.counter, 0, "transform 必须走 neow_rng");
+        assert_eq!(run.deck.len(), 10, "transform 是替换不是新增");
+        assert_eq!(
+            run.deck[0].def.id, "Spot Weakness",
+            "池序/下标与真游戏模型不一致：{:?}",
+            run.deck.iter().map(|c| c.def.id).collect::<Vec<_>>()
+        );
     }
 
     #[test]
