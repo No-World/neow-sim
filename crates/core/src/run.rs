@@ -1232,6 +1232,13 @@ pub struct RunPlayer {
     pub gold: i32,
 }
 
+/// Neow 开局选项
+#[derive(Clone, Debug)]
+pub struct NeowOption {
+    pub kind: u8,       // 0=TransformCard, 1=UpgradeCard, 2=RemoveCard, 3=BossRelic, 4=ThreeCards, 5=RareCard, 6=MaxHp, 7=Gold, ...
+    pub desc: &'static str,
+}
+
 /// 奖励类型（RewardItem.RewardType 子集）
 #[derive(Clone, Debug)]
 pub enum RewardItem {
@@ -1288,6 +1295,10 @@ pub struct RunState {
     pub event_combat: bool,
     /// 休息房待选择（true = 已入房未休息）
     pub rest_available: bool,
+    /// Neow 开局：None=未开始, Some(category)=待选择（category 0-3）
+    pub neow_category: Option<u8>,
+    /// Neow 可选奖励列表（category 对应的 4 个选项描述）
+    pub neow_options: Vec<NeowOption>,
     /// 房间结束后待结算：拿走的卡进主牌组等
     pub pending_relic_tier_roll: bool,
 }
@@ -1349,10 +1360,13 @@ impl RunState {
             shrine_pool: Vec::new(),
             special_pool: Vec::new(),
             event_combat: false,
+            neow_category: None,
+            neow_options: Vec::new(),
             rest_available: false,
         };
         s.populate_act();
         s.init_event_pools();
+        s.init_neow();
         s
     }
 
@@ -2028,6 +2042,103 @@ impl RunState {
                 }
             }
         }
+    }
+
+    /// Neow 开局：生成 category 0-3 的选项
+    pub fn init_neow(&mut self) {
+        self.neow_category = Some(0);
+        self.neow_options = self.neow_get_options(0);
+    }
+
+    /// Neow getRewardOptions：按 category 返回 4 个选项
+    fn neow_get_options(&self, category: u8) -> Vec<NeowOption> {
+        use NeowOption as N;
+        match category {
+            0 => vec![
+                N { kind: 4, desc: "Transform a card." },
+                N { kind: 5, desc: "Obtain a random rare card." },
+                N { kind: 2, desc: "Remove a card from your deck." },
+                N { kind: 1, desc: "Upgrade a random card." },
+            ],
+            1 => vec![
+                N { kind: 7, desc: "Obtain 3 random potions." },
+                N { kind: 8, desc: "Obtain a random common relic." },
+                N { kind: 6, desc: "Max HP +10." },
+                N { kind: 3, desc: "Enemies in the first 3 combats have 1 HP." },
+            ],
+            2 => vec![
+                N { kind: 6, desc: "Obtain a random colorless card." },
+                N { kind: 2, desc: "Remove 2 cards from your deck." },
+                N { kind: 5, desc: "Obtain a random rare relic." },
+                N { kind: 7, desc: "Gain 250 gold." },
+            ],
+            3 => vec![
+                N { kind: 3, desc: "Swap your starter Relic for a random boss Relic." },
+            ],
+            _ => vec![],
+        }
+    }
+
+    /// Neow 选选项（buttonEffect）
+    pub fn choose_neow(&mut self, option_idx: usize) {
+        let Some(cat) = self.neow_category else { return };
+        let opts = self.neow_get_options(cat);
+        let Some(opt) = opts.get(option_idx) else { return };
+        let kind = opt.kind;
+
+        match kind {
+            1 => { // Upgrade a random card
+                let idxs = self.deck_upgradable();
+                if let Some(&i) = idxs.first() {
+                    self.deck[i].upgraded = true;
+                }
+                self.neow_category = None;
+            }
+            2 => { // Remove a card
+                if !self.deck.is_empty() {
+                    self.deck.remove(0);
+                }
+                self.neow_category = None;
+            }
+            3 => { // Boss relic swap (简化：随机 boss relic 替换初始遗物)
+                // TODO: 实现完整 boss relic 池
+                self.neow_category = None;
+            }
+            4 => { // Transform a card
+                // 简化：变形第一张打击/防御为随机卡
+                if let Some(pos) = self.deck.iter().position(|c| {
+                    c.def.id.starts_with("Strike") || c.def.id.starts_with("Defend")
+                }) {
+                    let rarity = self.roll_rarity_bases(3, 37);
+                    let card = self.pick_card(rarity, &[]);
+                    self.deck[pos] = card;
+                }
+                self.neow_category = None;
+            }
+            5 => { // Obtain a random rare card
+                let card = self.pick_card("RARE", &[]);
+                self.deck.push(card);
+                self.neow_category = None;
+            }
+            6 => { // Max HP +10%
+                let bonus = (self.player.max_hp as f32 * 0.1) as i32;
+                self.player.max_hp += bonus;
+                self.player.hp += bonus;
+                self.neow_category = None;
+            }
+            7 => { // Gain gold
+                self.player.gold += 250;
+                self.neow_category = None;
+            }
+            8 => { // Obtain random common relic
+                self.grant_random_relic();
+                self.neow_category = None;
+            }
+            _ => {
+                self.neow_category = None;
+            }
+        }
+        self.neow_options.clear();
     }
 
     /// 休息·睡觉：回复 30% 最大生命（向上取整对照 RestRoom：
