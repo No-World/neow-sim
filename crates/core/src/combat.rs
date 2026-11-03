@@ -1012,7 +1012,9 @@ impl Combat {
     }
 
     pub(crate) fn alive(&self, i: usize) -> bool {
-        !self.monsters[i].creature.is_dead() && !self.monsters[i].escaped
+        i < self.monsters.len()
+            && !self.monsters[i].creature.is_dead()
+            && !self.monsters[i].escaped
     }
 
     pub(crate) fn all_monsters_dead(&self) -> bool {
@@ -1093,7 +1095,12 @@ impl Combat {
 
     /// 使用药水：逐只对照 potions/*.java 的 use()（效果经引擎 Q 队列结算）
     pub fn use_potion(&mut self, index: usize, target: Option<usize>) {
-        let p = self.player.potions[index].clone().expect("空药水栏");
+        if index >= self.player.potions.len() {
+            return; // 越界
+        }
+        let Some(p) = self.player.potions[index].clone() else {
+            return; // 空药水栏（防御性：不 panic）
+        };
         let potency = p.potency;
         let ti = target.unwrap_or(0);
         // 使用即消耗栏位（混沌药水需要先腾出自身栏位再掷新药水）
@@ -1558,6 +1565,7 @@ impl Combat {
     }
 
     fn play_card(&mut self, i: usize, target: Option<usize>) {
+        if i >= self.player.hand.len() { return; } // 防御性：手牌越界
         let card = self.player.hand[i];
         let ti = target.unwrap_or(0);
         let x_cost = if card.cost_pay() == -1 {

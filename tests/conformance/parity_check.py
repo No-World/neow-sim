@@ -1,150 +1,149 @@
 # -*- coding: utf-8 -*-
-"""协议对拍：bridge 轨迹重放 → neow-sim 验证。
+"""协议对拍：bridge 轨迹重放 → neow-sim 逐步验证。
 
-用法: python3 parity_check.py <轨迹.jsonl> [seed]
-  从 bridge 轨迹读入动作序列，在模拟器重放，检查状态一致性。
+用法:
+  python3 parity_check.py                              # 全部轨迹
+  python3 parity_check.py win_PMCWKZEF.jsonl           # 单条轨迹
 """
 import json
-import sys
 import os
+import sys
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "python"))
+# 添加 .so 路径
+_here = os.path.dirname(os.path.abspath(__file__))
+_so_dir = os.path.join(_here, "..", "..", "python")
+if _so_dir not in sys.path:
+    sys.path.insert(0, _so_dir)
+
 import neow_sim
 
-# 动作类型映射：bridge JSON type → gym action_type int
-BRIDGE_TO_GYM = {
-    "play": 0,
-    "end_turn": 1,
-    "potion": 2,
-    "potion_discard": 3,
-    "map": 4,
-    "event": 5,
-    "rest": 6,
-    "reward": 8,
-    "skip": 9,
-    "proceed": 14,
-    "cancel": 15,
-    "card_pick": 10,
-    "card_bowl": 11,
-    "chest_open": 12,
-    "shop_enter": 13,
-    "hand_select": 16,
-    "grid_select": 17,
-    "scry": 18,
-    "discovery": 19,
-    "stance_choice": 20,
-    "relic": 21,
-    "boss": 22,
+# bridge JSON type → gym action_type int
+BRIDGE_MAP = {
+    "play": 0, "end_turn": 1, "potion": 2, "potion_discard": 3,
+    "map": 4, "event": 5, "rest": 6, "reward": 8, "skip": 9,
+    "proceed": 14, "cancel": 15, "card_pick": 10, "card_bowl": 11,
+    "chest_open": 12, "hand_select": 16, "grid_select": 17,
+    "scry": 18, "discovery": 19, "stance_choice": 20,
+    "relic": 21, "boss": 22, "shop_enter": 13,
+    "shop_buy_card": 7, "shop_buy_relic": 7, "shop_buy_potion": 7,
+    "shop_card_removal": 7,
 }
 
-def load_trajectory(path):
-    """读入 bridge 轨迹 JSONL"""
+def extract_entity(a):
+    """从 bridge JSON action 提取 entity 值"""
+    for key in ["card_index", "potion_index", "option_index", "relic_index", "index"]:
+        if key in a:
+            return a[key]
+    if "node_index" in a:
+        return a["node_index"]
+    if "option" in a:
+        return {"sleep": 0, "smith": 1, "toke": 2, "dig": 3, "lift": 4}.get(a["option"], 0)
+    if "indices" in a and a["indices"]:
+        return a["indices"][0]
+    if "take_indices" in a and a["take_indices"]:
+        return a["take_indices"][0]
+    return -1
+
+def extract_target(a):
+    t = a.get("target")
+    if t is not None and isinstance(t, int):
+        return t
+    return -1
+
+def load_traj(path):
     actions = []
-    seed = None
     with open(path, encoding="utf-8") as f:
         for line in f:
-            line = line.strip()
-            if not line:
-                continue
-            d = json.loads(line)
-            if "seed" in d:
-                seed = d["seed"]
+            d = json.loads(line.strip())
             if "action" in d:
                 actions.append(d["action"])
-    return seed, actions
+    return actions
 
-def bridge_to_gym(action):
-    """bridge JSON action → gym (type, entity, target) 三元组"""
-    at = action.get("type", "")
-    gym_type = BRIDGE_TO_GYM.get(at, -1)
-    entity = -1
-    target = -1
+def seed_str_to_int(s):
+    try:
+        return int(s)
+    except (ValueError, TypeError):
+        return sum(ord(c) << ((i % 4) * 8) for i, c in enumerate(s))
 
-    if "card_index" in action:
-        entity = action["card_index"]
-    elif "card_id" in action:
-        entity = -2  # 按卡牌 ID（模拟器需额外处理）
-    elif "potion_index" in action:
-        entity = action["potion_index"]
-    elif "node_index" in action:
-        entity = action["node_index"]
-    elif "option_index" in action:
-        entity = action["option_index"]
-    elif "index" in action:
-        entity = action["index"]
-    elif "relic_index" in action:
-        entity = action["relic_index"]
-    elif "option" in action:
-        entity = {"sleep": 0, "smith": 1, "toke": 2}.get(action["option"], 0)
-
-    if "target" in action and action["target"] is not None:
-        target = action["target"]
-    if "indices" in action:
-        entity = action["indices"][0] if action["indices"] else 0
-    if "take_indices" in action:
-        entity = action["take_indices"][0] if action["take_indices"] else 0
-
-    return gym_type, entity, target
-
-def run_parity(traj_path, seed_override=None):
-    seed, actions = load_trajectory(traj_path)
-    if seed_override:
-        seed = seed_override
-    print(f"轨迹: {traj_path}")
-    print(f"  动作数: {len(actions)}")
-    print(f"  seed: {seed}")
-
-    # 初始化模拟器
-    if seed:
-        # bridge 种子可能是字符串（如 "PMCWKZEF"）
-        try:
-            seed_int = int(seed)
-        except (ValueError, TypeError):
-            seed_int = sum(ord(c) << (i * 8) for i, c in enumerate(str(seed)))
-    else:
-        seed_int = 42
+def run_parity(traj_path, verbose=False):
+    actions = load_traj(traj_path)
+    seed_int = 42  # bridge 轨迹不含 seed——用固定值（模拟器本身确定性由 seed 控制）
 
     env = neow_sim.GymEnv(seed=seed_int, ascension=0, character="IRONCLAD")
     env.reset()
 
     matched = 0
-    mismatched = 0
+    errors = 0
     skipped = 0
-    errors = []
+    error_msgs = []
 
-    for i, action in enumerate(actions):
-        gym_type, entity, target = bridge_to_gym(action)
-        if gym_type < 0:
+    for i, a in enumerate(actions):
+        at = a.get("type", "")
+        gym_ty = BRIDGE_MAP.get(at, -1)
+        if gym_ty < 0:
             skipped += 1
             continue
 
+        entity = extract_entity(a)
+        target = extract_target(a)
+
         try:
-            obs, reward, done, info = env.step(gym_type, entity, target)
+            obs, reward, done, info = env.step(gym_ty, entity, target)
             matched += 1
+            if verbose:
+                print(f"  [{i:3d}] {at:20s} e={entity:3d} t={target:3d} "
+                      f"screen={obs.screen} seq={obs.seq_len} hp={env.info[:40]}")
         except Exception as e:
-            mismatched += 1
-            errors.append(f"step {i}: {action['type']} entity={entity} → {e}")
-            if len(errors) >= 10:
+            errors += 1
+            error_msgs.append(f"[{i:3d}] {at:20s} e={entity} t={target}: {e}")
+            if errors >= 10:
                 break
 
         if done:
             break
 
-    print(f"\n=== 对拍结果 ===")
-    print(f"匹配步数: {matched}")
-    print(f"错误步数: {mismatched}")
-    print(f"跳过步数: {skipped}")
-    print(f"到达 floor: 见 info")
-    print(f"游戏结束: {env.is_done}")
-
-    if errors:
-        print(f"\n前 10 个错误:")
-        for e in errors:
-            print(f"  {e}")
-
-    return matched, mismatched
+    return {
+        "total": len(actions),
+        "matched": matched,
+        "errors": errors,
+        "skipped": skipped,
+        "error_msgs": error_msgs,
+        "reached_step": matched + skipped + errors,
+    }
 
 if __name__ == "__main__":
-    traj = sys.argv[1] if len(sys.argv) > 1 else "../runtime/win_PMCWKZEF.jsonl"
-    seed = int(sys.argv[2]) if len(sys.argv) > 2 else None
-    run_parity(traj, seed)
+    bridge_runtime = os.path.normpath(os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),
+        "..", "..", "..", "neow-bridge", "runtime"
+    ))
+    bridge_runtime = os.path.normpath(bridge_runtime)
+
+    if len(sys.argv) > 1 and sys.argv[1].endswith(".jsonl"):
+        # 单条轨迹
+        result = run_parity(sys.argv[1])
+        print(f"\n  total={result['total']} matched={result['matched']} "
+              f"errors={result['errors']} skipped={result['skipped']}")
+        if result["error_msgs"]:
+            print("Errors:")
+            for m in result["error_msgs"]:
+                print(f"  {m}")
+    else:
+        # 全部轨迹
+        traj_dir = bridge_runtime
+        total_pass = 0
+        total_fail = 0
+        for fname in sorted(os.listdir(traj_dir)):
+            if not fname.startswith("win_") or not fname.endswith(".jsonl"):
+                continue
+            path = os.path.join(traj_dir, fname)
+            r = run_parity(path)
+            status = "PASS" if r["errors"] == 0 else "FAIL"
+            print(f"{fname}: {r['matched']}/{r['total']} matched, "
+                  f"{r['errors']} errors → {status}")
+            if r["errors"] > 0:
+                total_fail += 1
+                for m in r["error_msgs"][:3]:
+                    print(f"    {m}")
+            else:
+                total_pass += 1
+        print(f"\n=== Summary: {total_pass} PASS / {total_fail} FAIL ===")
