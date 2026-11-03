@@ -1867,6 +1867,7 @@ impl Combat {
         }
         match eff {
             Effect::Damage(Target::Enemy, e) => {
+                if ti >= self.monsters.len() { return; } // 防御性检查
                 let base = self.eval(e, card, x_cost);
                 let d = calc_player_card_damage(
                     base,
@@ -2149,8 +2150,12 @@ impl Combat {
             Effect::Unsupported(_) => {
                 // 数据层可通行但行为层待接——运行时 no-op（卡可打出，特殊动作不生效）
             }
-            // Unknown 目标当作 Enemy 处理（数据提取占位）
+            // Unknown 目标当作 Enemy 处理（数据提取占位）；ti 越界时跳过
             Effect::Damage(_, e) => {
+                if ti >= self.monsters.len() {
+                    // 目标越界（不该发生——防御性检查）
+                    return;
+                }
                 let base = self.eval(e, card, x_cost);
                 let d = calc_player_card_damage(
                     base,
