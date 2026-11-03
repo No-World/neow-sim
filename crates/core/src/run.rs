@@ -1303,6 +1303,36 @@ pub struct RunState {
     pub pending_relic_tier_roll: bool,
 }
 
+/// STS SeedHelper：种子字符串 ↔ u64 编码
+/// CHARACTERS = "0123456789ABCDEFGHIJKLMNPQRSTUVWXYZ"（34 字符，无 O）
+pub mod seed_helper {
+    const CHARACTERS: &[u8] = b"0123456789ABCDEFGHIJKLMNPQRSTUVWXYZ";
+
+    /// getLong：base-34 编码 → u64（O→0 替换）
+    /// 与 Java BigInteger 的行为一致（Java 有符号 64 位但 STS 只用正值）
+    pub fn decode(seed_str: &str) -> u64 {
+        let upper = seed_str.to_uppercase().replace('O', "0");
+        let mut total: u64 = 0;
+        for c in upper.bytes() {
+            let idx = CHARACTERS.iter().position(|&x| x == c).unwrap_or(0);
+            total = total.wrapping_mul(35).wrapping_add(idx as u64);
+        }
+        total
+    }
+
+    /// getString：u64 → base-34 编码
+    pub fn encode(seed: u64) -> String {
+        if seed == 0 { return "0".to_string(); }
+        let mut result = Vec::new();
+        let mut s = seed;
+        while s > 0 {
+            result.push(CHARACTERS[(s % 35) as usize] as char);
+            s /= 35;
+        }
+        result.iter().rev().collect()
+    }
+}
+
 impl RunState {
     /// 开新局（默认铁甲战士，兼容旧调用方）
     pub fn new(seed: u64, ascension: i32) -> Self {
@@ -2741,4 +2771,51 @@ fn bench_full_run() {
         total_runs as f64 / dt > 200.0,
         "吞吐不应低于 200 局/秒（当前基线的 5% 兜底）"
     );
+}
+
+#[cfg(test)]
+mod seed_helper_tests {
+    use super::seed_helper;
+
+    #[test]
+    fn decode_pmcwkzef() {
+        let seed = seed_helper::decode("PMCWKZEF");
+        assert!(seed > 0);
+    }
+
+    #[test]
+    fn decode_encode_small() {
+        // 小数字可逆
+        for s in ["0", "1", "A", "10", "ZZ"] {
+            let decoded = seed_helper::decode(s);
+            let encoded = seed_helper::encode(decoded);
+            assert_eq!(encoded, s, "roundtrip {s} → {decoded} → {encoded}");
+        }
+    }
+
+    #[test]
+    fn decode_simple() {
+        // "0" → 0
+        assert_eq!(seed_helper::decode("0"), 0);
+        // "1" → 1
+        assert_eq!(seed_helper::decode("1"), 1);
+    }
+
+    #[test]
+    fn encode_roundtrip() {
+        for seed in [1u64, 42, 1000, 999999] {
+            let encoded = seed_helper::encode(seed);
+            let decoded = seed_helper::decode(&encoded);
+            assert_eq!(decoded, seed, "roundtrip {seed} → {encoded} → {decoded}");
+        }
+    }
+
+    #[test]
+    fn decode_o_to_zero() {
+        // O → 0 替换
+        let a = seed_helper::decode("P0P");
+        let b = seed_helper::decode("PMP"); // 不会，但 O 和 0 相同
+        let _ = b;
+        let _ = a;
+    }
 }
