@@ -354,6 +354,80 @@ pub enum MonsterKind {
     Exploder,
 }
 
+impl MonsterKind {
+    /// 游戏内 monsterId（对应反编译类的 `public static final String ID`）。
+    /// 用于与 bridge Obs 的 `id` 字段逐字节对拍。
+    pub fn id(&self) -> &'static str {
+        match self {
+            MonsterKind::JawWorm => "JawWorm",
+            MonsterKind::Cultist => "Cultist",
+            MonsterKind::LouseNormal => "FuzzyLouseNormal",
+            MonsterKind::LouseDefensive => "FuzzyLouseDefensive",
+            MonsterKind::FungiBeast => "FungiBeast",
+            MonsterKind::SpikeSlimeS => "SpikeSlime_S",
+            MonsterKind::AcidSlimeS => "AcidSlime_S",
+            MonsterKind::SpikeSlimeM => "SpikeSlime_M",
+            MonsterKind::AcidSlimeM => "AcidSlime_M",
+            MonsterKind::Looter => "Looter",
+            MonsterKind::SlaverBlue => "SlaverBlue",
+            MonsterKind::SlaverRed => "SlaverRed",
+            MonsterKind::GremlinNob => "GremlinNob",
+            MonsterKind::Lagavulin => "Lagavulin",
+            MonsterKind::Sentry => "Sentry",
+            MonsterKind::Guardian => "Guardian",
+            MonsterKind::SlimeBoss => "SlimeBoss",
+            MonsterKind::Hexaghost => "Hexaghost",
+            MonsterKind::SphericGuardian => "SphericGuardian",
+            MonsterKind::Chosen => "Chosen",
+            MonsterKind::ShelledParasite => "Shelled Parasite",
+            MonsterKind::Byrd => "Byrd",
+            MonsterKind::Mugger => "Mugger",
+            MonsterKind::SnakePlant => "SnakePlant",
+            MonsterKind::Snecko => "Snecko",
+            MonsterKind::Centurion => "Centurion",
+            MonsterKind::Healer => "Healer",
+            MonsterKind::GremlinWarrior => "GremlinWarrior",
+            MonsterKind::GremlinThief => "GremlinThief",
+            MonsterKind::GremlinFat => "GremlinFat",
+            MonsterKind::GremlinTsundere => "GremlinTsundere",
+            MonsterKind::GremlinWizard => "GremlinWizard",
+            MonsterKind::GremlinLeader => "GremlinLeader",
+            MonsterKind::BookOfStabbing => "BookOfStabbing",
+            MonsterKind::Taskmaster => "SlaverBoss",
+            MonsterKind::BronzeOrb => "BronzeOrb",
+            MonsterKind::BronzeAutomaton => "BronzeAutomaton",
+            MonsterKind::TorchHead => "TorchHead",
+            MonsterKind::TheCollector => "TheCollector",
+            MonsterKind::Champ => "Champ",
+            MonsterKind::Darkling => "Darkling",
+            MonsterKind::Repulsor => "Repulsor",
+            MonsterKind::OrbWalker => "Orb Walker",
+            MonsterKind::SpireGrowth => "Serpent",
+            MonsterKind::Transient => "Transient",
+            MonsterKind::Maw => "Maw",
+            MonsterKind::WrithingMass => "WrithingMass",
+            MonsterKind::GiantHead => "GiantHead",
+            MonsterKind::Nemesis => "Nemesis",
+            MonsterKind::Reptomancer => "Reptomancer",
+            MonsterKind::SnakeDagger => "Dagger",
+            MonsterKind::AwakenedOne => "AwakenedOne",
+            MonsterKind::Donu => "Donu",
+            MonsterKind::Deca => "Deca",
+            MonsterKind::TimeEater => "TimeEater",
+            MonsterKind::SpireShield => "SpireShield",
+            MonsterKind::SpireSpear => "SpireSpear",
+            MonsterKind::CorruptHeart => "CorruptHeart",
+            MonsterKind::AcidSlimeL => "AcidSlime_L",
+            MonsterKind::SpikeSlimeL => "SpikeSlime_L",
+            MonsterKind::BanditPointy => "BanditChild",
+            MonsterKind::BanditLeader => "BanditLeader",
+            MonsterKind::BanditBear => "BanditBear",
+            MonsterKind::Spiker => "Spiker",
+            MonsterKind::Exploder => "Exploder",
+        }
+    }
+}
+
 /// 通用怪物状态（M2 覆盖：大颚虫、邪教徒；M3 走数据驱动定义表）
 #[derive(Clone, Debug)]
 pub struct MonsterState {
@@ -405,13 +479,15 @@ impl MonsterState {
                 (hp_rng.random_start_end(lo, hi), (0, 0, 0, 0, 0, 6, ritual))
             }
             MonsterKind::LouseNormal => {
+                // Java 顺序：先 setHp(min,max) 再 biteDamage（都在 monsterHpRng 上）
                 let (lo, hi) = if ascension >= 7 { (11, 16) } else { (10, 15) };
+                let hp = hp_rng.random_start_end(lo, hi);
                 let bite = if ascension >= 2 {
                     hp_rng.random_start_end(6, 8)
                 } else {
                     hp_rng.random_start_end(5, 7)
                 };
-                (hp_rng.random_start_end(lo, hi), (bite, 3, 0, 0, 0, 0, 0))
+                (hp, (bite, 3, 0, 0, 0, 0, 0))
             }
             MonsterKind::FungiBeast => {
                 let (lo, hi) = if ascension >= 7 { (24, 28) } else { (22, 28) };
@@ -420,12 +496,13 @@ impl MonsterState {
             }
             MonsterKind::LouseDefensive => {
                 let (lo, hi) = if ascension >= 7 { (12, 18) } else { (11, 17) };
+                let hp = hp_rng.random_start_end(lo, hi);
                 let bite = if ascension >= 2 {
                     hp_rng.random_start_end(6, 8)
                 } else {
                     hp_rng.random_start_end(5, 7)
                 };
-                (hp_rng.random_start_end(lo, hi), (bite, 2, 0, 0, 0, 0, 0))
+                (hp, (bite, 2, 0, 0, 0, 0, 0))
             }
             MonsterKind::SpikeSlimeS => {
                 let (lo, hi) = if ascension >= 7 { (11, 15) } else { (10, 14) };

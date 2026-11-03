@@ -89,6 +89,21 @@ fn rand_range(rng: &mut StsRandom, min: i32, max: i32) -> i32 {
 }
 
 /// MapGenerator.generateDungeon + AbstractDungeon.generateMap
+/// 幕地图 RNG 播种（Java 三个 dungeon 类各自的公式）：
+/// - Act1 Exordium：`seed + actNum`
+/// - Act2 TheCity：`seed + actNum * 100`
+/// - Act3 TheBeyond：`seed + actNum * 200`
+/// - Act4 TheEnding：`seed + actNum * 300`
+pub fn map_seed(seed: u64, act: u8) -> u64 {
+    let mult = match act {
+        1 => 1u64,
+        2 => 100,
+        3 => 200,
+        _ => 300,
+    };
+    seed.wrapping_add((act as u64).wrapping_mul(mult))
+}
+
 pub fn generate_dungeon(act: u8, ascension: i32, rng: &mut StsRandom) -> GameMap {
     let mut rows = create_nodes();
     create_paths(&mut rows, PATH_DENSITY, rng);
@@ -233,11 +248,12 @@ fn common_ancestor(
     if node1 == node2 {
         return None;
     }
-    let (mut l, mut r): ((i32, usize), (i32, usize)) = if node1.0 < node2.0 {
-        (node1, node2)
-    } else {
-        (node2, node1)
-    };
+    // ⚠️ 逐字节复刻 Java 的 MapGenerator.getCommonAncestor，**包括它的 bug**：
+    //   `if (node1.x < node2.y)` —— 比的是 node1.x 与 node2.**y**（不是 node2.x）。
+    //   y 恒为同一行，所以 node1.x < node2.y 几乎恒成立（x < 行号），
+    //   只有当 x 很大且 y 很小时才翻转。必须照抄，否则地图分叉、mapRng 消耗数不符。
+    let (mut l, mut r): ((i32, usize), (i32, usize)) =
+        if node1.0 < node2.1 as i32 { (node1, node2) } else { (node2, node1) };
     let start_y = node1.1 as i32;
     let mut current_y = start_y;
     while current_y >= 0 && current_y >= start_y - max_depth as i32 {
@@ -246,10 +262,16 @@ fn common_ancestor(
         if lp.is_empty() || rp.is_empty() {
             return None;
         }
-        l = (*lp.iter().max()? as i32, (current_y - 1) as usize);
-        r = (*rp.iter().min()? as i32, (current_y - 1) as usize);
-        if l == r {
-            return Some(l.1);
+        // getNodeWithMaxX(l.parents) 与 getNodeWithMinX(r.parents)
+        let lx = *lp.iter().max()? as i32;
+        let rx = *rp.iter().min()? as i32;
+        // Java 比的是节点引用：相等即返回该节点（用 (x,y) 判等）
+        let lnode = (lx, (current_y - 1) as usize);
+        let rnode = (rx, (current_y - 1) as usize);
+        l = lnode;
+        r = rnode;
+        if lnode == rnode {
+            return Some(lnode.1); // 返回节点 y（调用方用 ancestor.y 算 gap）
         }
         current_y -= 1;
     }
@@ -345,9 +367,14 @@ fn assign_room_types(_act: u8, ascension: i32, rows: &mut [Vec<MapNode>], rng: &
         }
     }
 
-    // 4) Collections.shuffle(roomList, mapRng)：降序 Fisher-Yates，nextInt(i+1)
+    // 4) Collections.shuffle(roomList, rng.random)
+    //
+    // ⚠️ 关键陷阱：`rng.random` 是 libgdx 的 RandomXS128（继承 java.util.Random），
+    // Collections.shuffle 调用的是它的 nextInt(bound)，走 nextLong(n) 的 62 位
+    // 拒绝采样，**不推进 STS 的 counter**。若用 rng.random_range 会推进 counter，
+    // 导致 mapRng counter 与真游戏不符（实测 154 vs 95）。
     for i in (1..rooms.len()).rev() {
-        let j = rng.random_range(i as i32) as usize;
+        let j = rng.rng.next_long_n(i as u64 + 1) as usize;
         rooms.swap(i, j);
     }
 
@@ -859,17 +886,62 @@ pub struct EncInfo {
     pub kinds: &'static [MonsterKind],
 }
 
+/// NeowReward.getRewardOptions(case 2) 的候选名列表（按 drawback 剔除冲突项）
+pub fn cat2_option_names(d: Option<NeowDrawback>) -> Vec<&'static str> {
+    let mut v = vec!["RANDOM_COLORLESS_2"];
+    if d != Some(NeowDrawback::Curse) {
+        v.push("REMOVE_TWO");
+    }
+    v.push("ONE_RARE_RELIC");
+    v.push("THREE_RARE_CARDS");
+    if d != Some(NeowDrawback::NoGold) {
+        v.push("TWO_FIFTY_GOLD");
+    }
+    v.push("TRANSFORM_TWO_CARDS");
+    if d != Some(NeowDrawback::HpLoss) {
+        v.push("TWENTY_PERCENT_HP_BONUS");
+    }
+    v
+}
+
+/// generateExclusions：按「弱怪末项」返回强怪需排除的组合名
+/// （Exordium/TheCity/TheBeyond 的 generateExclusions 各自实现，此处合并）
+pub fn act_exclusions(
+    _weak: &[EncInfo],
+    _strong: &[EncInfo],
+    last_weak: Option<&'static str>,
+) -> Vec<&'static str> {
+    match last_weak {
+        Some("Looter") => vec!["Exordium Thugs"],
+        Some("Blue Slaver") => vec!["Red Slaver", "Exordium Thugs"],
+        Some("2 Louse") => vec!["3 Louse"],
+        Some("Small Slimes") => vec!["Large Slime", "Lots of Slimes"],
+        // TheCity 对应项（Chosen / Spheric Guardian 等）
+        Some("Chosen") => vec!["Cultist and Chosen"],
+        Some("3 Byrds") => vec!["Chosen and Byrds"],
+        // Jaw Worm / Cultist 及未知：无排除
+        _ => Vec::new(),
+    }
+}
+
 /// MonsterInfo.roll：累积权重命中（roll ∈ [0,1)）
+///
+/// ⚠️ 关键：`MonsterInfo.normalizeWeights` 会先 `Collections.sort(list)`
+/// （按 weight 升序，Float.compare），再归一化。Java 的 roll 遍历的是**排序后**
+/// 的列表，所以这里必须先按 weight 升序排（稳定排序，等权保持原序）再累积。
 pub fn enc_roll(list: &[EncInfo], roll: f32) -> &'static str {
-    let total: f32 = list.iter().map(|e| e.weight).sum();
+    let mut sorted: Vec<&EncInfo> = list.iter().collect();
+    // Collections.sort 是稳定排序（TimSort）；等权项保持定义序
+    sorted.sort_by(|a, b| a.weight.partial_cmp(&b.weight).unwrap_or(std::cmp::Ordering::Equal));
+    let total: f32 = sorted.iter().map(|e| e.weight).sum();
     let mut cur = 0.0f32;
-    for e in list {
+    for e in &sorted {
         cur += e.weight / total;
         if roll < cur {
             return e.name;
         }
     }
-    list.last().map(|e| e.name).unwrap_or("ERROR")
+    sorted.last().map(|e| e.name).unwrap_or("ERROR")
 }
 
 pub fn enc_kinds(list: &[EncInfo], name: &str) -> &'static [MonsterKind] {
@@ -1232,11 +1304,28 @@ pub struct RunPlayer {
     pub gold: i32,
 }
 
-/// Neow 开局选项
+/// Neow 开局选项（旧字段，保留兼容）
 #[derive(Clone, Debug)]
 pub struct NeowOption {
-    pub kind: u8,       // 0=TransformCard, 1=UpgradeCard, 2=RemoveCard, 3=BossRelic, 4=ThreeCards, 5=RareCard, 6=MaxHp, 7=Gold, ...
+    pub kind: u8,
     pub desc: &'static str,
+}
+
+/// Neow drawback（cat 2 的负面效果）
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum NeowDrawback {
+    HpLoss,
+    NoGold,
+    Curse,
+    PercentDamage,
+}
+
+/// 一次 Neow 抽签结果：category + 该 category 内抽中的下标 + drawback
+#[derive(Clone, Debug)]
+pub struct NeowPick {
+    pub cat: u8,
+    pub idx: usize,
+    pub drawback: Option<NeowDrawback>,
 }
 
 /// 奖励类型（RewardItem.RewardType 子集）
@@ -1259,8 +1348,9 @@ pub struct RunState {
     pub pos: (usize, usize), // 当前节点 (y, x)
     pub player: RunPlayer,
     pub rng: RngStreams,
-    /// 幕内遭遇序列（populateMonsterList 产物：前 1-2 个弱怪，其余强怪）
-    pub encounter_list: Vec<&'static [MonsterKind]>,
+    /// 幕内遭遇序列（populateMonsterList 产物：名字；具体怪物种类/数量在进房时按
+    /// miscRng 掷出，见 `resolve_encounter`）
+    pub encounter_list: Vec<&'static str>,
     pub encounter_idx: usize,
     pub elite_list: Vec<&'static [MonsterKind]>,
     pub elite_idx: usize,
@@ -1299,6 +1389,14 @@ pub struct RunState {
     pub neow_category: Option<u8>,
     /// Neow 可选奖励列表（category 对应的 4 个选项描述）
     pub neow_options: Vec<NeowOption>,
+    /// Neow 专用 RNG（Java: `new Random(Settings.seed)`，与 13 条游戏流独立）
+    pub neow_rng: Option<StsRandom>,
+    /// Neow 4 个 category 各自的抽签结果
+    pub neow_picks: Vec<NeowPick>,
+    /// Neow「前 3 场战斗敌人 1 HP」
+    pub neow_enemy_kill: u8,
+    /// 是否已进入地图（真游戏起点是虚拟节点 y=-1，首次选点进 row 0）
+    pub map_started: bool,
     /// 房间结束后待结算：拿走的卡进主牌组等
     pub pending_relic_tier_roll: bool,
 }
@@ -1343,6 +1441,10 @@ impl RunState {
     /// A14 上限 -loss）/遭遇序列同源码逐行
     pub fn new_for(seed: u64, ascension: i32, char_kind: crate::state::CharKind) -> Self {
         let mut rng = RngStreams::new(seed);
+        // mapRng 每幕独立播种（Java：Exordium `seed+actNum`、TheCity `seed+actNum*100`、
+        // TheBeyond `seed+actNum*200`）。act=1 时三式均为 seed+1，与 generateSeeds()
+        // 的 `new Random(Settings.seed)` 不同——所以首幕地图必须用 seed+1 而非 seed。
+        rng.map = StsRandom::new(map_seed(seed, 1));
         let map = generate_dungeon(1, ascension, &mut rng.map);
         // A14：decreaseMaxHealth(getAscensionMaxHPLoss())；A6：起始 = round(90%)
         let mut max_hp = char_kind.base_max_hp();
@@ -1392,10 +1494,19 @@ impl RunState {
             event_combat: false,
             neow_category: None,
             neow_options: Vec::new(),
+            neow_rng: None,
+            neow_picks: Vec::new(),
+            neow_enemy_kill: 0,
+            map_started: false,
             rest_available: false,
         };
         s.populate_act();
         s.init_event_pools();
+        // AbstractDungeon 1217-1221：5 个遗物池各取 1 个 long 种子化 java.util.Random
+        // 洗牌——消耗 relicRng 5 次（真游戏开局 relic counter = 5）
+        for _ in 0..5 {
+            let _ = s.rng.relic.random_long();
+        }
         s.init_neow();
         s
     }
@@ -1420,19 +1531,34 @@ impl RunState {
     /// populateMonsterList：弱怪 2；强怪 12（含首怪排除表）；精英 10；Boss 洗牌取 1
     fn populate_act(&mut self) {
         let (weak, strong, elites, bosses) = self.act_pools();
-        // 弱怪 2（相邻不重复由列表语义：前 2 个弱怪可以相同？源码同样走防重逻辑）
+        // 弱怪数量：Act1 = 3（Exordium.generateWeakEnemies(3)），Act2/3 = 2
+        let weak_count = if self.act == 1 { 3 } else { 2 };
         let mut list: Vec<&'static str> = Vec::new();
-        while list.len() < 2 {
+        while list.len() < weak_count {
             let name = enc_roll(&weak, self.rng.monster.random_float());
-            if list.last() != Some(&name) || list.is_empty() {
-                if !list.is_empty() && name == list[list.len() - 1] {
-                    continue; // 与上一个相同 → 重掷
-                }
-                list.push(name);
+            if list.last() == Some(&name) {
+                continue; // 与上一个相同 → 重掷（源码 --i 重来）
             }
+            list.push(name);
         }
-        // 强怪 12：防上/上上重复
-        while list.len() < 14 {
+        // populateFirstStrongEnemy：强怪首项需排除与弱怪末项冲突的组合
+        let exclusions = act_exclusions(&weak, &strong, list.last().copied());
+        loop {
+            let name = enc_roll(&strong, self.rng.monster.random_float());
+            if exclusions.iter().any(|e| *e == name) {
+                continue;
+            }
+            if list.last() == Some(&name) {
+                continue;
+            }
+            list.push(name);
+            break;
+        }
+        // 强怪 12：防上/上上重复。
+        // ⚠️ 注意 Java 的 count 是「再追加 12 项」，而列表里已有 3弱 + 1首强，
+        //    所以最终长度 = weak_count + 1 + 12（Act1 为 16）。写成 weak_count + 12
+        //    会少追加 1 项，连带少消耗一次 monsterRng。
+        while list.len() < weak_count + 1 + 12 {
             let name = enc_roll(&strong, self.rng.monster.random_float());
             let n = list.len();
             if n >= 1 && name == list[n - 1] {
@@ -1443,10 +1569,7 @@ impl RunState {
             }
             list.push(name);
         }
-        self.encounter_list = list
-            .iter()
-            .map(|&n| enc_kinds(&weak, n).if_empty(enc_kinds(&strong, n)))
-            .collect();
+        self.encounter_list = list;
         // 精英 10（相邻不重复）
         let mut elist: Vec<&'static str> = Vec::new();
         while elist.len() < 10 {
@@ -1457,16 +1580,163 @@ impl RunState {
             elist.push(name);
         }
         self.elite_list = elist.iter().map(|&n| enc_kinds(&elites, n)).collect();
-        // Boss：Collections.shuffle(bossList, new Random(monsterRng.randomLong())) 取 0
-        let boss_name = bosses[0].name;
+        // initializeBoss：Collections.shuffle(bossList, new java.util.Random(monsterRng.randomLong()))
+        // 消耗 1 次 monsterRng，然后取洗牌后的第 0 项。
+        let sh_seed = self.rng.monster.random_long();
+        let mut boss_names: Vec<&'static str> = bosses.iter().map(|e| e.name).collect();
+        let mut jr = crate::rng::JavaRandom::new(sh_seed);
+        crate::rng::java_shuffle(&mut boss_names, &mut jr);
+        let boss_name = boss_names[0];
         self.boss = enc_kinds(&bosses, boss_name);
-        // TODO(M3 后续)：Boss 洗牌按源码（monsterRng.randomLong 种子化 JavaRandom）
+    }
+
+    /// 进房重播种：monsterHpRng / aiRng / shuffleRng / cardRandomRng / miscRng
+    /// 全部 `new Random(seed + floorNum)`（counter 归零）。
+    fn reseed_floor_streams(&mut self) {
+        let f = self.floor as u64;
+        let s = self.seed.wrapping_add(f);
+        self.rng.monster_hp = StsRandom::new(s);
+        self.rng.ai = StsRandom::new(s);
+        self.rng.shuffle = StsRandom::new(s);
+        self.rng.card_random = StsRandom::new(s);
+        self.rng.misc = StsRandom::new(s);
+    }
+
+    /// 遭遇名 → 具体怪物组（复刻 MonsterHelper.getEncounter + getLouse 等）。
+    ///
+    /// ⚠️ 关键：怪物种类不是静态的。`2 Louse` 的每只 Louse 由 `miscRng.randomBoolean()`
+    /// 决定 Normal/Defensive；`Small Slimes` 逐只掷；`Large Slime` 掷一次。
+    /// 且 **先定种类再 spawn（掷 HP）**，顺序决定 monsterHpRng 的取值。
+    fn resolve_encounter(&mut self, name: &str) -> Vec<MonsterKind> {
+        use MonsterKind::*;
+        match name {
+            "2 Louse" => {
+                // MonsterHelper.getLouse ×2：先掷两只的种类，再各自 spawn
+                let a = if self.rng.misc.random_boolean() { LouseNormal } else { LouseDefensive };
+                let b = if self.rng.misc.random_boolean() { LouseNormal } else { LouseDefensive };
+                vec![a, b]
+            }
+            "3 Louse" => {
+                let mut v = Vec::with_capacity(3);
+                for _ in 0..3 {
+                    v.push(if self.rng.misc.random_boolean() { LouseNormal } else { LouseDefensive });
+                }
+                v
+            }
+            "Small Slimes" => {
+                // spawnSmallSlimes：先掷一只，再按是否同种掷第二只
+                let first = if self.rng.misc.random_boolean() { AcidSlimeS } else { SpikeSlimeS };
+                let second = if self.rng.misc.random_boolean() {
+                    first
+                } else if first == AcidSlimeS {
+                    SpikeSlimeS
+                } else {
+                    AcidSlimeS
+                };
+                vec![first, second]
+            }
+            "Lots of Slimes" => {
+                // spawnManySmallSlimes：3-5 只，逐只掷
+                let n = 3 + self.rng.misc.random_range(2) as usize; // 3..=5
+                let mut v = Vec::with_capacity(n);
+                for _ in 0..n {
+                    v.push(if self.rng.misc.random_boolean() { AcidSlimeS } else { SpikeSlimeS });
+                }
+                v
+            }
+            "Large Slime" => {
+                if self.rng.misc.random_boolean() { vec![AcidSlimeL] } else { vec![SpikeSlimeL] }
+            }
+            "Cultist" => vec![Cultist],
+            "Jaw Worm" => vec![JawWorm],
+            "Blue Slaver" => vec![SlaverBlue],
+            "Red Slaver" => vec![SlaverRed],
+            "Looter" => vec![Looter],
+            "2 Fungi Beasts" => vec![FungiBeast, FungiBeast],
+            "Gremlin Gang" => {
+                // bottomGremlinGang：4 只随机 gremlin（无放回）
+                let pool = vec![
+                    GremlinWarrior, GremlinWarrior, GremlinThief, GremlinThief,
+                    GremlinFat, GremlinFat, GremlinTsundere, GremlinWizard,
+                ];
+                let mut p = pool;
+                let mut v = Vec::with_capacity(4);
+                for _ in 0..4 {
+                    let j = self.rng.misc.random_range(p.len() as i32 - 1).max(0) as usize;
+                    v.push(p.remove(j.min(p.len() - 1)));
+                }
+                v
+            }
+            "Exordium Thugs" | "Exordium Wildlife" => {
+                // bottomHumanoid / bottomWildlife：简化为一强怪（⚠️ 偏差登记）
+                vec![SlaverBlue]
+            }
+            "Gremlin Nob" => vec![GremlinNob],
+            "Lagavulin" => vec![Lagavulin],
+            "3 Sentries" => vec![Sentry, Sentry, Sentry],
+            // TheCity / TheBeyond 常见组合（静态部分）
+            "Chosen" => vec![Chosen],
+            "3 Byrds" => vec![Byrd, Byrd, Byrd],
+            "Cultist and Chosen" => vec![Cultist, Chosen],
+            "Chosen and Byrds" => vec![Chosen, Byrd, Byrd],
+            "Shell Parasite" => vec![ShelledParasite],
+            "Snecko" => vec![Snecko],
+            "Snake Plant" => vec![SnakePlant],
+            "Centurion and Healer" => vec![Centurion, Healer],
+            "3 Darklings" => vec![Darkling, Darkling, Darkling],
+            "Orb Walker" => vec![OrbWalker],
+            "3 Shapes" => {
+                // spawnShapes：逐槽从 [Repulsor×2, Exploder×2, Spiker×2] 无放回
+                let mut pool = vec![Repulsor, Repulsor, Exploder, Exploder, Spiker, Spiker];
+                let mut v = Vec::with_capacity(3);
+                for _ in 0..3 {
+                    let j = self.rng.misc.random_range(pool.len() as i32 - 1).max(0) as usize;
+                    v.push(pool.remove(j.min(pool.len() - 1)));
+                }
+                v
+            }
+            "4 Shapes" => {
+                let mut pool = vec![Repulsor, Repulsor, Exploder, Exploder, Spiker, Spiker];
+                let mut v = Vec::with_capacity(4);
+                for _ in 0..4 {
+                    let j = self.rng.misc.random_range(pool.len() as i32 - 1).max(0) as usize;
+                    v.push(pool.remove(j.min(pool.len() - 1)));
+                }
+                v
+            }
+            // 其余按名字映射到单只
+            _ => self.static_encounter_kinds(name),
+        }
+    }
+
+    /// 兜底：从 act pools 的静态 kinds 取（不含随机成分的组合）
+    fn static_encounter_kinds(&self, name: &str) -> Vec<MonsterKind> {
+        let (weak, strong, elites, bosses) = self.act_pools();
+        for list in [&weak, &strong, &elites, &bosses] {
+            if let Some(k) = list.iter().find(|e| e.name == name) {
+                return k.kinds.to_vec();
+            }
+        }
+        vec![crate::state::MonsterKind::JawWorm]
     }
 
     /// 选择下一节点（行动空间 = 当前节点边）。
     /// 行 14 的边是 Boss 哨兵：不再前进，位置保持（Boss 房由 enter_room 进入）
     pub fn choose_node(&mut self, edge_idx: usize) {
         let (y, x) = self.pos;
+        if !self.map_started {
+            // 真游戏起点是虚拟节点 (0, -1)，第一次选点直接落到 row 0 的列。
+            // 引擎用 pos=(0,x) 承载 row 0，所以首次选择只是确认列，不再下移。
+            let target_x = if x < MAP_WIDTH {
+                x
+            } else {
+                edge_idx.min(MAP_WIDTH - 1)
+            };
+            self.pos = (0, target_x);
+            self.map_started = true;
+            self.floor += 1;
+            return;
+        }
         if y + 1 >= MAP_HEIGHT {
             return;
         }
@@ -1475,12 +1745,26 @@ impl RunState {
         self.floor += 1;
     }
 
+    /// row 0 上所有可选列（首次选点的行动空间）
+    pub fn start_columns(&self) -> Vec<usize> {
+        if self.map_started {
+            return Vec::new();
+        }
+        (0..MAP_WIDTH)
+            .filter(|x| self.map.rows[0][*x].room.is_some() && !self.map.rows[0][*x].edges.is_empty())
+            .collect()
+    }
+
     /// 进入当前节点的房间。战斗类经 `Combat::new_run_battle` 注入主牌组/药水栏/
     /// 遗物栏/局外 HP 与金币；商店进货；事件入池抽取；休息房挂起待选
     /// （`rest_sleep` / `rest_smith`，对照 RestRoom.onPlayerEntry 不自动回血）
     pub fn enter_room(&mut self) {
         let (y, x) = self.pos;
         let room = self.map.rows[y][x].room;
+        // ⚠️ 关键：进房时 5 条流重播种为 seed + floorNum（AbstractDungeon.nextRoomTransition
+        // 1726-1730 行）。这决定了怪物 HP / 起手洗牌 / 怪物 AI / 战斗随机 / misc。
+        // 若不重播种，counter 与真游戏完全对不上（实测 map/monster_hp/relic 全错）。
+        self.reseed_floor_streams();
         self.rewards.clear();
         self.shop = None;
         self.event = None;
@@ -1493,37 +1777,16 @@ impl RunState {
                     self.elite_idx += 1;
                     k.to_vec()
                 } else {
-                    let k =
+                    let name =
                         self.encounter_list[self.encounter_idx.min(self.encounter_list.len() - 1)];
                     self.encounter_idx += 1;
-                    // spawnShapes：全 Repulsor 表记 = 形体组合签名 →
-                    // 逐槽从 [Repulsor×2, Exploder×2, Spiker×2] 无放回重掷（miscRng）
-                    let n = k.len();
-                    let is_shapes = n >= 3 && k.iter().all(|m| *m == MonsterKind::Repulsor);
-                    if is_shapes {
-                        let mut pool = vec![
-                            MonsterKind::Repulsor,
-                            MonsterKind::Repulsor,
-                            MonsterKind::Exploder,
-                            MonsterKind::Exploder,
-                            MonsterKind::Spiker,
-                            MonsterKind::Spiker,
-                        ];
-                        let mut picked = Vec::with_capacity(n);
-                        for _ in 0..n {
-                            let j = (self.rng.misc.random_range(pool.len() as i32 - 1).max(0)
-                                as usize)
-                                .min(pool.len() - 1);
-                            picked.push(pool.remove(j));
-                        }
-                        picked
-                    } else {
-                        k.to_vec()
-                    }
+                    // 遭遇名 → 具体怪物组（按 miscRng 掷种类/数量，见 MonsterHelper）
+                    self.resolve_encounter(name)
                 };
                 let relics: Vec<_> = self.relics.clone();
-                self.combat = Some(Combat::new_run_battle(
-                    self.seed ^ (self.floor as u64 + 1) << 32,
+                // 战斗继承整局 RNG 流（真游戏里的全局流贯穿整局，不是每战重播种）
+                self.combat = Some(Combat::new_run_battle_with_rng(
+                    self.rng.clone(),
                     self.ascension,
                     &kinds,
                     relics,
@@ -2038,6 +2301,8 @@ impl RunState {
             self.deck.extend(c.master_deck_additions.clone());
             // 遗物实例回写（PenNib 跨战计数等）
             self.relics = c.player_relics.clone();
+            // RNG 流回写：战斗内推进的全局流必须带回局外层
+            self.rng = c.rng.clone();
             self.player.gold = c.gold + if c.won { gold_reward } else { 0 };
             if c.won {
                 self.generate_rewards();
@@ -2063,6 +2328,9 @@ impl RunState {
                     }
                     self.deck.extend(cards);
                     self.act += 1;
+                    // 新幕：mapRng 重新播种（不复用旧流），miscRng = seed + floorNum
+                    self.rng.map = StsRandom::new(map_seed(self.seed, self.act));
+                    self.rng.misc = StsRandom::new(self.seed.wrapping_add(self.floor as u64));
                     self.map = generate_dungeon(self.act, self.ascension, &mut self.rng.map);
                     self.pos = (0, 0);
                     self.encounter_idx = 0;
@@ -2074,101 +2342,310 @@ impl RunState {
         }
     }
 
-    /// Neow 开局：生成 category 0-3 的选项
+    /// Neow 开局：复刻 NeowEvent.blessing()。
+    ///
+    /// Java：`NeowEvent.rng = new Random(Settings.seed)`（原始种子，无偏移），
+    /// 然后 `new NeowReward(0/1/2/3)` 各自用 `rng.random(0, options.size()-1)` 抽一项。
+    /// category 2 还会先抽一次 drawback（也是同一 rng）。
+    /// 所以 4 个选项必须按 cat0→cat1→cat2→cat3 的顺序抽，不能预置固定表。
     pub fn init_neow(&mut self) {
-        self.neow_category = Some(0);
-        self.neow_options = self.neow_get_options(0);
+        self.neow_rng = Some(StsRandom::new(self.seed));
+        let mut picks = Vec::new();
+
+        // cat 0：6 个候选
+        picks.push(NeowPick { cat: 0, idx: self.neow_roll(6), drawback: None });
+        // cat 1：5 个候选
+        picks.push(NeowPick { cat: 1, idx: self.neow_roll(5), drawback: None });
+        // cat 2：先抽 drawback（4 选 1），再按剔除后长度抽 reward
+        let dr = self.neow_roll(4) as u8;
+        let drawback = match dr {
+            0 => NeowDrawback::HpLoss,
+            1 => NeowDrawback::NoGold,
+            2 => NeowDrawback::Curse,
+            _ => NeowDrawback::PercentDamage,
+        };
+        // cat2 候选长度随 drawback 变化（见 NeowReward.getRewardOptions case 2）
+        // 基础 7 项：RANDOM_COLORLESS_2 / REMOVE_TWO / ONE_RARE_RELIC /
+        //            THREE_RARE_CARDS / TWO_FIFTY_GOLD / TRANSFORM_TWO_CARDS /
+        //            TWENTY_PERCENT_HP_BONUS
+        let cat2_len = match drawback {
+            NeowDrawback::Curse => 6,        // 去掉 REMOVE_TWO
+            NeowDrawback::NoGold => 6,       // 去掉 TWO_FIFTY_GOLD
+            NeowDrawback::HpLoss => 6,       // 去掉 TWENTY_PERCENT_HP_BONUS
+            NeowDrawback::PercentDamage => 7,
+        };
+        picks.push(NeowPick { cat: 2, idx: self.neow_roll(cat2_len), drawback: Some(drawback) });
+        // cat 3：只有 BOSS_RELIC 一项，仍要抽一次（rng.random(0,0) 也推进计数器）
+        picks.push(NeowPick { cat: 3, idx: self.neow_roll(1), drawback: None });
+
+        self.neow_category = Some(0); // 保留旧字段（兼容）
+        self.neow_picks = picks;
+        self.neow_options = Vec::new();
     }
 
-    /// Neow getRewardOptions：按 category 返回 4 个选项
-    fn neow_get_options(&self, category: u8) -> Vec<NeowOption> {
-        use NeowOption as N;
-        match category {
-            0 => vec![
-                N { kind: 4, desc: "Transform a card." },
-                N { kind: 5, desc: "Obtain a random rare card." },
-                N { kind: 2, desc: "Remove a card from your deck." },
-                N { kind: 1, desc: "Upgrade a random card." },
-            ],
-            1 => vec![
-                N { kind: 7, desc: "Obtain 3 random potions." },
-                N { kind: 8, desc: "Obtain a random common relic." },
-                N { kind: 6, desc: "Max HP +10." },
-                N { kind: 3, desc: "Enemies in the first 3 combats have 1 HP." },
-            ],
-            2 => vec![
-                N { kind: 6, desc: "Obtain a random colorless card." },
-                N { kind: 2, desc: "Remove 2 cards from your deck." },
-                N { kind: 5, desc: "Obtain a random rare relic." },
-                N { kind: 7, desc: "Gain 250 gold." },
-            ],
-            3 => vec![
-                N { kind: 3, desc: "Swap your starter Relic for a random boss Relic." },
-            ],
-            _ => vec![],
+    /// NeowEvent.rng.random(0, n-1)：推进 counter 并返回 [0, n)
+    fn neow_roll(&mut self, n: usize) -> usize {
+        let r = self.neow_rng.as_mut().expect("neow rng");
+        if n <= 1 {
+            // 仍要消耗一次（Java random(0,0) 也 ++counter 并 nextInt(1)）
+            let _ = r.random_range(0);
+            return 0;
+        }
+        r.random_range(n as i32 - 1) as usize
+    }
+
+    /// returnTrulyRandomCardFromAvailable(prohibited, NeowEvent.rng)
+    /// 池 = 本角色 COMMON + UNCOMMON + RARE（排除 prohibited）。
+    fn transform_card_neow(&mut self, prohibited: &str) -> crate::cards::CardInst {
+        let color = self.char_kind.color();
+        let pool: Vec<&'static crate::effects::CardDef> = crate::generated::CARDS
+            .iter()
+            .filter(|d| {
+                d.color == color
+                    && d.id != prohibited
+                    && matches!(d.rarity, "COMMON" | "UNCOMMON" | "RARE")
+            })
+            .collect();
+        if pool.is_empty() {
+            return crate::cards::CardInst::new("Strike_R");
+        }
+        let r = self.neow_rng.as_mut().expect("neow rng");
+        let idx = r.random_range(pool.len() as i32 - 1).max(0) as usize;
+        let def = pool[idx.min(pool.len() - 1)];
+        crate::cards::CardInst {
+            def,
+            upgraded: false,
+            upgrade_times: 0,
+            damage_bonus: 0,
+            block_bonus: 0,
+            cost_delta: 0,
         }
     }
 
-    /// Neow 选选项（buttonEffect）
-    pub fn choose_neow(&mut self, option_idx: usize) {
-        let Some(cat) = self.neow_category else { return };
-        let opts = self.neow_get_options(cat);
-        let Some(opt) = opts.get(option_idx) else { return };
-        let kind = opt.kind;
+    /// 当前 Neow 屏可选的 4 个选项（描述文本 + 是否可选）
+    pub fn neow_option_list(&self) -> Vec<(String, bool)> {
+        self.neow_picks
+            .iter()
+            .map(|p| (self.neow_pick_desc(p), true))
+            .collect()
+    }
 
-        match kind {
-            1 => { // Upgrade a random card
-                let idxs = self.deck_upgradable();
-                if let Some(&i) = idxs.first() {
-                    self.deck[i].upgraded = true;
+    /// 单个 pick 的描述文本（与游戏 UI 对齐，便于人读/日志）
+    pub fn neow_pick_desc(&self, p: &NeowPick) -> String {
+        const CAT0: [&str; 6] = [
+            "Obtain 3 cards",
+            "Obtain a random rare card",
+            "Remove a card from your deck",
+            "Upgrade a card",
+            "Transform a card",
+            "Obtain a random colorless card",
+        ];
+        const CAT1: [&str; 5] = [
+            "Obtain 3 random potions",
+            "Obtain a random common relic",
+            "Max HP +10%",
+            "Enemies in the first 3 combats have 1 HP",
+            "Gain 100 gold",
+        ];
+        match p.cat {
+            0 => CAT0.get(p.idx).copied().unwrap_or("?").to_string(),
+            1 => CAT1.get(p.idx).copied().unwrap_or("?").to_string(),
+            2 => {
+                let base = match p.idx {
+                    0 => "Obtain a random colorless card",
+                    1 => "Remove 2 cards",
+                    2 => "Obtain a random rare relic",
+                    3 => "Obtain 3 rare cards",
+                    4 => "Gain 250 gold",
+                    _ => "?",
+                };
+                let dw = match p.drawback {
+                    Some(NeowDrawback::HpLoss) => " (Lose 10% max HP)",
+                    Some(NeowDrawback::NoGold) => " (Lose all gold)",
+                    Some(NeowDrawback::Curse) => " (Obtain a curse)",
+                    Some(NeowDrawback::PercentDamage) => " (Take 30% HP damage)",
+                    None => "",
+                };
+                format!("{base}{dw}")
+            }
+            _ => "Swap your starter Relic for a random boss Relic".to_string(),
+        }
+    }
+
+    /// Neow 选择：idx = 0..3 对应 4 个 category 抽出的选项
+    pub fn choose_neow_pick(&mut self, idx: usize) {
+        let Some(p) = self.neow_picks.get(idx).cloned() else { return };
+        // 应用 drawback（cat2）
+        if let Some(d) = p.drawback {
+            match d {
+                NeowDrawback::HpLoss => {
+                    let loss = (self.player.max_hp as f32 * 0.1) as i32;
+                    self.player.max_hp -= loss;
+                    self.player.hp = (self.player.hp - loss).max(1);
                 }
-                self.neow_category = None;
-            }
-            2 => { // Remove a card
-                if !self.deck.is_empty() {
-                    self.deck.remove(0);
+                NeowDrawback::NoGold => self.player.gold = 0,
+                NeowDrawback::Curse => {
+                    if let Some(c) = crate::cards::CardInst::new_by_class("Injury") {
+                        self.deck.push(c);
+                    }
                 }
-                self.neow_category = None;
-            }
-            3 => { // Boss relic swap (简化：随机 boss relic 替换初始遗物)
-                // TODO: 实现完整 boss relic 池
-                self.neow_category = None;
-            }
-            4 => { // Transform a card
-                // 简化：变形第一张打击/防御为随机卡
-                if let Some(pos) = self.deck.iter().position(|c| {
-                    c.def.id.starts_with("Strike") || c.def.id.starts_with("Defend")
-                }) {
-                    let rarity = self.roll_rarity_bases(3, 37);
-                    let card = self.pick_card(rarity, &[]);
-                    self.deck[pos] = card;
+                NeowDrawback::PercentDamage => {
+                    let dmg = self.player.hp / 10 * 3;
+                    self.player.hp = (self.player.hp - dmg).max(1);
                 }
-                self.neow_category = None;
             }
-            5 => { // Obtain a random rare card
-                let card = self.pick_card("RARE", &[]);
-                self.deck.push(card);
-                self.neow_category = None;
-            }
-            6 => { // Max HP +10%
-                let bonus = (self.player.max_hp as f32 * 0.1) as i32;
-                self.player.max_hp += bonus;
-                self.player.hp += bonus;
-                self.neow_category = None;
-            }
-            7 => { // Gain gold
-                self.player.gold += 250;
-                self.neow_category = None;
-            }
-            8 => { // Obtain random common relic
-                self.grant_random_relic();
-                self.neow_category = None;
+        }
+        // 应用 reward
+        match p.cat {
+            0 => match p.idx {
+                0 => {
+                    // THREE_CARDS：协议层三选一，GymEnv 自动取第一张
+                    let rarity = self.roll_rarity(false);
+                    let c = self.pick_card(rarity, &[]);
+                    self.deck.push(c);
+                }
+                1 => {
+                    let c = self.pick_card("RARE", &[]);
+                    self.deck.push(c);
+                }
+                2 => { if !self.deck.is_empty() { self.deck.remove(0); } }
+                3 => {
+                    if let Some(i) = self.deck_upgradable().first().copied() {
+                        self.deck[i].upgraded = true;
+                        self.deck[i].upgrade_times = 1;
+                    }
+                }
+                4 => {
+                    // TRANSFORM_CARD：AbstractDungeon.transformCard(c, false, NeowEvent.rng)
+                    // → returnTrulyRandomCardFromAvailable(c, rng)
+                    // 池 = common + uncommon + rare（排除自身），用 **NeowEvent.rng** 抽
+                    // （不是 cardRng —— 真游戏此操作 cardRng counter 不变）。
+                    if let Some(pos) = self.deck.iter().position(|c| {
+                        c.def.id.starts_with("Strike") || c.def.id.starts_with("Defend")
+                    }) {
+                        let prohibited = self.deck[pos].def.id;
+                        let card = self.transform_card_neow(prohibited);
+                        self.deck[pos] = card;
+                    }
+                }
+                _ => {
+                    let c = self.pick_card("COLORLESS", &[]);
+                    self.deck.push(c);
+                }
+            },
+            1 => match p.idx {
+                0 => {
+                    for _ in 0..3 {
+                        self.grant_random_potion();
+                    }
+                }
+                1 => self.grant_random_relic(),
+                2 => {
+                    let bonus = (self.player.max_hp as f32 * 0.1) as i32;
+                    self.player.max_hp += bonus;
+                    self.player.hp += bonus;
+                }
+                3 => self.neow_enemy_kill = 3,
+                _ => self.player.gold += 100,
+            },
+            2 => {
+                // idx 是「剔除 drawback 冲突项后的列表下标」，需映射回实际奖励
+                let names = cat2_option_names(p.drawback);
+                match names.get(p.idx).copied().unwrap_or("") {
+                    "RANDOM_COLORLESS_2" => {
+                        let c = self.pick_card("COLORLESS", &[]);
+                        self.deck.push(c);
+                    }
+                    "REMOVE_TWO" => {
+                        for _ in 0..2 {
+                            if !self.deck.is_empty() { self.deck.remove(0); }
+                        }
+                    }
+                    "ONE_RARE_RELIC" => self.grant_random_relic_tier("RARE"),
+                    "THREE_RARE_CARDS" => {
+                        for _ in 0..3 {
+                            let c = self.pick_card("RARE", &[]);
+                            self.deck.push(c);
+                        }
+                    }
+                    "TWO_FIFTY_GOLD" => self.player.gold += 250,
+                    "TRANSFORM_TWO_CARDS" => {
+                        for _ in 0..2 {
+                            if let Some(pos) = self.deck.iter().position(|c| {
+                                c.def.id.starts_with("Strike") || c.def.id.starts_with("Defend")
+                            }) {
+                                let prohibited = self.deck[pos].def.id;
+                                let card = self.transform_card_neow(prohibited);
+                                self.deck[pos] = card;
+                            }
+                        }
+                    }
+                    "TWENTY_PERCENT_HP_BONUS" => {
+                        let bonus = (self.player.max_hp as f32 * 0.1) as i32 * 2;
+                        self.player.max_hp += bonus;
+                        self.player.hp += bonus;
+                    }
+                    _ => {}
+                }
             }
             _ => {
-                self.neow_category = None;
+                // BOSS_RELIC：替换初始遗物
+                self.neow_boss_relic_swap();
             }
         }
-        self.neow_options.clear();
+        self.neow_picks.clear();
+        self.neow_category = None;
+    }
+
+    /// PotionHelper.getRandomPotion + 入槽（满槽丢弃）
+    fn grant_random_potion(&mut self) {
+        // PotionHelper.getRandomPotion：potionRng 全池均匀（无稀有度筛）
+        let pool = crate::potions::pool_for_class(self.char_kind.id());
+        let roll = self.rng.potion.random_range(pool.len() as i32 - 1).max(0) as usize;
+        let k = pool[roll.min(pool.len() - 1)];
+        if let Some(slot) = self.potions.iter_mut().find(|s| s.is_none()) {
+            *slot = Some(crate::potions::PotionInst::new(k));
+        }
+    }
+
+    /// returnRandomRelic(tier)：从已实现池取未持有者
+    ///
+    /// ⚠️ 偏差：RelicKind 尚无 tier 元数据，暂时忽略 tier（仅按未持有过滤）。
+    /// 待 relics 生成表补 tier 字段后按 tier 严格筛。
+    fn grant_random_relic_tier(&mut self, _tier: &str) {
+        let owned: Vec<crate::relics::RelicKind> = self.relics.iter().map(|r| r.kind).collect();
+        let pool: Vec<crate::relics::RelicKind> = Self::IMPLEMENTED_RELICS
+            .iter()
+            .copied()
+            .filter(|k| !owned.contains(k))
+            .collect();
+        if pool.is_empty() {
+            return;
+        }
+        let roll = self.rng.relic.random_range(pool.len() as i32 - 1).max(0) as usize;
+        let k = pool[roll.min(pool.len() - 1)];
+        self.relics.push(crate::relics::RelicInst::new(k));
+        self.relic_on_obtain(k);
+    }
+
+    /// Neow BOSS_RELIC：把初始遗物替换成随机 Boss 遗物
+    ///
+    /// ⚠️ 偏差：同样缺 tier 元数据，暂从全池抽（不是真 Boss 池）。
+    fn neow_boss_relic_swap(&mut self) {
+        let owned: Vec<crate::relics::RelicKind> = self.relics.iter().map(|r| r.kind).collect();
+        let pool: Vec<crate::relics::RelicKind> = Self::IMPLEMENTED_RELICS
+            .iter()
+            .copied()
+            .filter(|k| !owned.contains(k))
+            .collect();
+        if pool.is_empty() {
+            return;
+        }
+        let roll = self.rng.relic.random_range(pool.len() as i32 - 1).max(0) as usize;
+        let k = pool[roll.min(pool.len() - 1)];
+        self.relics.clear(); // 移除初始遗物
+        self.relics.push(crate::relics::RelicInst::new(k));
+        self.relic_on_obtain(k);
     }
 
     /// 休息·睡觉：回复 30% 最大生命（向上取整对照 RestRoom：
@@ -2774,6 +3251,88 @@ fn bench_full_run() {
 }
 
 #[cfg(test)]
+/// M4 对拍黄金用例：PMCWKZEF（seed=1585262650280）开局状态。
+/// 基线来自真游戏 bridge `get_state`（Exordium / A0 / Ironclad / floor 1 turn 1）。
+mod parity_golden_tests {
+    use super::*;
+
+    const SEED: u64 = 1585262650280;
+
+    #[test]
+    fn rng_counters_match_bridge_baseline() {
+        let run = RunState::new(SEED, 0);
+        // 真游戏 bridge get_state 的 rng 计数器（开局、进入第一场战斗前）
+        assert_eq!(run.rng.monster.counter, 38, "monster");
+        assert_eq!(run.rng.map.counter, 95, "map");
+        assert_eq!(run.rng.relic.counter, 5, "relic");
+        assert_eq!(run.rng.event.counter, 0, "event");
+        assert_eq!(run.rng.merchant.counter, 0, "merchant");
+        assert_eq!(run.rng.card.counter, 0, "card");
+        assert_eq!(run.rng.treasure.counter, 0, "treasure");
+        assert_eq!(run.rng.potion.counter, 0, "potion");
+    }
+
+    #[test]
+    fn neow_options_match_bridge() {
+        let run = RunState::new(SEED, 0);
+        let opts = run.neow_option_list();
+        assert_eq!(opts.len(), 4);
+        // Java NeowDump 输出：cat0 idx=4 TRANSFORM / cat1 idx=2 HP+10% /
+        // drawback=0 HP_LOSS + cat2 idx=2 ONE_RARE_RELIC / cat3 BOSS_RELIC
+        assert!(opts[0].0.contains("Transform"), "cat0={}", opts[0].0);
+        assert!(opts[1].0.contains("Max HP"), "cat1={}", opts[1].0);
+        assert!(opts[2].0.contains("rare relic"), "cat2={}", opts[2].0);
+        assert!(opts[2].0.contains("Lose"), "cat2 drawback={}", opts[2].0);
+        assert!(opts[3].0.contains("boss Relic"), "cat3={}", opts[3].0);
+    }
+
+    #[test]
+    fn first_encounter_is_two_fuzzy_louse() {
+        let mut run = RunState::new(SEED, 0);
+        run.choose_neow_pick(1); // Max HP +10%（不改牌组，便于校验遭遇序列）
+        let col = run.start_columns()[0];
+        run.map_started = true;
+        run.pos = (0, col);
+        run.floor = 1;
+        run.enter_room();
+        let c = run.combat.as_ref().expect("首房应为战斗");
+        // 真游戏：FuzzyLouseNormal 15/15 与 12/12
+        assert_eq!(c.monsters.len(), 2);
+        assert_eq!(c.monsters[0].kind.id(), "FuzzyLouseNormal");
+        assert_eq!(c.monsters[1].kind.id(), "FuzzyLouseNormal");
+        assert_eq!(c.monsters[0].creature.hp, 15);
+        assert_eq!(c.monsters[1].creature.hp, 12);
+        // monsterHpRng 消耗：两只 Louse 各 setHp + bite = 4，再加 usePreBattleAction
+        // 的 CurlUpPower 掷 2 次 = 6（与 bridge 基线一致）
+        assert_eq!(c.rng.monster_hp.counter, 6);
+        // miscRng：两只 Louse 的种类各掷一次
+        assert_eq!(c.rng.misc.counter, 2);
+        assert_eq!(c.rng.shuffle.counter, 1, "起手洗牌一次");
+    }
+
+    #[test]
+    fn map_seed_per_act() {
+        assert_eq!(map_seed(1000, 1), 1001);
+        assert_eq!(map_seed(1000, 2), 1200);
+        assert_eq!(map_seed(1000, 3), 1600);
+        assert_eq!(map_seed(1000, 4), 2200);
+    }
+
+    #[test]
+    fn floor_reseed_overwrites_streams() {
+        let mut run = RunState::new(SEED, 0);
+        let col = run.start_columns()[0];
+        run.map_started = true;
+        run.pos = (0, col);
+        run.floor = 1;
+        run.enter_room();
+        // monsterHp/ai/shuffle/cardRandom/misc 全部重播种为 seed + floorNum
+        let c = run.combat.as_ref().unwrap();
+        assert_eq!(c.rng.ai.counter, 2);
+        assert_eq!(c.rng.shuffle.counter, 1);
+    }
+}
+
 mod seed_helper_tests {
     use super::seed_helper;
 

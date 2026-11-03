@@ -15,7 +15,7 @@
 
 use neow_sim_core::combat::{Action, Combat};
 use neow_sim_core::encoding::{self, EncodedObservation};
-use neow_sim_core::run::{RewardItem, RoomKind, RunState, MAP_HEIGHT};
+use neow_sim_core::run::{RewardItem, RoomKind, RunState, MAP_HEIGHT, MAP_WIDTH};
 use neow_sim_core::state::CharKind;
 use numpy::{PyArray1, PyArray2};
 use pyo3::exceptions::PyRuntimeError;
@@ -43,6 +43,7 @@ pub mod action_type {
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 enum GameState {
+    NeowChoice,   // 开局 Neow 事件（floor 0）
     MapNode,      // 选下一个地图节点
     Combat,       // 战斗中（出牌/结束回合）
     EventChoice,  // 事件选项
@@ -183,7 +184,7 @@ impl GymEnv {
             total_reward: 0.0,
             step_count: 0,
         };
-        env.enter_next_room();
+        env.enter_neow();
         Ok(env)
     }
 
@@ -197,7 +198,7 @@ impl GymEnv {
         self.done = false;
         self.total_reward = 0.0;
         self.step_count = 0;
-        self.enter_next_room();
+        self.enter_neow();
         Ok(self.obs.clone().unwrap())
     }
 
@@ -263,6 +264,119 @@ impl GymEnv {
     fn game_state(&self) -> String {
         format!("{:?}", self.state)
     }
+
+    /// Neow 屏的 4 个选项（描述文本），对拍/调试用
+    #[getter]
+    fn neow_options(&self) -> Vec<String> {
+        self.run
+            .neow_option_list()
+            .into_iter()
+            .map(|(d, _)| d)
+            .collect()
+    }
+
+    /// M4 对拍用：结构化状态快照（JSON 字符串）。
+    /// 字段命名与 bridge Obs 对齐，便于逐字段 diff。
+    fn state_json(&self) -> String {
+        let p = &self.run.player;
+        let mut o = String::from("{\"meta\":{");
+        o.push_str(&format!(
+            "\"hp\":{},\"max_hp\":{},\"gold\":{},\"act\":{},\"floor\":{}",
+            p.hp, p.max_hp, p.gold, self.run.act, self.run.floor
+        ));
+        // RNG 计数器（对拍定位分叉的关键）
+        o.push_str(",\"rng\":{");
+        // 战斗中真实推进的是 combat 内的 RNG 副本（结束后才回写 run.rng）
+        let r = if let Some(c) = &self.run.combat { &c.rng } else { &self.run.rng };
+        let streams: [(&str, u32); 13] = [
+            ("monster", r.monster.counter), ("map", r.map.counter),
+            ("event", r.event.counter), ("merchant", r.merchant.counter),
+            ("card", r.card.counter), ("treasure", r.treasure.counter),
+            ("relic", r.relic.counter), ("potion", r.potion.counter),
+            ("monster_hp", r.monster_hp.counter), ("ai", r.ai.counter),
+            ("shuffle", r.shuffle.counter), ("card_random", r.card_random.counter),
+            ("misc", r.misc.counter),
+        ];
+        for (i, (name, v)) in streams.iter().enumerate() {
+            if i > 0 { o.push(','); }
+            o.push_str(&format!("\"{}\":{}", name, v));
+        }
+        o.push_str("}},\"state\":\"");
+        o.push_str(&format!("{:?}", self.state));
+        o.push('"');
+
+        // 玩家
+        o.push_str(",\"player\":{");
+        if let Some(c) = &self.run.combat {
+            o.push_str(&format!(
+                "\"hp\":{},\"max_hp\":{},\"block\":{},\"energy\":{},\"gold\":{},\"powers\":[",
+                c.player.creature.hp, c.player.creature.max_hp,
+                c.player.creature.block, c.player.energy, c.gold
+            ));
+            for (i, pw) in c.player.creature.powers.iter().enumerate() {
+                if i > 0 { o.push(','); }
+                o.push_str(&format!("{{\"id\":\"{}\",\"amount\":{}}}", pw.id(), pw.amount));
+            }
+            o.push_str(&format!("],\"stance\":\"{:?}\"}}", c.player.stance));
+            o.push_str(&format!(",\"turn\":{}", c.turn));
+
+            // 手牌（显示序）
+            o.push_str(",\"hand\":[");
+            for (i, cd) in c.player.hand.iter().enumerate() {
+                if i > 0 { o.push(','); }
+                o.push_str(&format!(
+                    "{{\"id\":\"{}\",\"upgraded\":{},\"cost_for_turn\":{}}}",
+                    cd.def.id, cd.upgraded, cd.cost_pay()
+                ));
+            }
+            o.push(']');
+
+            // 怪物
+            o.push_str(",\"monsters\":[");
+            let mut first = true;
+            for m in c.monsters.iter() {
+                if m.creature.hp <= 0 { continue; }
+                if !first { o.push(','); }
+                first = false;
+                o.push_str(&format!(
+                    "{{\"id\":\"{}\",\"hp\":{},\"max_hp\":{},\"block\":{},\"powers\":[",
+                    m.kind.id(), m.creature.hp, m.creature.max_hp, m.creature.block
+                ));
+                for (j, pw) in m.creature.powers.iter().enumerate() {
+                    if j > 0 { o.push(','); }
+                    o.push_str(&format!("{{\"id\":\"{}\",\"amount\":{}}}", pw.id(), pw.amount));
+                }
+                o.push_str("]}");
+            }
+            o.push(']');
+
+            o.push_str(&format!(
+                ",\"draw_pile_n\":{},\"discard_pile_n\":{},\"exhaust_pile_n\":{}",
+                c.player.draw.len(), c.player.discard.len(), c.player.exhaust.len()
+            ));
+
+            o.push_str(",\"relics\":[");
+            for (i, rl) in c.player_relics.iter().enumerate() {
+                if i > 0 { o.push(','); }
+                o.push_str(&format!("{{\"id\":\"{}\",\"counter\":{}}}", rl.kind.id(), rl.counter));
+            }
+            o.push(']');
+        } else {
+            o.push_str(&format!(
+                "\"hp\":{},\"max_hp\":{},\"block\":0,\"energy\":0,\"gold\":{},\"powers\":[]",
+                p.hp, p.max_hp, p.gold
+            ));
+            o.push_str(",\"relics\":[");
+            for (i, rl) in self.run.relics.iter().enumerate() {
+                if i > 0 { o.push(','); }
+                o.push_str(&format!("{{\"id\":\"{}\",\"counter\":{}}}", rl.kind.id(), rl.counter));
+            }
+            o.push(']');
+            o.push('}');   // 闭合非战斗分支的 player 对象
+        }
+        o.push('}');       // 闭合顶层
+        o
+    }
 }
 
 // ── 内部实现 ─────────────────────────────────────
@@ -281,69 +395,88 @@ impl GymEnv {
     }
 
     /// 进入下一个房间并更新状态机（非递归——用循环防止栈溢出）
-    fn enter_next_room(&mut self) {
-        let mut guard = 0;
-        loop {
-            guard += 1;
-            if guard > 100 {
-                self.set_done();
-                return;
-            }
-            if self.run.over {
-                self.set_done();
-                return;
-            }
+    /// 进入 Neow 开局屏（floor 0）。真游戏流程：
+    /// floor 0 = Neow 事件 → 选一项 → 地图 → floor 1 = 第一场战斗。
+    fn enter_neow(&mut self) {
+        self.run.init_neow();
+        self.state = GameState::NeowChoice;
+        self.update_neow_obs();
+    }
 
-            // 选边 0 前进
-            let pos = self.run.pos;
-            let edges = self.run.map.rows[pos.0][pos.1].edges.len();
-            if pos.0 + 1 < MAP_HEIGHT && edges > 0 {
-                self.run.choose_node(0);
-            } else if pos.0 == MAP_HEIGHT - 1 {
-                // Boss 行
-                self.run.map.rows[pos.0][pos.1].room = Some(RoomKind::Boss);
-            } else {
-                // 无法前进——游戏结束
-                self.set_done();
-                return;
-            }
-            self.run.enter_room();
-            self.run.floor += 1;
+    fn update_neow_obs(&mut self) {
+        self.obs = Some(Observation::simple(6));
+        self.legal = Some(self.make_neow_legal());
+    }
 
-            // 根据房间类型设置状态
-            if self.run.combat.is_some() {
-                self.state = GameState::Combat;
-                self.update_combat_obs();
-                return;
-            } else if self.run.event.is_some() {
-                self.state = GameState::EventChoice;
-                self.update_run_obs();
-                return;
-            } else if !self.run.rewards.is_empty() {
-                self.state = GameState::RewardScreen;
-                self.update_run_obs();
-                return;
-            } else if self.run.rest_available {
-                self.state = GameState::RestChoice;
-                self.update_run_obs();
-                return;
-            } else if self.run.shop.is_some() {
-                self.state = GameState::ShopScreen;
-                self.update_run_obs();
-                return;
-            }
-            // 空房间 → 领奖励 → 继续循环到下一房
-            self.run.take_all_rewards_skip_cards();
+    fn make_neow_legal(&self) -> LegalActions {
+        let mut flat = Vec::new();
+        for (i, _) in self.run.neow_option_list().iter().enumerate() {
+            flat.push(FlatAction {
+                action_type: action_type::CHOOSE_EVENT,
+                entity: i as i32,
+                target: -1,
+            });
         }
+        LegalActions { flat, screen: 6 }
+    }
+
+    /// 进入当前节点的房间，并按房间类型设置状态机。
+    /// 调用前提：pos 已指向目标节点（choose_node 已推进 floor）。
+    fn open_current_room(&mut self) {
+        self.run.enter_room();
+        if self.run.over {
+            self.set_done();
+            return;
+        }
+        if self.run.combat.is_some() {
+            self.state = GameState::Combat;
+            self.update_combat_obs();
+        } else if self.run.event.is_some() {
+            self.state = GameState::EventChoice;
+            self.update_run_obs();
+        } else if !self.run.rewards.is_empty() {
+            self.state = GameState::RewardScreen;
+            self.update_run_obs();
+        } else if self.run.rest_available {
+            self.state = GameState::RestChoice;
+            self.update_run_obs();
+        } else if self.run.shop.is_some() {
+            self.state = GameState::ShopScreen;
+            self.update_run_obs();
+        } else {
+            // 空房间（宝箱已入奖励 / 事件已完）→ 领奖励后回地图
+            self.run.take_all_rewards_skip_cards();
+            self.to_map_screen();
+        }
+    }
+
+    /// 回到地图屏（房间结束后的唯一合法状态）
+    fn to_map_screen(&mut self) {
+        if self.run.over {
+            self.set_done();
+            return;
+        }
+        self.state = GameState::MapNode;
+        self.legal = Some(self.make_map_legal());
+        self.update_run_obs();
     }
 
     /// 分发动作
     fn dispatch(&mut self, ty: i32, entity: i32, target: i32) -> PyResult<f64> {
         match self.state {
+            GameState::NeowChoice => {
+                let idx = entity.max(0) as usize;
+                self.run.choose_neow_pick(idx);
+                // Neow 结束 → 地图屏（玩家选第一层节点）
+                self.state = GameState::MapNode;
+                self.legal = Some(self.make_map_legal());
+                self.update_run_obs();
+                Ok(0.0)
+            }
             GameState::Combat => self.combat_step(ty, entity, target),
             GameState::EventChoice => {
                 let Some(ev) = self.run.event.as_ref() else {
-                    self.enter_next_room();
+                    self.to_map_screen();
                     self.update_state();
                     return Ok(0.0);
                 };
@@ -387,7 +520,7 @@ impl GymEnv {
 
                 // 事件完成 → 领奖励 → 下一房
                 self.run.take_all_rewards_skip_cards();
-                self.enter_next_room();
+                self.to_map_screen();
                 self.update_state();
                 Ok(0.0)
             }
@@ -408,7 +541,7 @@ impl GymEnv {
                 }
                 // 奖励屏空 → 离开
                 self.run.take_all_rewards_skip_cards();
-                self.enter_next_room();
+                self.to_map_screen();
                 self.update_state();
                 Ok(0.0)
             }
@@ -437,13 +570,13 @@ impl GymEnv {
                         self.run.rest_sleep(); // 默认睡觉
                     }
                 }
-                self.enter_next_room();
+                self.to_map_screen();
                 self.update_state();
                 Ok(0.0)
             }
             GameState::ShopScreen => {
                 let Some(shop) = self.run.shop.as_mut() else {
-                    self.enter_next_room();
+                    self.to_map_screen();
                     self.update_state();
                     return Ok(0.0);
                 };
@@ -479,7 +612,7 @@ impl GymEnv {
                     }
                     _ => {
                         // 离开商店
-                        self.enter_next_room();
+                        self.to_map_screen();
                         self.update_state();
                         return Ok(0.0);
                     }
@@ -489,18 +622,42 @@ impl GymEnv {
                 Ok(0.0)
             }
             GameState::MapNode => {
-                // 改变选边（如果 entity > 0）
-                if entity > 0 {
-                    let edges = self.run.map.rows[self.run.pos.0][self.run.pos.1]
-                        .edges
-                        .len();
-                    if (entity as usize) < edges {
-                        self.run.choose_node(entity as usize);
-                        self.run.enter_room();
-                        self.run.floor += 1;
-                    }
+                // entity = 出边下标（0 也是合法边，不能当成"不选"）
+                let (y, x) = self.run.pos;
+                if !self.run.map_started {
+                    // 首次选点：entity = row 0 的列
+                    let cols = self.run.start_columns();
+                    let col = if entity >= 0 && (entity as usize) < MAP_WIDTH {
+                        entity as usize
+                    } else {
+                        *cols.first().unwrap_or(&0)
+                    };
+                    self.run.pos = (0, col);
+                    self.run.map_started = true;
+                    self.run.floor += 1;
+                    self.open_current_room();
+                    return Ok(0.0);
                 }
-                self.update_state();
+                let edges = if y < MAP_HEIGHT {
+                    self.run.map.rows[y][x].edges.len()
+                } else {
+                    0
+                };
+                let edge = if entity >= 0 && (entity as usize) < edges {
+                    entity as usize
+                } else {
+                    0
+                };
+                if edges > 0 {
+                    self.run.choose_node(edge);
+                    self.open_current_room();
+                } else if y == MAP_HEIGHT - 1 {
+                    // Boss 行：直接进 Boss 房
+                    self.run.map.rows[y][x].room = Some(RoomKind::Boss);
+                    self.open_current_room();
+                } else {
+                    self.set_done();
+                }
                 Ok(0.0)
             }
             GameState::Done => Ok(0.0),
@@ -510,7 +667,7 @@ impl GymEnv {
     /// 战斗内动作
     fn combat_step(&mut self, ty: i32, entity: i32, target: i32) -> PyResult<f64> {
         let Some(mut c) = self.run.combat.take() else {
-            self.enter_next_room();
+            self.to_map_screen();
             self.update_state();
             return Ok(0.0);
         };
@@ -571,7 +728,7 @@ impl GymEnv {
             }
             // 战斗结束 → 领奖励 → 下一房
             self.run.take_all_rewards_skip_cards();
-            self.enter_next_room();
+            self.to_map_screen();
             self.update_state();
             Ok(0.0)
         } else {
@@ -589,9 +746,42 @@ impl GymEnv {
             self.state = GameState::Combat;
             self.update_combat_obs();
         } else {
-            // 非战斗——进入下一个决策点
-            self.enter_next_room();
+            // 非战斗——回地图屏等玩家选下一节点
+            self.to_map_screen();
         }
+    }
+
+    /// 地图屏合法动作：未起步时列 row 0 可选列；已起步则列出当前节点的出边
+    fn make_map_legal(&self) -> LegalActions {
+        let mut flat = Vec::new();
+        if !self.run.map_started {
+            for x in self.run.start_columns() {
+                flat.push(FlatAction {
+                    action_type: action_type::CHOOSE_MAP,
+                    entity: x as i32,
+                    target: -1,
+                });
+            }
+        } else {
+            let (y, x) = self.run.pos;
+            if y < MAP_HEIGHT {
+                for (i, dst_x) in self.run.map.rows[y][x].edges.iter().enumerate() {
+                    flat.push(FlatAction {
+                        action_type: action_type::CHOOSE_MAP,
+                        entity: i as i32,      // edge 下标
+                        target: *dst_x as i32, // 目的列
+                    });
+                }
+            }
+        }
+        if flat.is_empty() {
+            flat.push(FlatAction {
+                action_type: action_type::PROCEED,
+                entity: -1,
+                target: -1,
+            });
+        }
+        LegalActions { flat, screen: 1 }
     }
 
     /// 事件屏合法动作
@@ -686,6 +876,7 @@ impl GymEnv {
                 }],
                 screen: 5,
             },
+            GameState::MapNode => self.make_map_legal(),
             _ => LegalActions {
                 flat: vec![FlatAction {
                     action_type: action_type::PROCEED,

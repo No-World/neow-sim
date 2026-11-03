@@ -892,7 +892,30 @@ impl Combat {
         max_hp: i32,
         gold: i32,
     ) -> Self {
-        let mut rng = RngStreams::new(seed);
+        let rng = RngStreams::new(seed);
+        Self::new_run_battle_with_rng(
+            rng, ascension, encounter, relics, deck, potions, hp, max_hp, gold,
+        )
+    }
+
+    /// 从整局继承 RNG 流开战（M4 对拍正确路径）。
+    ///
+    /// 真游戏里战斗用的就是全局 `AbstractDungeon.monsterHpRng / shuffleRng /
+    /// aiRng / cardRandomRng` 等流——它们贯穿整局，不是每场战斗重新播种。
+    /// 只有这样才能对上「同种子第 N 场战斗的怪物 HP / 起手牌」。
+    #[allow(clippy::too_many_arguments)]
+    pub fn new_run_battle_with_rng(
+        rng: RngStreams,
+        ascension: i32,
+        encounter: &[MonsterKind],
+        relics: Vec<RelicInst>,
+        deck: Vec<CardInst>,
+        potions: Vec<Option<crate::potions::PotionInst>>,
+        hp: i32,
+        max_hp: i32,
+        gold: i32,
+    ) -> Self {
+        let mut rng = rng;
         let monsters: Vec<MonsterState> = encounter
             .iter()
             .map(|k| MonsterState::spawn(*k, ascension, &mut rng.monster_hp))
@@ -10967,11 +10990,7 @@ mod tests {
         for seed in [5u64, 11, 23, 77, 2024] {
             let mut run = RunState::new(seed, 0);
             // 直接把遭遇列表改成 3 Shapes 签名
-            run.encounter_list = vec![&[
-                MonsterKind::Repulsor,
-                MonsterKind::Repulsor,
-                MonsterKind::Repulsor,
-            ]];
+            run.encounter_list = vec!["3 Shapes"];
             run.encounter_idx = 0;
             run.map.rows[1][3].room = Some(RoomKind::Monster);
             run.pos = (1, 3);

@@ -798,7 +798,31 @@ pub fn encode_run(run: &RunState) -> EncodedObservation {
         f[1] = log_norm(shop.purge_cost, 999);
         w.push(token_type::SCREEN, [-1, -1, -1], f);
     } else {
-        // 地图屏：候选可达节点 token（当前节点 edges 指向的节点）
+        // 地图屏：候选可达节点 token
+        //
+        // 未起步（map_started=false）时真游戏玩家是从「虚拟节点 y=-1」选 row 0 的列，
+        // 候选 = row 0 上有房间的列；起步后候选 = 当前节点的出边目标。
+        if !run.map_started {
+            for next_x in run.start_columns().into_iter().take(7) {
+                let next = &run.map.rows[0][next_x];
+                let mut f = [0.0; FEAT_DIM];
+                let rt = match next.room {
+                    Some(RoomKind::Monster) => 0.0,
+                    Some(RoomKind::Elite) => 1.0,
+                    Some(RoomKind::Rest) => 2.0,
+                    Some(RoomKind::Treasury) => 3.0,
+                    Some(RoomKind::Shop) => 4.0,
+                    Some(RoomKind::Event) => 5.0,
+                    Some(RoomKind::Boss) => 6.0,
+                    None => 7.0,
+                };
+                f[0] = rt / 7.0;
+                f[1] = 1.0 / (MAP_HEIGHT as f32);
+                f[2] = next_x as f32 / (MAP_WIDTH as f32);
+                w.push(token_type::SCREEN, [-1, -1, -1], f);
+            }
+            return w.obs;
+        }
         let (py, px) = run.pos;
         let node = &run.map.rows[py][px];
         for &next_x in node.edges.iter().take(7) {
