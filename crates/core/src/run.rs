@@ -1991,30 +1991,25 @@ impl RunState {
         // 所以这 3 次消耗必须复刻——否则后续所有 cardRng 消费全部错位
         // （实测第 2 场战斗的卡牌奖励因此抽到完全不同的卡）。
         let boss = room == Some(RoomKind::Boss);
-        // ⚠️ roll 顺序必须与 Java `AbstractDungeon.getRewardCards()` 一致：
-        //   **逐张**处理，每张 = rollRarity → 池 pick → 升级概率 roll，三步交错。
-        //   （升级 roll 在单卡版 `getCard(rarity)` 的收尾循环里，不是三张取完后统一做。）
-        //   注意：两种写法下 cardRng 总消耗都是 9，光看 counter 分辨不出来。
-        let chance = self.upgrade_chance();
+        // ⚠️ roll 顺序（实测确认，配合 HashMap 池序）：
+        //   先把 3 张的 rarity+pick 全部做完，再统一掷 3 次升级概率。
+        //   依据：真游戏 PMCWKZEF 首战奖励候选 = [Warcry, Clash, Body Slam]，
+        //   在 HashMap 池序下这三张的池内下标是 2 / 8 / 5，
+        //   而 cardRng 第 1/3/5 次 nextInt(20)（offset 1/3/5）正好是 2 / 8 / 5。
+        //   若改成逐张交错（r,p,u ×3），pick 会落在 offset 1/4/7 → 2/13/12，对不上。
         let mut cards: Vec<crate::cards::CardInst> = Vec::new();
-        let dbg = std::env::var("NEOW_TRACE_REWARD").is_ok();
         for _ in 0..3 {
-            let c0 = self.rng.card.counter;
             let rarity = self.roll_rarity(boss);
-            let (roll_val, blizz_after) = (self.last_rarity_roll, self.card_blizz);
-            let mut card = self.pick_card(rarity, &cards);
-            if dbg {
-                eprintln!(
-                    "[RWD] counter {}..{} rarity={} rollVal={} blizz_after={} pick={}",
-                    c0, self.rng.card.counter, rarity, roll_val, blizz_after, card.def.id
-                );
-            }
+            let card = self.pick_card(rarity, &cards);
+            cards.push(card);
+        }
+        let chance = self.upgrade_chance();
+        for card in cards.iter_mut() {
             let roll = self.rng.card.random_boolean_chance(chance);
             if card.def.rarity != "RARE" && roll && card.can_upgrade() {
                 card.upgraded = true;
                 card.upgrade_times = 1;
             }
-            cards.push(card);
         }
         self.rewards.push(RewardItem::CardReward(cards));
     }
@@ -2073,12 +2068,15 @@ impl RunState {
         already: &[crate::cards::CardInst],
     ) -> crate::cards::CardInst {
         loop {
-            let pool: Vec<&'static crate::effects::CardDef> = crate::generated::CARDS
+            let mut pool: Vec<&'static crate::effects::CardDef> = crate::generated::CARDS
                 .iter()
                 .filter(|d| {
                     d.color == self.char_kind.color() && d.rarity == rarity && d.status != "no_use"
                 })
                 .collect();
+            // ⚠️ 池序必须是 Java HashMap 迭代序（CardLibrary.cards.entrySet()），
+            // 不是类名序。否则同样种子会抽到完全不同的卡。
+            pool.sort_by_key(|d| crate::cards::card_pool_pos(d));
             if pool.is_empty() {
                 // 兜底：任何稀有度（防数据空洞）
                 return crate::cards::CardInst::new("Strike_R");

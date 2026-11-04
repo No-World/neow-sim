@@ -333,3 +333,92 @@ pub fn starter_deck(char_id: &str, ascension: i32) -> Vec<CardInst> {
 pub fn ironclad_starter(ascension: i32) -> Vec<CardInst> {
     starter_deck("Ironclad", ascension)
 }
+
+// ── Java HashMap 迭代序（卡池顺序的决定因素） ─────────────────────────
+//
+// `AbstractDungeon.initializeCardPools()` → `player.getCardPool(tmpPool)` →
+// `CardLibrary.addRedCards(ArrayList)`，后者遍历的是 `CardLibrary.cards.entrySet()`，
+// 即 **HashMap 迭代序**（不是类名序，也不是插入序）。
+//
+// 卡池顺序直接决定 `getRandomCard` 的 `group.get(cardRng.random(size-1))` 取到哪张卡，
+// 顺序错 → 同样种子抽到完全不同的卡。必须逐位复刻。
+//
+// Java 8 HashMap 迭代序 = 桶下标升序；桶内按插入序。
+//   桶下标 = spread(hashCode) & (capacity - 1)
+//   spread(h) = h ^ (h >>> 16)（h 为 32 位 hashCode）
+//   容量从 16 起，插入后 size > capacity*0.75 时翻倍
+pub fn java_hashmap_order(keys: &[&str]) -> Vec<usize> {
+    if keys.is_empty() {
+        return Vec::new();
+    }
+    let mut cap: usize = 0;
+    let mut size: usize = 0;
+    // 桶内保存“插入序号”，这样输出顺序天然是插入序
+    let mut buckets: Vec<Vec<usize>> = Vec::new();
+    for (idx, k) in keys.iter().enumerate() {
+        if cap == 0 {
+            cap = 16;
+            buckets = vec![Vec::new(); cap];
+        }
+        // Java: if (++size > threshold) resize();  threshold = cap * 0.75
+        size += 1;
+        if size > (cap / 4) * 3 {
+            let old = std::mem::take(&mut buckets);
+            cap *= 2;
+            buckets = vec![Vec::new(); cap];
+            for b in old {
+                for &j in &b {
+                    let h = java_spread(keys[j]);
+                    buckets[(h as usize) & (cap - 1)].push(j);
+                }
+            }
+        }
+        let h = java_spread(k);
+        buckets[(h as usize) & (cap - 1)].push(idx);
+    }
+    buckets.into_iter().flatten().collect()
+}
+
+/// Java `HashMap.hash(key)`：`h = key.hashCode(); h ^ (h >>> 16)`
+fn java_spread(k: &str) -> u32 {
+    let h = java_string_hash(k) as u32;
+    h ^ (h >> 16)
+}
+
+/// Java `String.hashCode()`：`h = 31*h + c`，32 位有符号溢出
+fn java_string_hash(s: &str) -> i32 {
+    let mut h: i32 = 0;
+    for b in s.bytes() {
+        h = h.wrapping_mul(31).wrapping_add(b as i32);
+    }
+    h
+}
+
+/// 卡池排序 rank：与 Java `CardLibrary.cards` 的 HashMap 迭代序一致。
+///
+/// `generated::CARDS` 的声明序 = `CardLibrary.add(...)` 的调用序（按颜色分组、组内类名升序），
+/// 所以直接用它作为“插入序”喂给 `java_hashmap_order` 即可得到真实池序。
+///
+/// 返回 `Vec<usize>`：值越小越靠前（= 池内下标）。
+pub fn card_pool_rank() -> &'static [usize] {
+    use std::sync::OnceLock;
+    static RANK: OnceLock<Vec<usize>> = OnceLock::new();
+    RANK.get_or_init(|| {
+        let ids: Vec<&str> = crate::generated::CARDS.iter().map(|d| d.id).collect();
+        let order = java_hashmap_order(&ids);
+        let mut rank = vec![usize::MAX; ids.len()];
+        for (pos, &idx) in order.iter().enumerate() {
+            rank[idx] = pos;
+        }
+        rank
+    })
+}
+
+/// 某张卡在池内的排序键（供 filter+sort 使用）
+pub fn card_pool_pos(def: &crate::effects::CardDef) -> usize {
+    let idx = crate::generated::CARDS
+        .iter()
+        .position(|d| std::ptr::eq(d, def))
+        .unwrap_or(usize::MAX);
+    card_pool_rank().get(idx).copied().unwrap_or(usize::MAX)
+}
