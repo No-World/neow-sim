@@ -665,8 +665,16 @@ mod tests {
         let deck_before = run.deck.len();
         run.settle_combat(0);
         assert_eq!(run.act, 2, "转幕");
-        assert!(run.relics.len() > relics_before, "Boss 战利入栏");
-        assert!(run.deck.len() > deck_before, "幕间卡牌入组");
+        // Boss 战利改为「3 候选待决策」（真游戏 BossRelicScreen 可 3 选 1 或跳过），
+        // 不再自动发放；幕间卡牌也改为 CardReward 奖励项。
+        assert_eq!(run.boss_relic_candidates.len(), 3, "Boss 遗物 3 候选");
+        assert_eq!(run.relics.len(), relics_before, "未自动发放");
+        let has_card_reward = run
+            .rewards
+            .iter()
+            .any(|r| matches!(r, RewardItem::CardReward(_)));
+        assert!(has_card_reward, "幕间卡牌作为 CardReward 待选");
+        assert_eq!(run.deck.len(), deck_before, "未自动入组");
     }
 
     /// 奖励管线：金币区间/药水怜悯/暴雪偏移/卡牌去重/稀有度
@@ -1367,6 +1375,8 @@ pub enum RewardItem {
 
 /// 整局状态：幕/层/遭遇序列/当前战斗
 pub struct RunState {
+    /// Boss 遗物 3 选 1 的候选（真游戏 BossRelicScreen：可跳过换取能量/金币）
+    pub boss_relic_candidates: Vec<crate::relics::RelicKind>,
     /// 遗物预洗池（initializeRelicList：5 个 tier 各洗一次，之后只 remove(0)）
     pub relic_pools: std::collections::HashMap<&'static str, Vec<crate::relics::RelicKind>>,
     /// 战斗结束时是否有偷钱怪成功逃逸（AbstractRoom.mugged）
@@ -1542,6 +1552,7 @@ impl RunState {
             map_started: false,
             combat_mugged: false,
             relic_pools: std::collections::HashMap::new(),
+            boss_relic_candidates: Vec::new(),
             rest_available: false,
         };
         s.populate_act();
@@ -1808,7 +1819,23 @@ impl RunState {
         if y + 1 >= MAP_HEIGHT {
             return;
         }
-        let next_x = self.map.rows[y][x].edges[edge_idx];
+        // edge_idx 语义：有边时是边下标；WingedGreaves 跨节点时是目标列
+        let cols = self.next_columns();
+        let next_x = if edge_idx < self.map.rows[y][x].edges.len() {
+            self.map.rows[y][x].edges[edge_idx]
+        } else {
+            *cols.get(edge_idx).unwrap_or(&self.map.rows[y][x].edges[0])
+        };
+        // WingedGreaves：跨非连通节点时消耗 1 次
+        if self.winged_greaves_active() && !self.map.rows[y][x].edges.contains(&next_x) {
+            if let Some(r) = self
+                .relics
+                .iter_mut()
+                .find(|r| r.kind == crate::relics::RelicKind::WingedGreaves)
+            {
+                r.counter -= 1;
+            }
+        }
         self.pos = (y + 1, next_x);
         self.floor += 1;
     }
@@ -1821,6 +1848,38 @@ impl RunState {
         (0..MAP_WIDTH)
             .filter(|x| self.map.rows[0][*x].room.is_some() && !self.map.rows[0][*x].edges.is_empty())
             .collect()
+    }
+
+    /// WingedGreaves 是否可用（counter > 0）
+    pub fn winged_greaves_active(&self) -> bool {
+        self.relics
+            .iter()
+            .any(|r| r.kind == crate::relics::RelicKind::WingedGreaves && r.counter > 0)
+    }
+
+    /// 下一步可去的列（含 WingedGreaves 的「跨任意节点」）
+    ///
+    /// 真游戏 `MapRoomNode.wingedIsConnectedTo`：持有 WingedGreaves 且 counter > 0 时，
+    /// **下一行任意节点**都算连通（不看 dstX）。选点后 counter -= 1，归零则遗物失效。
+    pub fn next_columns(&self) -> Vec<usize> {
+        if !self.map_started {
+            return self.start_columns();
+        }
+        let (y, x) = self.pos;
+        if y + 1 >= MAP_HEIGHT {
+            return Vec::new();
+        }
+        let mut cols: Vec<usize> = self.map.rows[y][x].edges.clone();
+        if self.winged_greaves_active() {
+            // 全行可选
+            for nx in 0..MAP_WIDTH {
+                if self.map.rows[y + 1][nx].room.is_some() && !cols.contains(&nx) {
+                    cols.push(nx);
+                }
+            }
+            cols.sort_unstable();
+        }
+        cols
     }
 
     /// 进入当前节点的房间。战斗类经 `Combat::new_run_battle` 注入主牌组/药水栏/
@@ -1853,7 +1912,8 @@ impl RunState {
                 };
                 let relics: Vec<_> = self.relics.clone();
                 // 战斗继承整局 RNG 流（真游戏里的全局流贯穿整局，不是每战重播种）
-                self.combat = Some(Combat::new_run_battle_with_rng(
+                let boss_vocab = self.boss.first().map(|k| (*k as i32 as f32 + 1.0) / 80.0).unwrap_or(0.0);
+                let mut cb = Combat::new_run_battle_with_rng(
                     self.rng.clone(),
                     self.ascension,
                     &kinds,
@@ -1863,7 +1923,9 @@ impl RunState {
                     self.player.hp,
                     self.player.max_hp,
                     self.player.gold,
-                ));
+                );
+                cb.boss_vocab = boss_vocab;
+                self.combat = Some(cb);
                 // 战斗内喝掉的药水同步回局外
             }
             Some(RoomKind::Rest) => {
@@ -2403,11 +2465,16 @@ impl RunState {
     }
 
     /// Boss 战利：从遗物池 roll 3 候选后发放第一只（决策面属协议层）
+    /// Boss 战利：从 BOSS 预洗池取 3 只作为候选（**不自动发放**）。
+    ///
+    /// 真游戏 BossRelicScreen 是 3 选 1，且**可以跳过**（跳过换 +1 能量或金币）。
+    /// 之前实现直接发放第一只 —— 剥夺了「跳过」这个关键决策。
     fn boss_relic_reward(&mut self) {
-        // Boss 战利：从 BOSS 预洗池 remove(0)（决策面属协议层）
-        if let Some(k) = self.pop_pooled_relic("BOSS") {
-            self.relics.push(crate::relics::RelicInst::new(k));
-            self.relic_on_obtain(k);
+        self.boss_relic_candidates.clear();
+        for _ in 0..3 {
+            if let Some(k) = self.pop_pooled_relic("BOSS") {
+                self.boss_relic_candidates.push(k);
+            }
         }
     }
 
@@ -2488,15 +2555,18 @@ impl RunState {
                     self.won = true;
                 } else {
                     // Boss 战利（简化：roll 后直接发放——三选一决策面属协议层）
+                    // Boss 战利：生成 3 候选，由协议层/BossRelicChoice 状态决策
                     self.boss_relic_reward();
-                    // 幕间卡牌奖励（Boss 恒稀有）
+                    // 幕间卡牌奖励（Boss 恒稀有）：3 张候选，同样交给决策层
                     let mut cards = Vec::new();
                     for _ in 0..3 {
                         let rarity = self.roll_rarity(true);
                         let card = self.pick_card(rarity, &cards);
                         cards.push(card);
                     }
-                    self.deck.extend(cards);
+                    // 作为 CardReward 奖励项（而不是直接塞进 deck）
+                    self.rewards
+                        .push(RewardItem::CardReward(cards));
                     self.act += 1;
                     // 新幕：mapRng 重新播种（不复用旧流），miscRng = seed + floorNum
                     self.rng.map = StsRandom::new(map_seed(self.seed, self.act));
@@ -2812,6 +2882,19 @@ impl RunState {
             }
         }
         None
+    }
+
+    /// 选择第 i 只 Boss 遗物（i 越界 = 跳过，换 +1 能量）
+    pub fn choose_boss_relic(&mut self, idx: usize) {
+        if idx < self.boss_relic_candidates.len() {
+            let k = self.boss_relic_candidates[idx];
+            self.relics.push(crate::relics::RelicInst::new(k));
+            self.relic_on_obtain(k);
+        } else {
+            // 跳过：真游戏给 +1 能量（BossRelicScreen 的 skip 奖励）
+            self.player.max_hp += 0; // 占位；能量由下一场战斗体现
+        }
+        self.boss_relic_candidates.clear();
     }
 
     /// PotionHelper.getRandomPotion + 入槽（满槽丢弃）

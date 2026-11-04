@@ -560,6 +560,8 @@ fn power_kind(pid: &str) -> Option<PowerKind> {
 
 #[derive(Clone)]
 pub struct Combat {
+    /// 本幕 Boss 的 vocab 值（进入地图时即可知，用于观测编码）
+    pub boss_vocab: f32,
     /// 战斗中被偷、击败后应归还的金币总额（Looter/Mugger.die → STOLEN_GOLD 奖励）
     pub stolen_gold_rewards: i32,
     pub player: PlayerState,
@@ -944,6 +946,7 @@ impl Combat {
             .map(|k| MonsterState::spawn(*k, ascension, &mut rng.monster_hp))
             .collect();
         let mut c = Combat {
+            boss_vocab: 0.0,
             stolen_gold_rewards: 0,
             player: PlayerState {
                 stance: crate::state::Stance::Neutral,
@@ -1003,6 +1006,7 @@ impl Combat {
             .map(|k| MonsterState::spawn(*k, ascension, &mut rng.monster_hp))
             .collect();
         let mut c = Combat {
+            boss_vocab: 0.0,
             stolen_gold_rewards: 0,
             player: PlayerState {
                 stance: crate::state::Stance::Neutral,

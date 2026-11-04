@@ -392,6 +392,8 @@ pub fn encode_combat(c: &Combat) -> EncodedObservation {
         .iter()
         .any(|p| p.as_ref().map(|p| p.kind) == Some(crate::potions::PotionKind::Fairy));
     gf[17] = if has_fairy { 1.0 } else { 0.0 };
+    // gf[18] = 本幕 Boss（进入地图时即可知；真游戏 DungeonMap 显示 Boss 图标）
+    gf[18] = c.boss_vocab;
 
     w.push(token_type::GLOBAL, [-1, -1, -1], gf);
 
@@ -654,6 +656,17 @@ mod tests {
 // 非战斗屏观测编码（P2-9）
 // ═══════════════════════════════════════════════════════════════
 
+/// 本幕 Boss 的 vocab 值（0 = 未定）
+///
+/// ⚠️ 真游戏进入地图就能看到本幕 Boss（`DungeonMap.boss` 图标），
+/// 玩家据此决定卡组方向。之前完全没编码 —— 模型无法做正确取舍。
+fn boss_vocab_val(run: &RunState) -> f32 {
+    match run.boss.first() {
+        Some(k) => (*k as i32 as f32 + 1.0) / 80.0,
+        None => 0.0,
+    }
+}
+
 /// 编码 RunState（非战斗屏）：事件/奖励/地图/休息/商店
 pub fn encode_run(run: &RunState) -> EncodedObservation {
     let mut w = TokenWriter::new();
@@ -671,6 +684,16 @@ pub fn encode_run(run: &RunState) -> EncodedObservation {
     gf[5] = stance / 3.0;
     gf[8] = run.act as f32 / 3.0; // act 归一化
     gf[9] = run.floor as f32 / 51.0; // floor 归一化
+    // gf[18] = 本幕 Boss（进入地图即可知）；gf[19] = Neow「前 3 战敌人 1HP」剩余
+    gf[18] = boss_vocab_val(run);
+    gf[19] = (run.neow_enemy_kill.min(3) as f32) / 3.0;
+    // gf[20] = WingedGreaves 剩余飞行次数（决定「能否跳过这层去打别的」）
+    gf[20] = run
+        .relics
+        .iter()
+        .find(|r| r.kind == crate::relics::RelicKind::WingedGreaves)
+        .map(|r| r.counter.max(0) as f32 / 3.0)
+        .unwrap_or(0.0);
     w.push(token_type::GLOBAL, [-1, -1, -1], gf);
 
     // [PILE] — 主牌组统计（P2-10: 真实统计）
@@ -806,15 +829,52 @@ pub fn encode_run(run: &RunState) -> EncodedObservation {
         f[1] = log_norm(shop.purge_cost, 999);
         w.push(token_type::SCREEN, [-1, -1, -1], f);
     } else {
-        // 地图屏：候选可达节点 token
+        // 地图屏：**前向可达路线**（从当前位置能走到的所有节点）
         //
-        // 未起步（map_started=false）时真游戏玩家是从「虚拟节点 y=-1」选 row 0 的列，
-        // 候选 = row 0 上有房间的列；起步后候选 = 当前节点的出边目标。
+        // 真游戏玩家做路线规划时关心的是「接下来还能去哪」，而不是已经走过的部分。
+        // 这里从当前节点（未起步时从 row 0 的候选列）做前向 BFS，只编码可达集：
+        //   f[0] 房间类型  f[1] 行  f[2] 列
+        //   f[3] 是否**下一步**可直接选（即当前出边目标）
+        //   f[4] 到该节点的最短步数（距离，用于权衡远近）
+        // 不可达的节点（如已被路径规则绕开的分支）不占 token。
+        let mut dist = [[u8::MAX; MAP_WIDTH]; MAP_HEIGHT];
+        let mut frontier: Vec<(usize, usize)> = Vec::new();
         if !run.map_started {
-            for next_x in run.start_columns().into_iter().take(7) {
-                let next = &run.map.rows[0][next_x];
+            for x in run.start_columns() {
+                dist[0][x] = 0;
+                frontier.push((0, x));
+            }
+        } else {
+            let (py, _px) = run.pos;
+            // 用 next_columns（含 WingedGreaves 的跨节点可达），否则观测里的
+            // 可达集与合法动作不一致 —— 模型会看不到「飞过去」这个选项。
+            for nx in run.next_columns() {
+                if py + 1 < MAP_HEIGHT {
+                    dist[py + 1][nx] = 0;
+                    frontier.push((py + 1, nx));
+                }
+            }
+        }
+        while let Some((y, x)) = frontier.pop() {
+            let d = dist[y][x];
+            for &nx in run.map.rows[y][x].edges.iter() {
+                if y + 1 < MAP_HEIGHT && dist[y + 1][nx] == u8::MAX {
+                    dist[y + 1][nx] = d.saturating_add(1);
+                    frontier.push((y + 1, nx));
+                }
+            }
+        }
+        for y in 0..MAP_HEIGHT {
+            for x in 0..MAP_WIDTH {
+                if dist[y][x] == u8::MAX {
+                    continue; // 不可达
+                }
+                let n = &run.map.rows[y][x];
+                if n.room.is_none() {
+                    continue;
+                }
                 let mut f = [0.0; FEAT_DIM];
-                let rt = match next.room {
+                let rt = match n.room {
                     Some(RoomKind::Monster) => 0.0,
                     Some(RoomKind::Elite) => 1.0,
                     Some(RoomKind::Rest) => 2.0,
@@ -825,33 +885,12 @@ pub fn encode_run(run: &RunState) -> EncodedObservation {
                     None => 7.0,
                 };
                 f[0] = rt / 7.0;
-                f[1] = 1.0 / (MAP_HEIGHT as f32);
-                f[2] = next_x as f32 / (MAP_WIDTH as f32);
+                f[1] = y as f32 / (MAP_HEIGHT as f32);
+                f[2] = x as f32 / (MAP_WIDTH as f32);
+                f[3] = if dist[y][x] == 0 { 1.0 } else { 0.0 };
+                f[4] = dist[y][x] as f32 / 15.0;
                 w.push(token_type::SCREEN, [-1, -1, -1], f);
             }
-            return w.obs;
-        }
-        let (py, px) = run.pos;
-        let node = &run.map.rows[py][px];
-        for &next_x in node.edges.iter().take(7) {
-            if py + 1 >= MAP_HEIGHT { break; }
-            let next = &run.map.rows[py + 1][next_x];
-            let mut f = [0.0; FEAT_DIM];
-            // 房间类型归一化
-            let rt = match next.room {
-                Some(RoomKind::Monster) => 0.0,
-                Some(RoomKind::Elite) => 1.0,
-                Some(RoomKind::Rest) => 2.0,
-                Some(RoomKind::Treasury) => 3.0,
-                Some(RoomKind::Shop) => 4.0,
-                Some(RoomKind::Event) => 5.0,
-                Some(RoomKind::Boss) => 6.0,
-                None => 7.0,
-            };
-            f[0] = rt / 7.0;
-            f[1] = (py + 1) as f32 / (MAP_HEIGHT as f32); // 行位置
-            f[2] = next_x as f32 / (MAP_WIDTH as f32);     // 列位置
-            w.push(token_type::SCREEN, [-1, -1, -1], f);
         }
     }
 
@@ -920,5 +959,65 @@ mod run_tests {
             let obs = encode_run(&run);
             assert!(obs.seq_len <= MAX_T, "seed={seed} seq_len={}", obs.seq_len);
         }
+    }
+}
+
+#[cfg(test)]
+mod decision_info_tests {
+    use super::*;
+
+    /// 决策关键信息必须都在观测里：血量/药水/卡组/Boss/可达路线/飞行次数
+    #[test]
+    fn critical_decision_info_present() {
+        let run = crate::run::RunState::new(42, 0);
+        let obs = encode_run(&run);
+        let g = obs.token_feats[1]; // [GLOBAL]
+        assert!(g[0] > 0.0, "血量比");
+        assert!(g[1] > 0.0, "max_hp");
+        assert!(g[8] > 0.0, "act");
+        // floor 在 Neow 阶段（floor 0）为 0 是正常的，进入地图后才 > 0
+        assert!(g[18] > 0.0, "本幕 Boss 必须可知（进入地图即可见）");
+        // 卡组：PILE token 至少 5 个
+        let piles = obs.token_types[..obs.seq_len]
+            .iter()
+            .filter(|t| **t == token_type::PILE)
+            .count();
+        assert!(piles >= 5, "卡组统计 token");
+        // 地图：可达路线 token（row 0 起至少若干节点）
+        let screens = obs.token_types[..obs.seq_len]
+            .iter()
+            .filter(|t| **t == token_type::SCREEN)
+            .count();
+        assert!(screens > 0, "地图可达集");
+    }
+
+    /// WingedGreaves：持有且 counter>0 时，下一行**任意**节点可达
+    #[test]
+    fn winged_greaves_expands_reachable() {
+        let mut run = crate::run::RunState::new(42, 0);
+        let col = run.start_columns()[0];
+        run.pos = (0, col);
+        run.map_started = true;
+        let base = run.next_columns();
+        run.relics.push(crate::relics::RelicInst {
+            kind: crate::relics::RelicKind::WingedGreaves,
+            counter: 3,
+        });
+        let winged = run.next_columns();
+        assert!(
+            winged.len() >= base.len(),
+            "WingedGreaves 不应减少可达集（base={:?} winged={:?}）",
+            base,
+            winged
+        );
+        assert!(run.winged_greaves_active());
+        // 消耗一次
+        run.choose_node(winged.len().saturating_sub(1));
+        let r = run
+            .relics
+            .iter()
+            .find(|r| r.kind == crate::relics::RelicKind::WingedGreaves)
+            .unwrap();
+        assert!(r.counter <= 3);
     }
 }

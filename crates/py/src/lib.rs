@@ -50,6 +50,7 @@ enum GameState {
     RewardScreen, // 奖励屏
     RestChoice,   // 休息选项
     ShopScreen,   // 商店（简化：跳过）
+    BossRelicChoice, // Boss 遗物 3 选 1（可跳过）
     Done,         // 游戏结束
 }
 
@@ -473,6 +474,10 @@ impl GymEnv {
         } else if self.run.event.is_some() {
             self.state = GameState::EventChoice;
             self.update_run_obs();
+        } else if !self.run.boss_relic_candidates.is_empty() {
+            self.state = GameState::BossRelicChoice;
+            self.legal = Some(self.make_boss_relic_legal());
+            self.update_run_obs();
         } else if !self.run.rewards.is_empty() {
             self.state = GameState::RewardScreen;
             self.update_run_obs();
@@ -510,6 +515,15 @@ impl GymEnv {
                 self.state = GameState::MapNode;
                 self.legal = Some(self.make_map_legal());
                 self.update_run_obs();
+                Ok(0.0)
+            }
+            GameState::BossRelicChoice => {
+                if ty == action_type::SKIP_REWARD {
+                    self.run.choose_boss_relic(usize::MAX);
+                } else {
+                    self.run.choose_boss_relic(entity.max(0) as usize);
+                }
+                self.update_state();
                 Ok(0.0)
             }
             GameState::Combat => self.combat_step(ty, entity, target),
@@ -583,9 +597,21 @@ impl GymEnv {
                     }
                 } else {
                     // 按下标领取指定项（而非全拿）
+                    //
+                    // entity 编码：奖励项下标。对 CardReward，候选下标用 target
+                    // （-1 = 取第 0 张）。这样「3 选 1」是可决策的，而不是强制取第一张。
                     let idx = entity.max(0) as usize;
                     if idx < self.run.rewards.len() {
-                        self.run.take_reward(idx);
+                        match &self.run.rewards[idx] {
+                            RewardItem::CardReward(cands) => {
+                                let pick = if target >= 0 { target as usize } else { 0 };
+                                if let Some(c) = cands.get(pick).cloned() {
+                                    self.run.deck.push(c);
+                                }
+                                self.run.rewards.remove(idx);
+                            }
+                            _ => self.run.take_reward(idx),
+                        }
                     }
                     // 如果还有奖励项，停留在奖励屏
                     if !self.run.rewards.is_empty() {
@@ -811,6 +837,24 @@ impl GymEnv {
         }
     }
 
+    /// Boss 遗物选择：逐项 + 跳过（真游戏 BossRelicScreen 可跳过）
+    fn make_boss_relic_legal(&self) -> LegalActions {
+        let mut flat = Vec::new();
+        for i in 0..self.run.boss_relic_candidates.len() {
+            flat.push(FlatAction {
+                action_type: action_type::CHOOSE_EVENT,
+                entity: i as i32,
+                target: -1,
+            });
+        }
+        flat.push(FlatAction {
+            action_type: action_type::SKIP_REWARD,
+            entity: -1,
+            target: -1,
+        });
+        LegalActions { flat, screen: 7 }
+    }
+
     /// 地图屏合法动作：未起步时列 row 0 可选列；已起步则列出当前节点的出边
     fn make_map_legal(&self) -> LegalActions {
         let mut flat = Vec::new();
@@ -823,15 +867,19 @@ impl GymEnv {
                 });
             }
         } else {
-            let (y, x) = self.run.pos;
-            if y < MAP_HEIGHT {
-                for (i, dst_x) in self.run.map.rows[y][x].edges.iter().enumerate() {
-                    flat.push(FlatAction {
-                        action_type: action_type::CHOOSE_MAP,
-                        entity: i as i32,      // edge 下标
-                        target: *dst_x as i32, // 目的列
-                    });
-                }
+            // 用 next_columns（含 WingedGreaves 的跨节点可达）。
+            // entity = 下标（前 edges.len() 个是普通边，之后是飞行目标），
+            // target = 目标列。
+            let cols = self.run.next_columns();
+            let n_edges = self.run.map.rows[self.run.pos.0][self.run.pos.1].edges.len();
+            for (i, dst_x) in cols.iter().enumerate() {
+                let is_flight = i >= n_edges;
+                flat.push(FlatAction {
+                    action_type: action_type::CHOOSE_MAP,
+                    entity: i as i32,
+                    target: *dst_x as i32,
+                });
+                let _ = is_flight;
             }
         }
         if flat.is_empty() {
@@ -903,11 +951,24 @@ impl GymEnv {
                 let n = self.run.rewards.len();
                 let mut flat = Vec::with_capacity(n * 2 + 1);
                 for i in 0..n {
-                    flat.push(FlatAction {
-                        action_type: action_type::TAKE_REWARD,
-                        entity: i as i32,
-                        target: -1,
-                    });
+                    // CardReward：每个候选单独一个动作（entity=奖励下标, target=候选下标）
+                    // 这样「3 选 1」与「跳过」都在动作空间里
+                    match &self.run.rewards[i] {
+                        RewardItem::CardReward(cands) => {
+                            for (k, _) in cands.iter().enumerate() {
+                                flat.push(FlatAction {
+                                    action_type: action_type::TAKE_REWARD,
+                                    entity: i as i32,
+                                    target: k as i32,
+                                });
+                            }
+                        }
+                        _ => flat.push(FlatAction {
+                            action_type: action_type::TAKE_REWARD,
+                            entity: i as i32,
+                            target: -1,
+                        }),
+                    }
                 }
                 for i in 0..n {
                     flat.push(FlatAction {
