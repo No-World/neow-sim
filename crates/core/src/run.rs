@@ -2298,6 +2298,18 @@ impl RunState {
     fn relic_on_obtain(&mut self, kind: crate::relics::RelicKind) {
         use crate::relics::RelicKind;
         match kind {
+            // WingBoots.java 构造器：`this.counter = 3`（获得即 3 次飞行）
+            // ⚠️ 幕间**不重置**：`relicsToRemoveOnStart.add("WingedGreaves")` 只在
+            // Flight mod 启用时生效（自定义模式），常规流程无重置逻辑。
+            RelicKind::WingedGreaves => {
+                if let Some(r) = self
+                    .relics
+                    .iter_mut()
+                    .find(|r| r.kind == RelicKind::WingedGreaves)
+                {
+                    r.counter = 3;
+                }
+            }
             // Strawberry.java：Max HP +7
             RelicKind::Strawberry => {
                 self.player.max_hp += 7;
@@ -2884,16 +2896,18 @@ impl RunState {
         None
     }
 
-    /// 选择第 i 只 Boss 遗物（i 越界 = 跳过，换 +1 能量）
+    /// 选择第 i 只 Boss 遗物；i 越界 = 跳过
+    ///
+    /// ⚠️ 查证结论：真游戏 `BossRelicSelectScreen.relicSkipLogic()` 只是关闭屏幕
+    /// （`closeCurrentScreen` + `proceedButton.hide`），**不发放任何能量/金币补偿**。
+    /// 之前我写的「跳过换 +1 能量」是错的，已删除。
     pub fn choose_boss_relic(&mut self, idx: usize) {
         if idx < self.boss_relic_candidates.len() {
             let k = self.boss_relic_candidates[idx];
             self.relics.push(crate::relics::RelicInst::new(k));
             self.relic_on_obtain(k);
-        } else {
-            // 跳过：真游戏给 +1 能量（BossRelicScreen 的 skip 奖励）
-            self.player.max_hp += 0; // 占位；能量由下一场战斗体现
         }
+        // 跳过：无补偿（与源码一致）
         self.boss_relic_candidates.clear();
     }
 
