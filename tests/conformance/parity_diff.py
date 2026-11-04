@@ -74,27 +74,41 @@ def load(path):
 # GymEnv.info 目前是扁平 JSON 字符串；扩展自 pyo3 的 state_json() 后
 # 这里直接读结构化状态。先做兼容降级。
 
-def engine_snapshot(env):
-    raw = env.info
-    try:
-        d = json.loads(raw)
-    except Exception:
-        d = {}
-    out = {
-        "hp": d.get("hp"),
-        "max_hp": d.get("max_hp"),
-        "gold": d.get("gold"),
-        "act": d.get("act"),
-        "floor": d.get("floor"),
-        "state": d.get("state"),
-    }
-    sj = getattr(env, "state_json", None)
-    if sj is not None:
-        try:
-            out.update(json.loads(sj()))
-        except Exception:
-            pass
+def normalize(d):
+    """把引擎/bridge 的状态都摊平成同一套顶层键。
+
+    引擎 state_json 把 hp/max_hp/gold/act/floor/rng 放在 `meta` 下；
+    bridge snapshot 放在 `player` 下。统一提到顶层，relics 统一成 (id, counter) 对。
+    """
+    if not d:
+        return {}
+    out = dict(d)
+    meta = out.pop("meta", None) or {}
+    for k in ("hp", "max_hp", "gold", "act", "floor", "rng"):
+        if k not in out and k in meta:
+            out[k] = meta[k]
+    pl = out.get("player") or {}
+    for k in ("hp", "max_hp", "gold", "block", "energy"):
+        if out.get(k) is None and pl.get(k) is not None:
+            out[k] = pl[k]
+    rel = out.get("relics")
+    if rel and isinstance(rel[0], dict):
+        out["relics"] = [(r.get("id"), r.get("counter")) for r in rel]
+    piles = out.get("piles")
+    if piles is None and any(k.endswith("_n") for k in out):
+        out["piles"] = {
+            "draw_pile_n": out.get("draw_pile_n"),
+            "discard_pile_n": out.get("discard_pile_n"),
+            "exhaust_pile_n": out.get("exhaust_pile_n"),
+        }
     return out
+
+
+def engine_snapshot(env):
+    sj = getattr(env, "state_json", None)
+    if sj is None:
+        return normalize(json.loads(env.info))
+    return normalize(json.loads(sj()))
 
 
 # ── 比对 ────────────────────────────────────────────────────────
@@ -112,25 +126,43 @@ def norm_hand(hand):
     return out
 
 
+def _norm_intent(v):
+    """bridge 用 'BUFF'/'ATTACK_DEBUFF'，引擎 Debug 名是 'Buff'/'AttackDebuff'——统一成大写去下划线。"""
+    if not v:
+        return None
+    return str(v).replace("_", "").upper()
+
+
 def norm_monsters(ms):
+    """归一化怪物列表。
+
+    口径差异处理：
+      - bridge 会把已死怪物（hp=0）留在 monsters 数组里直到结算动画跑完；
+        引擎直接移除。两边都统一成「hp>0 才算在列」。
+      - is_gone（逃离/移除）两侧都是跳过。
+    """
     out = []
     for m in ms or []:
         if m.get("is_gone"):
+            continue
+        if m.get("hp") is not None and m["hp"] <= 0:
             continue
         pw = m.get("powers") or []
         if pw and isinstance(pw[0], dict):
             pw = sorted((p.get("id"), p.get("amount")) for p in pw)
         else:
             pw = sorted(tuple(p) for p in pw)
-        it = m.get("intent") or {}
+        it = m.get("intent")
+        if not isinstance(it, dict):
+            it = {}
         out.append({
             "id": m.get("id"),
             "hp": m.get("hp"),
             "max_hp": m.get("max_hp"),
             "block": m.get("block", 0),
             "powers": pw,
-            "intent_type": it.get("type"),
-            "intent_dmg": it.get("damage"),
+            "intent_type": _norm_intent(it.get("type") or m.get("intent")),
+            "intent_dmg": it.get("damage") if it.get("damage") is not None else m.get("intent_dmg"),
         })
     return out
 
@@ -168,9 +200,11 @@ def diff_state(want, got, fields, prefix=""):
             diffs.append((prefix + "monsters", wm, gm))
 
     if "piles" in fields:
+        wp = want.get("piles") or {}
+        gp = got.get("piles") or {}
         for k in ("draw_pile_n", "discard_pile_n", "exhaust_pile_n"):
-            if want.get(k) != got.get(k):
-                diffs.append((prefix + k, want.get(k), got.get(k)))
+            if wp.get(k) != gp.get(k):
+                diffs.append((prefix + k, wp.get(k), gp.get(k)))
 
     if "relics" in fields:
         if want.get("relics") != got.get("relics"):
@@ -235,7 +269,7 @@ def run_trace(path, fields, seed_override=None, verbose=False, max_report=40):
             break
         steps += 1
 
-        want = r.get("state")
+        want = normalize(r.get("state"))
         if not want:
             continue
         got = engine_snapshot(env)

@@ -4769,20 +4769,9 @@ impl Combat {
         match a {
             Q::DamageMonster { target, dmg } => {
                 if self.alive(target) {
-                    // Curl Up：首次受到非致死 NORMAL 伤害 → 获得 amount 格挡后移除
-                    // （onAttacked 在 decrementBlock 前触发，故本次伤害即被吸收）
-                    if dmg > 0 && dmg < self.monsters[target].creature.hp {
-                        if let Some(idx) = self.monsters[target]
-                            .creature
-                            .powers
-                            .iter()
-                            .position(|pw| pw.kind == PowerKind::CurlUp)
-                        {
-                            let amt = self.monsters[target].creature.powers[idx].amount;
-                            self.monsters[target].creature.powers.remove(idx);
-                            self.monsters[target].creature.block += amt;
-                        }
-                    }
+                    // Curl Up 统一在 hit_monster 内处理（顺序：先扣血后加格挡，
+                    // 对应 Java CurlUpPower.onAttacked 的 addToBot(GainBlockAction)）。
+                    // 此处不可重复实现，否则格挡会提前加上并吸收本次伤害。
                     // 怪物荆棘（Spiker 系）：ThornsPower.onAttacked ——
                     // 玩家 NORMAL 攻击命中（output>0，含致死）→ 反弹 THORNS 伤
                     // （无视格挡；不递归——THORNS 型不再触发对方荆棘）
@@ -6329,15 +6318,29 @@ impl Combat {
                 }
             }
             let dmg = dmg;
-            if dmg > 0 && dmg < cr.hp {
-                if let Some(idx) = cr.powers.iter().position(|p| p.kind == PowerKind::CurlUp) {
-                    let amt = cr.powers[idx].amount;
-                    cr.powers.remove(idx);
-                    cr.block += amt;
-                }
-            }
+            // Curl Up 判定（onAttacked）：条件是**原始伤害** < 当前血量，且为 NORMAL。
+            // ⚠️ 关键顺序：Java 的 CurlUpPower.onAttacked 用 `addToBot(GainBlockAction)`，
+            // 即格挡**排队到本次伤害结算之后**才加。若先加格挡再扣血，格挡会吸收本次
+            // 伤害（实测桥接：Louse 15hp 被打 6 → 真游戏 9hp+6block，引擎错误地 15hp+0block）。
+            let curl_up = if dmg > 0
+                && dmg < cr.hp
+                && ty == DamageType::Normal
+                && cr.powers.iter().any(|p| p.kind == PowerKind::CurlUp)
+            {
+                cr.powers
+                    .iter()
+                    .find(|p| p.kind == PowerKind::CurlUp)
+                    .map(|p| p.amount)
+            } else {
+                None
+            };
             hp_before = cr.hp;
             cr.apply_damage(dmg);
+            // 伤害结算后才获得格挡并移除该 power
+            if let Some(amt) = curl_up {
+                cr.powers.retain(|p| p.kind != PowerKind::CurlUp);
+                cr.block += amt;
+            }
             let alive_after = cr.hp > 0;
             let hp_lost = hp_before - cr.hp;
             if alive_after && dmg > 0 && ty == DamageType::Normal {
@@ -8758,8 +8761,12 @@ mod tests {
             index: 0,
             target: Some(0),
         });
+        // ⚠️ 真游戏语义（CurlUpPower.onAttacked）：格挡由 addToBot(GainBlockAction)
+        // **排队到本次伤害结算之后**才加，所以本次打击吃满 6 点伤害，
+        // 之后才获得 {curl} 点格挡。若写成「先加格挡再扣血」，格挡会吸收本次伤害。
         let hp_loss = hp0 - c.monsters[0].creature.hp;
-        assert_eq!(hp_loss, (6 - curl).max(0), "6伤-蜷缩{curl}");
+        assert_eq!(hp_loss, 6, "蜷缩不吸收触发它的那次伤害（curl={curl}）");
+        assert_eq!(c.monsters[0].creature.block, curl, "伤害结算后获得 curl 格挡");
         assert!(!c.monsters[0]
             .creature
             .powers
@@ -11414,5 +11421,25 @@ mod tests {
             let def = def.unwrap();
             assert!(engine_playable(def), "{id} 应解锁（{}）", def.id);
         }
+    }
+}
+
+#[cfg(test)]
+mod p3_parity_probe {
+    use super::*;
+
+    /// P3 探针：结束回合后怪物必须真的动手（否则 pyo3/RL 里敌人永不攻击）。
+    /// 复现：真游戏 PMCWKZEF 首战 FuzzyLouseNormal，第一回合末玩家掉 7 血。
+    #[test]
+    fn louse_attacks_on_end_turn() {
+        let mut c = Combat::new_with(1, 0, &[MonsterKind::LouseNormal]);
+        let hp0 = c.player.creature.hp;
+        let nm = c.monsters[0].next_move;
+        c.step(&Action::EndTurn);
+        assert!(
+            c.player.creature.hp < hp0,
+            "怪物回合未造成伤害：next_move={nm} hp {hp0} -> {}",
+            c.player.creature.hp
+        );
     }
 }

@@ -487,7 +487,12 @@ impl MonsterState {
                 } else {
                     hp_rng.random_start_end(5, 7)
                 };
-                (hp, (bite, 3, 0, 0, 0, 0, 0))
+                // ⚠️ MonsterState 的 7 元组字段序见 spawn 末尾的解构：
+                //   .0 chomp_dmg  .1 thrash_dmg  .2 thrash_block  .3 bellow_str
+                //   .4 bellow_block  .5 dark_strike_dmg  .6 ritual_amt
+                // Louse 的 bite 走 monster_turn 的 `dark_strike_dmg` 分支，
+                // 所以必须放 .5（原先放在 .0，导致咬击伤害恒为 0）。
+                (hp, (0, 0, 0, 0, 0, bite, 3))
             }
             MonsterKind::FungiBeast => {
                 let (lo, hi) = if ascension >= 7 { (24, 28) } else { (22, 28) };
@@ -502,7 +507,7 @@ impl MonsterState {
                 } else {
                     hp_rng.random_start_end(5, 7)
                 };
-                (hp, (bite, 2, 0, 0, 0, 0, 0))
+                (hp, (0, 0, 0, 0, 0, bite, 2))
             }
             MonsterKind::SpikeSlimeS => {
                 let (lo, hi) = if ascension >= 7 { (11, 15) } else { (10, 14) };

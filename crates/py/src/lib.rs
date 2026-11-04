@@ -339,8 +339,10 @@ impl GymEnv {
                 if !first { o.push(','); }
                 first = false;
                 o.push_str(&format!(
-                    "{{\"id\":\"{}\",\"hp\":{},\"max_hp\":{},\"block\":{},\"powers\":[",
-                    m.kind.id(), m.creature.hp, m.creature.max_hp, m.creature.block
+                    "{{\"id\":\"{}\",\"hp\":{},\"max_hp\":{},\"block\":{},\"intent\":\"{:?}\",\"intent_dmg\":{},\"powers\":[",
+                    m.kind.id(), m.creature.hp, m.creature.max_hp, m.creature.block,
+                    m.intent(),
+                    m.move_base_damage().map(|d| d.to_string()).unwrap_or_else(|| "null".into())
                 ));
                 for (j, pw) in m.creature.powers.iter().enumerate() {
                     if j > 0 { o.push(','); }

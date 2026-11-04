@@ -18,7 +18,7 @@ import socket
 import sys
 import time
 
-HOST, PORT = "127.0.0.1", 37771
+HOST, PORT = "127.0.0.1", int(os.environ.get("NEOW_BRIDGE_PORT", "37771"))
 _id = [0]
 
 
@@ -69,67 +69,86 @@ class Rpc:
 
 # ── 动作选取（启发式，够用即可；目标是产出轨迹不是赢） ────────────
 
-def pick_action(obs, info):
-    """返回 bridge action dict，或 None 表示不会再推进。"""
+def select_indices(obs):
+    """从 screen payload 读 num_to_select / can_pick_zero，给出要选的下标。
+
+    hand_select / grid_select / scry 的 payload 形如：
+      {"type":"hand_select","num_to_select":1,"max_to_select":1,"can_pick_zero":false}
+    """
+    scr = obs.get("screen") or {}
+    n = scr.get("num_to_select")
+    if n is None:
+        n = scr.get("num", 0)
+    n = int(n or 0)
+    if n <= 0:
+        return []
+    # -1 表示「任意数量」；至少选 1 张
+    if n < 0:
+        n = 1
+    return list(range(n))
+
+
+# 非战斗屏的动作优先级：优先「推进流程」的动作，最后才 cancel
+PREF = ("reward", "card_pick", "chest_open", "boss", "card_bowl",
+        "grid_select", "hand_select", "scry", "discovery", "stance_choice",
+        "event", "rest", "map", "shop_buy_card", "shop_buy_relic",
+        "shop_buy_potion", "shop_card_removal", "proceed", "skip")
+
+
+def pick_action(obs, info, legal=None):
+    """返回 bridge action dict，或 None 表示不会再推进。
+
+    ⚠️ 合法动作在 bridge 响应的 `result.legal_actions`，不在 observation 里。
+    非战斗屏直接按 PREF 优先序从合法动作里挑，不要自己猜 node_index/index。
+    """
     screen = info.get("screen", "")
-    legal = obs.get("legal", []) or []
+    if legal is None:
+        legal = obs.get("legal", []) or []
+    if not legal:
+        return None
 
     if screen == "combat":
-        # 优先打攻击牌打最低血怪；否则防御；否则结束回合
         monsters = [m for m in (obs.get("monsters") or []) if not m.get("is_gone")]
         plays = [a for a in legal if a.get("type") == "play"]
-        if plays:
-            def score(a):
-                cid = a.get("card_id", "")
-                if "Strike" in cid or "Bash" in cid:
-                    return 0
-                if "Defend" in cid:
-                    return 1
-                return 2
-            plays.sort(key=score)
-            a = dict(plays[0])
-            if a.get("target") is None and monsters:
-                a["target"] = min(range(len(monsters)), key=lambda i: monsters[i]["hp"])
-            return a
-        return {"type": "end_turn"}
 
-    if screen == "map":
-        nodes = obs.get("next_nodes") or obs.get("nodes") or []
-        for i, n in enumerate(nodes):
-            if n.get("available", True):
-                return {"type": "map", "node_index": n.get("index", i)}
-        return {"type": "map", "node_index": 0}
+        def score(a):
+            cid = a.get("card_id", "")
+            if "Strike" in cid or "Bash" in cid:
+                return 0
+            if "Defend" in cid:
+                return 1
+            return 2
 
-    if screen == "event":
-        choices = obs.get("choices") or []
-        for c in choices:
-            if not c.get("disabled"):
-                return {"type": "event", "option_index": c.get("index", 0)}
-        return {"type": "event", "option_index": 0}
+        # 优先打攻击牌；没有可打的攻击再考虑其它牌；最后结束回合
+        plays.sort(key=score)
+        alive = [m for m in monsters if m.get("hp", 1) > 0]
+        for a in plays:
+            act = dict(a)
+            if act.get("target") is None and alive:
+                # 必须用怪物自带的 index（Obs 里 monsters[i].index），
+                # 不能用过滤后列表的下标——死掉的怪仍占数组位置。
+                tgt = min(alive, key=lambda m: m["hp"])
+                act["target"] = tgt.get("index", 0)
+            return act
+        for a in legal:
+            if a.get("type") == "end_turn":
+                return dict(a)
+        return dict(legal[0])
 
-    if screen in ("reward", "card_reward"):
-        if screen == "card_reward" or obs.get("cards"):
-            return {"type": "card_pick", "index": 0}
-        for r in legal:
-            if r.get("type") in ("reward", "skip"):
-                return dict(r)
-        return {"type": "proceed"}
-
-    if screen == "rest":
-        return {"type": "rest", "option": "sleep"}
-
-    if screen == "shop":
-        return {"type": "proceed"}
-
-    if screen == "boss_relic":
-        return {"type": "boss", "index": 0}
-
-    if screen == "treasure":
-        return {"type": "chest_open"}
-
+    # 非战斗：按优先序
+    for want in PREF:
+        for a in legal:
+            if a.get("type") == want:
+                act = dict(a)
+                # 选择类动作需要 indices；没给就补 [0]（有可选牌时）
+                if want in ("grid_select", "hand_select", "scry") and "indices" not in act:
+                    act["indices"] = select_indices(obs)
+                return act
+    # 兜底：第一个不是 cancel 的
     for a in legal:
-        return dict(a)
-    return None
+        if a.get("type") != "cancel":
+            return dict(a)
+    return dict(legal[0])
 
 
 def snapshot(resp):
@@ -177,6 +196,8 @@ def snapshot(resp):
         "draw_pile_n": (obs.get("draw_pile") or {}).get("count"),
         "discard_pile_n": (obs.get("discard_pile") or {}).get("count"),
         "exhaust_pile_n": (obs.get("exhaust_pile") or {}).get("count"),
+        "deck": [(c.get("id"), bool(c.get("upgraded")))
+                 for c in ((obs.get("master_deck") or {}).get("cards") or [])],
         "relics": [(r.get("id"), r.get("counter")) for r in (obs.get("relics") or [])],
         "rng": {k: v.get("counter") if isinstance(v, dict) else v
                 for k, v in (obs.get("rng") or {}).items()},
