@@ -2458,18 +2458,19 @@ impl Combat {
     fn gremlin_nob_get_move(&mut self, i: usize, num: i32) -> u8 {
         // GremlinNob.getMove（源码逐行，A<18 分支）：
         //   if (!usedBellow) { usedBellow = true; setMove(3, BUFF); return; }
-        //   if (num < 33)      → lastTwoMoves(1) ? move2 : move1
-        //   else               → lastTwoMoves(1) ? move2 : move1
-        // 即两个分支结构**相同**：只有「连续两次 Bull Rush」才切 Skull Bash。
-        // （A18+ 分支不同：先判 lastMove(2)/lastMoveBefore(2)）
-        // ⚠️ 原实现把 num<33 直接当成 move 2，且首招用 first_move 判 Bellow，
-        //    导致第二次行动就出 Skull Bash（意图 6 而非 14）。
+        //   if (num < 33) → **无条件 move 2（Skull Bash）**，直接 return
+        //   else if (lastTwoMoves(1)) → move 2（Skull Bash）
+        //   else                      → move 1（Bull Rush）
+        // ⚠️ 两个分支**不对称**：num<33 时不看历史，直接 Skull Bash。
+        //    （A18+ 分支又不同：先判 lastMove(2)/lastMoveBefore(2)）
         let h = &self.monsters[i].move_history;
         if h.is_empty() {
             return 3; // Bellow（用 move_history 判首次，等价于 usedBellow）
         }
+        if num < 33 {
+            return 2;
+        }
         let last2_rush = h.len() >= 2 && h[h.len() - 1] == 1 && h[h.len() - 2] == 1;
-        let _ = num; // A<18 下 num 不改变结果
         if last2_rush {
             2
         } else {
@@ -3206,9 +3207,6 @@ impl Combat {
                 //   case 3 ESCAPE：逃跑（escaped=true，全员逃离则战斗结束）
                 // 字段：chomp_dmg=swipeDmg, thrash_block=lungeDmg, thrash_dmg=goldAmt
                 1 => {
-                    if std::env::var("NEOW_TRACE_LOOTER").is_ok() {
-                        eprintln!("[LOOT] move1 slashCount={} next_move_before={}", m.burn_upgraded, m.next_move);
-                    }
                     // talk 判定：`slashCount == 0 && aiRng.randomBoolean(0.6f)`
                     // Java 是短路求值：slashCount != 0 时不调用 randomBoolean。
                     // ⇒ slashCount==0（首次 MUG）时必须掷一次，之后不掷。
@@ -3226,9 +3224,6 @@ impl Combat {
                         base: m.chomp_dmg,
                     });
                     let slash = m.burn_upgraded + 1;
-                    if std::env::var("NEOW_TRACE_LOOTER").is_ok() {
-                        eprintln!("[LOOT] setting slashCount {} -> {}", m.burn_upgraded, slash);
-                    }
                     q.push(Q::SetMonsterCounter { target: i, value: slash });
                     if slash == 2 {
                         if self.rng.ai.random_boolean_chance(0.5) {
@@ -3241,9 +3236,6 @@ impl Combat {
                     }
                 }
                 4 => {
-                    if std::env::var("NEOW_TRACE_LOOTER").is_ok() {
-                        eprintln!("[LOOT] move4 lunge={} slashCount={}", m.thrash_block, m.burn_upgraded);
-                    }
                     q.push(Q::StealGold {
                         src: i,
                         amount: m.thrash_dmg.max(0),
@@ -6472,9 +6464,6 @@ impl Combat {
         ) && self.monsters[i].bellow_block > 0
         {
             let amt = self.monsters[i].bellow_block;
-            if std::env::var("NEOW_TRACE_LOOTER").is_ok() {
-                eprintln!("[LOOT] die -> stolen_gold_rewards += {amt}");
-            }
             self.stolen_gold_rewards += amt;
             self.monsters[i].bellow_block = 0;
         }
