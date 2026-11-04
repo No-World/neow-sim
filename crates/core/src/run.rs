@@ -1399,6 +1399,8 @@ pub struct RunState {
     pub relics: Vec<crate::relics::RelicInst>,
     /// 暴雪稀有度偏移（起 5，普通-1 至 -40，稀有重置 5；pub(crate)：商店/事件共用）
     pub(crate) card_blizz: i32,
+    /// 最近一次 rollRarity 的 roll 值（含 blizz 偏移），仅调试用
+    pub(crate) last_rarity_roll: i32,
     /// 药水怜悯（掉 40% 未中 +10，中 -10）
     potion_pity: i32,
     /// 当前房间奖励（待领取）
@@ -1516,6 +1518,7 @@ impl RunState {
             potions: vec![None, None, None],
             relics: vec![crate::relics::RelicInst::new(char_kind.starting_relic())],
             card_blizz: 5,
+            last_rarity_roll: 0,
             potion_pity: 0,
             rewards: Vec::new(),
             pending_relic_tier_roll: false,
@@ -1666,23 +1669,29 @@ impl RunState {
                 v
             }
             "Small Slimes" => {
-                // spawnSmallSlimes：先掷一只，再按是否同种掷第二只
-                let first = if self.rng.misc.random_boolean() { AcidSlimeS } else { SpikeSlimeS };
-                let second = if self.rng.misc.random_boolean() {
-                    first
-                } else if first == AcidSlimeS {
-                    SpikeSlimeS
+                // MonsterHelper.spawnSmallSlimes：**1 只小 + 1 只中**，只掷 1 次
+                //   if (miscRng.randomBoolean()) { SpikeSlime_S, AcidSlime_M }
+                //   else                         { AcidSlime_S, SpikeSlime_M }
+                if self.rng.misc.random_boolean() {
+                    vec![SpikeSlimeS, AcidSlimeM]
                 } else {
-                    AcidSlimeS
-                };
-                vec![first, second]
+                    vec![AcidSlimeS, SpikeSlimeM]
+                }
             }
             "Lots of Slimes" => {
-                // spawnManySmallSlimes：3-5 只，逐只掷
-                let n = 3 + self.rng.misc.random_range(2) as usize; // 3..=5
-                let mut v = Vec::with_capacity(n);
-                for _ in 0..n {
-                    v.push(if self.rng.misc.random_boolean() { AcidSlimeS } else { SpikeSlimeS });
+                // MonsterHelper.spawnManySmallSlimes：固定 5 只，从
+                // [Spike×3, Acid×2] 无放回逐只抽（每次 miscRng.random(size-1)）
+                let mut pool = vec![
+                    SpikeSlimeS,
+                    SpikeSlimeS,
+                    SpikeSlimeS,
+                    AcidSlimeS,
+                    AcidSlimeS,
+                ];
+                let mut v = Vec::with_capacity(5);
+                while !pool.is_empty() {
+                    let j = self.rng.misc.random_range(pool.len() as i32 - 1).max(0) as usize;
+                    v.push(pool.remove(j.min(pool.len() - 1)));
                 }
                 v
             }
@@ -1988,9 +1997,18 @@ impl RunState {
         //   注意：两种写法下 cardRng 总消耗都是 9，光看 counter 分辨不出来。
         let chance = self.upgrade_chance();
         let mut cards: Vec<crate::cards::CardInst> = Vec::new();
+        let dbg = std::env::var("NEOW_TRACE_REWARD").is_ok();
         for _ in 0..3 {
+            let c0 = self.rng.card.counter;
             let rarity = self.roll_rarity(boss);
+            let (roll_val, blizz_after) = (self.last_rarity_roll, self.card_blizz);
             let mut card = self.pick_card(rarity, &cards);
+            if dbg {
+                eprintln!(
+                    "[RWD] counter {}..{} rarity={} rollVal={} blizz_after={} pick={}",
+                    c0, self.rng.card.counter, rarity, roll_val, blizz_after, card.def.id
+                );
+            }
             let roll = self.rng.card.random_boolean_chance(chance);
             if card.def.rarity != "RARE" && roll && card.can_upgrade() {
                 card.upgraded = true;
@@ -2029,9 +2047,11 @@ impl RunState {
     /// （暴雪：起 5，普通 -1 至 -40，罕见不变，稀有重置 5）
     fn roll_rarity(&mut self, boss: bool) -> &'static str {
         if boss {
+            self.last_rarity_roll = -1;
             return "RARE";
         }
         let roll = self.rng.card.random_range(99) + self.card_blizz;
+        self.last_rarity_roll = roll;
         // AbstractRoom.getCardRarity：RARE 阈值 = baseRareCardChance(3)，
         // UNCOMMON 阈值 = baseRareCardChance + baseUncommonCardChance(37) = **40**。
         // 写成 37 会让 roll ∈ [37,40) 从 UNCOMMON 错判成 COMMON（换池 → 抽到不同的卡）。

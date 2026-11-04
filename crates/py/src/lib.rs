@@ -334,15 +334,18 @@ impl GymEnv {
             // 怪物
             o.push_str(",\"monsters\":[");
             let mut first = true;
-            for m in c.monsters.iter() {
+            for (mi, m) in c.monsters.iter().enumerate() {
                 if m.creature.hp <= 0 { continue; }
                 if !first { o.push(','); }
                 first = false;
+                // 意图伤害必须用**结算后**的值（含力量/虚弱等乘区）。
+                // move_base_damage() 是基值，少算力量 —— 曾导致 intent 10 vs 7。
+                let idmg = c.intent_damage(mi);
                 o.push_str(&format!(
                     "{{\"id\":\"{}\",\"hp\":{},\"max_hp\":{},\"block\":{},\"intent\":\"{:?}\",\"intent_dmg\":{},\"powers\":[",
                     m.kind.id(), m.creature.hp, m.creature.max_hp, m.creature.block,
                     m.intent(),
-                    m.move_base_damage().map(|d| d.to_string()).unwrap_or_else(|| "null".into())
+                    idmg.map(|d| d.to_string()).unwrap_or_else(|| "null".into())
                 ));
                 for (j, pw) in m.creature.powers.iter().enumerate() {
                     if j > 0 { o.push(','); }
