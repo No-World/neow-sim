@@ -2404,18 +2404,11 @@ impl RunState {
 
     /// Boss 战利：从遗物池 roll 3 候选后发放第一只（决策面属协议层）
     fn boss_relic_reward(&mut self) {
-        let owned: Vec<_> = self.relics.iter().map(|r| r.kind).collect();
-        let pool: Vec<_> = Self::IMPLEMENTED_RELICS
-            .iter()
-            .copied()
-            .filter(|k| !owned.contains(k))
-            .collect();
-        if pool.is_empty() {
-            return;
+        // Boss 战利：从 BOSS 预洗池 remove(0)（决策面属协议层）
+        if let Some(k) = self.pop_pooled_relic("BOSS") {
+            self.relics.push(crate::relics::RelicInst::new(k));
+            self.relic_on_obtain(k);
         }
-        let roll = self.rng.relic.random_range(pool.len() as i32 - 1).max(0);
-        let k = pool[roll as usize];
-        self.relics.push(crate::relics::RelicInst::new(k));
     }
 
     /// 已实现遗物池（奖励发放用；RelicKind 全集的子集——偏差：无 tier 元数据）
@@ -2791,7 +2784,7 @@ impl RunState {
     /// 之后每次取用只是 `remove(0)`。
     /// ⚠️ 偏差登记：此处未实现 tier 元数据与预洗池顺序，按「首个未持有」近似，
     ///    但**不掷 RNG**——这一点对 RNG 对拍是决定性的。
-    fn pop_pooled_relic(&mut self, tier: &str) -> Option<crate::relics::RelicKind> {
+    pub fn pop_pooled_relic(&mut self, tier: &str) -> Option<crate::relics::RelicKind> {
         // 从预洗池 remove(0)；跳过已持有（源码 addRelicToRewards 也不给重复）
         let owned: Vec<crate::relics::RelicKind> = self.relics.iter().map(|r| r.kind).collect();
         let key: &'static str = match tier {
@@ -2827,40 +2820,24 @@ impl RunState {
     ///
     /// ⚠️ 偏差：RelicKind 尚无 tier 元数据，暂时忽略 tier（仅按未持有过滤）。
     /// 待 relics 生成表补 tier 字段后按 tier 严格筛。
-    fn grant_random_relic_tier(&mut self, _tier: &str) {
-        let owned: Vec<crate::relics::RelicKind> = self.relics.iter().map(|r| r.kind).collect();
-        let pool: Vec<crate::relics::RelicKind> = Self::IMPLEMENTED_RELICS
-            .iter()
-            .copied()
-            .filter(|k| !owned.contains(k))
-            .collect();
-        if pool.is_empty() {
-            return;
+    fn grant_random_relic_tier(&mut self, tier: &str) {
+        // 从预洗 tier 池 remove(0)（0 次 RNG）；池空时退回全池
+        if let Some(k) = self.pop_pooled_relic(tier) {
+            self.relics.push(crate::relics::RelicInst::new(k));
+            self.relic_on_obtain(k);
         }
-        let roll = self.rng.relic.random_range(pool.len() as i32 - 1).max(0) as usize;
-        let k = pool[roll.min(pool.len() - 1)];
-        self.relics.push(crate::relics::RelicInst::new(k));
-        self.relic_on_obtain(k);
     }
 
     /// Neow BOSS_RELIC：把初始遗物替换成随机 Boss 遗物
     ///
     /// ⚠️ 偏差：同样缺 tier 元数据，暂从全池抽（不是真 Boss 池）。
     fn neow_boss_relic_swap(&mut self) {
-        let owned: Vec<crate::relics::RelicKind> = self.relics.iter().map(|r| r.kind).collect();
-        let pool: Vec<crate::relics::RelicKind> = Self::IMPLEMENTED_RELICS
-            .iter()
-            .copied()
-            .filter(|k| !owned.contains(k))
-            .collect();
-        if pool.is_empty() {
-            return;
-        }
-        let roll = self.rng.relic.random_range(pool.len() as i32 - 1).max(0) as usize;
-        let k = pool[roll.min(pool.len() - 1)];
+        // Neow BOSS_RELIC：从 BOSS 预洗池 remove(0)
         self.relics.clear(); // 移除初始遗物
-        self.relics.push(crate::relics::RelicInst::new(k));
-        self.relic_on_obtain(k);
+        if let Some(k) = self.pop_pooled_relic("BOSS") {
+            self.relics.push(crate::relics::RelicInst::new(k));
+            self.relic_on_obtain(k);
+        }
     }
 
     /// 休息·睡觉：回复 30% 最大生命（向上取整对照 RestRoom：

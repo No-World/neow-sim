@@ -2133,18 +2133,19 @@ impl RunState {
     /// relicRng.random(99)：<50 COMMON / >85 RARE / 其余 UNCOMMON；
     /// 具体遗物从已实现池取未持有者（⚠️ 偏差：源码从预洗的 tier 池弹出）
     pub fn roll_relic_kind(&mut self) -> Option<RelicKind> {
-        let _tier = self.rng.relic.random_start_end(0, 99);
-        let owned: Vec<RelicKind> = self.relics.iter().map(|r| r.kind).collect();
-        let pool: Vec<RelicKind> = RunState::IMPLEMENTED_RELICS
-            .iter()
-            .copied()
-            .filter(|k| !owned.contains(k))
-            .collect();
-        if pool.is_empty() {
-            return None;
-        }
-        let roll = self.rng.relic.random_range(pool.len() as i32 - 1).max(0) as usize;
-        Some(pool[roll.min(pool.len() - 1)])
+        // returnRandomRelicTier：relicRng.random(0,99) **只判 tier**（1 次消耗）
+        let roll = self.rng.relic.random_start_end(0, 99);
+        let tier = if roll < 50 {
+            "COMMON"
+        } else if roll > 85 {
+            "RARE"
+        } else {
+            "UNCOMMON"
+        };
+        // 具体遗物从**开局预洗好的 tier 池** remove(0)（0 次 RNG 消耗）。
+        // ⚠️ 原来从 IMPLEMENTED_RELICS（仅 18 只）里随机取 —— 163 只遗物永远不会
+        // 由事件发放，且多掷 1 次 relicRng。
+        self.pop_pooled_relic(tier)
     }
 
     /// PotionHelper.getRandomPotion：potionRng 全池均匀（无稀有度筛）

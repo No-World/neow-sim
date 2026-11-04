@@ -422,3 +422,28 @@ pub fn card_pool_pos(def: &crate::effects::CardDef) -> usize {
         .unwrap_or(usize::MAX);
     card_pool_rank().get(idx).copied().unwrap_or(usize::MAX)
 }
+
+#[cfg(test)]
+mod coverage_audit {
+    use super::*;
+
+    /// 打印真实可执行卡牌数（engine_playable 口径），用于核对覆盖率声明
+    #[test]
+    #[ignore]
+    fn dump_playable_count() {
+        let mut ok = 0;
+        let mut blocked = Vec::new();
+        for d in crate::generated::CARDS.iter() {
+            if engine_playable(d) {
+                ok += 1;
+            } else {
+                blocked.push(d.id);
+            }
+        }
+        println!("engine_playable = {}/{}", ok, crate::generated::CARDS.len());
+        println!("blocked ({}):", blocked.len());
+        for id in blocked.iter().take(60) {
+            println!("  {id}");
+        }
+    }
+}
