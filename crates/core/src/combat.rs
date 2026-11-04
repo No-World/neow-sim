@@ -288,6 +288,8 @@ pub(crate) enum Q {
     RollMove(usize),
     /// SetMoveAction：确定性设置 next_move（不掷 aiRng）
     SetMonsterMove { target: usize, next: u8 },
+    /// 设置怪物通用计数器（burn_upgraded 字段被多只怪复用）
+    SetMonsterCounter { target: usize, value: i32 },
     // —— 药水系统 ——
     /// 纯伤害（THORNS 管线跳过双方 power：火焰/爆炸药水）
     DamagePure {
@@ -605,6 +607,17 @@ pub const DEFAULT_ASCENSION: i32 = 20;
 fn self_monster_prebattle(c: &mut Combat) {
     for i in 0..c.monsters.len() {
         match c.monsters[i].kind {
+            // Looter.usePreBattleAction：ApplyPowerAction(自身, ThieveryPower(goldAmt))
+            MonsterKind::Looter => {
+                let amt = c.monsters[i].thrash_dmg.max(0);
+                apply_power(
+                    &mut c.monsters[i].creature.powers,
+                    PowerKind::Thievery,
+                    amt,
+                    false,
+                    false,
+                );
+            }
             MonsterKind::LouseNormal => {
                 let curl = if c.ascension >= 17 {
                     c.rng.monster_hp.random_start_end(9, 12)
@@ -2378,9 +2391,17 @@ impl Combat {
         }
     }
 
-    fn looter_get_move(&mut self, _i: usize, _num: i32) -> u8 {
-        // Looter: 恒 MUG（简化版，跳过逃跑/烟雾弹）
-        1
+    fn looter_get_move(&mut self, i: usize, num: i32) -> u8 {
+        // Looter.getMove：num < 40 ? MUG_SWIPE(1) : LUNGE(4)
+        // 后续招式全部由 takeTurn 里的 SetMoveAction 决定（确定性，不再掷）
+        let h = &self.monsters[i].move_history;
+        if num < 40 {
+            1
+        } else if h.last() == Some(&4) {
+            1
+        } else {
+            4
+        }
     }
 
     fn slaver_blue_get_move(&mut self, i: usize, num: i32) -> u8 {
@@ -3143,28 +3164,68 @@ impl Combat {
                 _ => {}
             },
             MonsterKind::Looter => match m.next_move {
-                // Looter.takeTurn：
-                //   case 1 (MUG_SWIPE) → DamageAction(swipeDmg)  + 偷金币（上限 goldAmt）+ Thievery -amount
-                //   case 4 (LUNGE)     → DamageAction(lungeDmg)
+                // Looter.takeTurn（完整状态机，源码逐行）：
+                //   case 1 MUG_SWIPE：
+                //     slashCount==0 时先 aiRng.randomBoolean(0.6) 决定是否 talk（仍消耗 RNG）
+                //     偷 goldAmt → DamageAction(swipeDmg) → ++slashCount
+                //     若 slashCount==2：aiRng.randomBoolean(0.5) ? setMove(2, DEFEND)
+                //                                              : SetMove(4, ATTACK, lungeDmg)
+                //     否则 setMove(1, ATTACK, swipeDmg)
+                //   case 4 LUNGE：++slashCount → 偷 → DamageAction(lungeDmg) → setMove(2, DEFEND)
+                //   case 2 SMOKE_BOMB：+escapeDef 格挡 → setMove(3, ESCAPE)
+                //   case 3 ESCAPE：逃跑（escaped=true，全员逃离则战斗结束）
                 // 字段：chomp_dmg=swipeDmg, thrash_block=lungeDmg, thrash_dmg=goldAmt
-                // ⚠️ 原实现的伤害读错字段（swipe 读 .5=0、lunge 读 .1=goldAmt），
-                //    且偷金币硬编码 15/20 而不是 goldAmt —— 实测金币少 35。
                 1 => {
-                    q.push(Q::MonsterDamage {
-                        src: i,
-                        base: m.chomp_dmg,
-                    });
+                    // ⚠️ 源码的 talk 判定 `slashCount == 0 && aiRng.randomBoolean(0.6f)` 里，
+                    // 只有 slashCount==0 时才会调用 randomBoolean（短路求值）。
+                    // 但实测 bridge rng.ai 在此处**并未**多消耗，说明该分支不推进全局流
+                    // （TalkAction 走的是 aiRng 的副本或短路未触发）。保守起见不掷。
                     let amt = m.thrash_dmg.max(0);
                     let steal = self.gold.min(amt);
                     if steal > 0 {
                         self.gold -= steal;
                     }
+                    q.push(Q::MonsterDamage {
+                        src: i,
+                        base: m.chomp_dmg,
+                    });
+                    let slash = m.burn_upgraded + 1;
+                    q.push(Q::SetMonsterCounter { target: i, value: slash });
+                    if slash == 2 {
+                        if self.rng.ai.random_boolean_chance(0.5) {
+                            q.push(Q::SetMonsterMove { target: i, next: 2 });
+                        } else {
+                            q.push(Q::SetMonsterMove { target: i, next: 4 });
+                        }
+                    } else {
+                        q.push(Q::SetMonsterMove { target: i, next: 1 });
+                    }
                 }
-                4 => q.push(Q::MonsterDamage {
-                    src: i,
-                    base: m.thrash_block,
-                }),
-                _ => {} // 逃跑/烟雾弹暂不实现
+                4 => {
+                    let amt = m.thrash_dmg.max(0);
+                    let steal = self.gold.min(amt);
+                    if steal > 0 {
+                        self.gold -= steal;
+                    }
+                    q.push(Q::MonsterDamage {
+                        src: i,
+                        base: m.thrash_block,
+                    });
+                    q.push(Q::SetMonsterCounter {
+                        target: i,
+                        value: m.burn_upgraded + 1,
+                    });
+                    q.push(Q::SetMonsterMove { target: i, next: 2 });
+                }
+                2 => {
+                    // 烟雾弹：获得 escapeDef 格挡，下一招逃跑
+                    q.push(Q::MonsterBlock {
+                        target: i,
+                        amount: m.bellow_str.max(0),
+                    });
+                    q.push(Q::SetMonsterMove { target: i, next: 3 });
+                }
+                _ => q.push(Q::MonsterEscape { src: i }),
             },
             MonsterKind::SlaverBlue => match m.next_move {
                 1 => q.push(Q::MonsterDamage {
@@ -5745,6 +5806,11 @@ impl Combat {
             Q::SetMonsterMove { target, next: mv } => {
                 if target < self.monsters.len() {
                     self.monsters[target].next_move = mv;
+                }
+            }
+            Q::SetMonsterCounter { target, value } => {
+                if target < self.monsters.len() {
+                    self.monsters[target].burn_upgraded = value;
                 }
             }
             // —— 药水系统 exec ——
