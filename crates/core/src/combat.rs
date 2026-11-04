@@ -1571,8 +1571,12 @@ impl Combat {
         match e {
             Expr::N(n) => n,
             Expr::Magic => card.magic().unwrap_or(0),
-            Expr::DamageBase => card.base_damage().unwrap_or(0),
-            Expr::BlockBase => card.base_block().unwrap_or(0),
+            // ⚠️ damage_bonus / block_bonus 必须在这里叠加：
+            // 它们是 Rampage / Glass Knife / Streamline / Perfected Strike 等的
+            // 战斗内永久加成，之前只写不读 → 这些卡的效果全部无效
+            // （实测 Perfected Strike 打 6 伤而真游戏 18 伤）。
+            Expr::DamageBase => card.base_damage().unwrap_or(0) + card.damage_bonus,
+            Expr::BlockBase => card.base_block().unwrap_or(0) + card.block_bonus,
             Expr::CurrentBlock => self.player.creature.block,
             Expr::XCost => x_cost,
             Expr::HandSize => self.player.hand.len() as i32,
@@ -1605,6 +1609,34 @@ impl Combat {
             0
         };
         let mut q: Vec<Q> = Vec::new();
+        // ── PerfectedStrike.applyPowers：baseDamage += magicNumber × Strike 卡数 ──
+        // Java: `this.baseDamage = 6 + this.magicNumber * countCards()`，
+        // countCards 统计**整个牌组**（抽牌堆+手牌+弃牌堆+消耗堆）里 cardID 含
+        // "strike" 的卡（不区分大小写，含自身）。
+        // 之前完全没有这段逻辑 → 实测打出 6 伤而真游戏 18 伤。
+        if card.def.id == "Perfected Strike" {
+            let mut n = 0i32;
+            for pile in [
+                &self.player.draw,
+                &self.player.hand,
+                &self.player.discard,
+                &self.player.exhaust,
+            ] {
+                n += pile
+                    .iter()
+                    .filter(|c| c.def.id.to_lowercase().contains("strike"))
+                    .count() as i32;
+            }
+            let per = card
+                .def
+                .upg_magic
+                .map(|u| if card.upgraded { card.def.base_magic.unwrap_or(2) + u } else { card.def.base_magic.unwrap_or(2) })
+                .unwrap_or(card.def.base_magic.unwrap_or(2));
+            if let Some(slot) = self.player.hand.get_mut(i) {
+                slot.damage_bonus += per * n;
+            }
+        }
+        let card = self.player.hand[i];
         // onUseCard 钩子（先于卡牌效果）：Rage —— 打出攻击牌获得 amount 格挡
         self.last_card_type = Some(card.def.card_type.to_string());
         if card.def.card_type == "ATTACK" {
