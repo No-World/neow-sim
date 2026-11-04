@@ -520,9 +520,12 @@ impl MonsterState {
                 (hp_rng.random_start_end(lo, hi), (dmg, 1, 0, 0, 0, 0, 0))
             }
             MonsterKind::SpikeSlimeM => {
+                // SpikeSlime_M：setHp(28,32)/A7 (29,34)；TACKLE dmg A2+ 10 否则 8。
+                // ⚠️ 伤害必须放 .5（dark_strike_dmg）——take_turn / move_base_damage
+                // 都读这个字段；放 .0 会让意图显示 0 伤害（同 Louse 踩过的坑）。
                 let (lo, hi) = if ascension >= 7 { (29, 34) } else { (28, 32) };
                 let dmg = if ascension >= 2 { 10 } else { 8 };
-                (hp_rng.random_start_end(lo, hi), (dmg, 1, 0, 0, 0, 0, 0))
+                (hp_rng.random_start_end(lo, hi), (0, 0, 0, 0, 0, dmg, 1))
             }
             MonsterKind::AcidSlimeM => {
                 let (lo, hi) = if ascension >= 7 { (29, 34) } else { (28, 32) };
@@ -1242,8 +1245,8 @@ impl MonsterState {
                 _ => Intent::Debuff,
             },
             MonsterKind::SpikeSlimeM => match self.next_move {
-                1 => Intent::AttackDefend,
-                _ => Intent::Debuff,
+                1 => Intent::AttackDebuff, // Tackle + 1 张 Slimed 入弃牌堆
+                _ => Intent::Debuff,       // Frail 1
             },
             MonsterKind::AcidSlimeM => match self.next_move {
                 1 | 2 => Intent::Attack,

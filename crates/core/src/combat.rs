@@ -3026,20 +3026,19 @@ impl Combat {
                 _ => {}
             },
             MonsterKind::SpikeSlimeM => match m.next_move {
+                // SpikeSlime_M.takeTurn：
+                //   case 1   → DamageAction(玩家) + MakeTempCardInDiscardAction(Slimed, 1)
+                //   case 4   → ApplyPowerAction(玩家, Frail 1)
+                // 原实现把两者都写成 Frail，且 move 1 还额外加了 Frail —— 语义全错。
                 1 => {
                     q.push(Q::MonsterDamage {
                         src: i,
                         base: m.dark_strike_dmg,
                     });
-                    q.push(Q::ApplyPowerToPlayerFromMonster {
-                        kind: PowerKind::Frail,
-                        amount: m.ritual_amt,
-                    });
+                    if let Some(c) = CardInst::new_by_class("Slimed") {
+                        q.push(Q::MakeDiscard(c));
+                    }
                 }
-                2 => q.push(Q::ApplyPowerToPlayerFromMonster {
-                    kind: PowerKind::Frail,
-                    amount: m.ritual_amt,
-                }),
                 4 => q.push(Q::ApplyPowerToPlayerFromMonster {
                     kind: PowerKind::Frail,
                     amount: m.ritual_amt,
@@ -7775,10 +7774,25 @@ impl Combat {
             MonsterKind::FungiBeast => self.fungi_get_move(i, num),
             MonsterKind::SpikeSlimeS => 1, // 恒攻击
             MonsterKind::AcidSlimeS => {
-                if self.monsters[i].next_move == 1 {
-                    2
-                } else {
+                // AcidSlime_S.getMove（Java）：
+                //   A17+：lastTwoMoves(1) ? ATTACK(1) : DEBUFF(2)
+                //   否则：**aiRng.randomBoolean()** ? ATTACK(1) : DEBUFF(2)
+                // ⚠️ 少一次 randomBoolean 会让后续怪物的 aiRng 位置整体前移 1，
+                //    导致下一只怪（如 SpikeSlime_M）的 num 落到不同分支
+                //    （实测 intent 从 ATTACK_DEBUFF 变 DEBUFF、rng.ai 3 vs 2）。
+                let h = &self.monsters[i].move_history;
+                let last2_tackle =
+                    h.len() >= 2 && h[h.len() - 1] == 1 && h[h.len() - 2] == 1;
+                if self.ascension >= 17 {
+                    if last2_tackle {
+                        1
+                    } else {
+                        2
+                    }
+                } else if self.rng.ai.random_boolean() {
                     1
+                } else {
+                    2
                 }
             }
             MonsterKind::SpikeSlimeM => self.spike_slime_m_get_move(i, num),
