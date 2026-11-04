@@ -2275,16 +2275,22 @@ impl Combat {
     }
 
     fn spike_slime_m_get_move(&mut self, i: usize, num: i32) -> u8 {
+        // SpikeSlime_M.getMove —— 注意 A17+ 与 A<17 的第三分支判定**不同**：
+        //   A17+ : else if (num >= 30) → if (lastMove(4))  1 else 4
+        //   A<17 : else if (num >= 30) → if (lastTwoMoves(4)) 1 else 4   ← lastTwoMoves!
+        // 写成 lastMove 会让 hist=[1,4] 时错误地出 move 1（真游戏出 4）。
         let h = &self.monsters[i].move_history;
         let last2_tackle = h.len() >= 2 && h[h.len() - 1] == 1 && h[h.len() - 2] == 1;
+        let last2_frail = h.len() >= 2 && h[h.len() - 1] == 4 && h[h.len() - 2] == 4;
         let last_frail = h.last() == Some(&4);
+        let high = if self.ascension >= 17 { last_frail } else { last2_frail };
         if num < 30 {
             if last2_tackle {
                 4
             } else {
                 1
             }
-        } else if last_frail {
+        } else if high {
             1
         } else {
             4
@@ -2292,21 +2298,49 @@ impl Combat {
     }
 
     fn acid_slime_m_get_move(&mut self, i: usize, num: i32) -> u8 {
+        // AcidSlime_M.getMove（A<17）：
+        //   num < 30 → lastTwoMoves(1) ? (randBool ? 2 : 4) : 1
+        //   num < 70 → lastMove(2)     ? (randBool(0.4) ? 1 : 4) : 2
+        //   else     → lastTwoMoves(4) ? (randBool(0.4) ? 1 : 2) : 4
+        // （A17+ 用的是 num<40 / num<80 + lastMove(4)，阈值与判定都不同）
         let h = &self.monsters[i].move_history;
         let last2_tackle = h.len() >= 2 && h[h.len() - 1] == 1 && h[h.len() - 2] == 1;
+        let last2_rake = h.len() >= 2 && h[h.len() - 1] == 2 && h[h.len() - 2] == 2;
+        let last2_weak = h.len() >= 2 && h[h.len() - 1] == 4 && h[h.len() - 2] == 4;
+        let last_rake = h.last() == Some(&2);
         let last_weak = h.last() == Some(&4);
-        if num < 40 {
-            if last2_tackle {
-                if self.rng.ai.random_boolean() {
-                    2
+        if self.ascension >= 17 {
+            if num < 40 {
+                if last2_tackle {
+                    if self.rng.ai.random_boolean() { 2 } else { 4 }
                 } else {
-                    4
+                    1
                 }
+            } else if num < 80 {
+                if last2_rake {
+                    if self.rng.ai.random_boolean_chance(0.5) { 1 } else { 4 }
+                } else {
+                    2
+                }
+            } else if last_weak {
+                if self.rng.ai.random_boolean_chance(0.4) { 1 } else { 2 }
+            } else {
+                4
+            }
+        } else if num < 30 {
+            if last2_tackle {
+                if self.rng.ai.random_boolean() { 2 } else { 4 }
             } else {
                 1
             }
-        } else if last_weak {
-            1
+        } else if num < 70 {
+            if last_rake {
+                if self.rng.ai.random_boolean_chance(0.4) { 1 } else { 4 }
+            } else {
+                2
+            }
+        } else if last2_weak {
+            if self.rng.ai.random_boolean_chance(0.4) { 1 } else { 2 }
         } else {
             4
         }
