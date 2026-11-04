@@ -547,8 +547,20 @@ impl GymEnv {
                 Ok(0.0)
             }
             GameState::RewardScreen => {
+                if ty == action_type::PROCEED {
+                    // 奖励屏「继续」：把剩余奖励全部领取（真游戏 proceed 前必须清空）
+                    self.run.take_all_rewards_skip_cards();
+                    self.to_map_screen();
+                    return Ok(0.0);
+                }
                 if ty == action_type::SKIP_REWARD {
-                    self.run.rewards.clear();
+                    // 跳过：真游戏一次只跳一项（卡牌奖励可用 Singing Bowl 等）；
+                    // entity 给下标则跳过该项，否则清空。
+                    if entity >= 0 && (entity as usize) < self.run.rewards.len() {
+                        self.run.rewards.remove(entity as usize);
+                    } else {
+                        self.run.rewards.clear();
+                    }
                 } else {
                     // 按下标领取指定项（而非全拿）
                     let idx = entity.max(0) as usize;
@@ -748,11 +760,17 @@ impl GymEnv {
                 let r = if self.run.won { 1.0 } else { -1.0 };
                 return Ok(r);
             }
-            // 战斗结束 → 领奖励 → 下一房
-            self.run.take_all_rewards_skip_cards();
-            self.to_map_screen();
-            self.update_state();
-            Ok(0.0)
+            // 战斗结束 → **呈现奖励屏**（对齐真游戏：不自动领取）
+            // 有奖励项 → RewardScreen（由 TAKE_REWARD/SKIP_REWARD/PROCEED 决策）；
+            // 无奖励项（如烟雾弹逃离）→ 直接回地图。
+            if !self.run.rewards.is_empty() {
+                self.state = GameState::RewardScreen;
+                self.update_run_obs();
+                Ok(0.0)
+            } else {
+                self.to_map_screen();
+                Ok(0.0)
+            }
         } else {
             self.run.combat = Some(c);
             self.update_combat_obs();
@@ -860,21 +878,31 @@ impl GymEnv {
                 }
                 LegalActions { flat, screen: 2 }
             }
-            GameState::RewardScreen => LegalActions {
-                flat: vec![
-                    FlatAction {
+            GameState::RewardScreen => {
+                // 逐项列出：take(i) / skip(i) / proceed
+                let n = self.run.rewards.len();
+                let mut flat = Vec::with_capacity(n * 2 + 1);
+                for i in 0..n {
+                    flat.push(FlatAction {
                         action_type: action_type::TAKE_REWARD,
-                        entity: 0,
+                        entity: i as i32,
                         target: -1,
-                    },
-                    FlatAction {
+                    });
+                }
+                for i in 0..n {
+                    flat.push(FlatAction {
                         action_type: action_type::SKIP_REWARD,
-                        entity: -1,
+                        entity: i as i32,
                         target: -1,
-                    },
-                ],
-                screen: 3,
-            },
+                    });
+                }
+                flat.push(FlatAction {
+                    action_type: action_type::PROCEED,
+                    entity: -1,
+                    target: -1,
+                });
+                LegalActions { flat, screen: 3 }
+            }
             GameState::RestChoice => LegalActions {
                 flat: vec![
                     FlatAction {

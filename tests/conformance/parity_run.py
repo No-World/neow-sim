@@ -96,7 +96,7 @@ def run_trace(path, fields, verbose=False, max_report=25):
     env = neow_sim.GymEnv(seed=int(seed), ascension=int(asc), character="IRONCLAD")
     env.reset()
 
-    stats = {"steps": 0, "combat_steps": 0, "compared": 0, "skipped": 0,
+    stats = {"steps": 0, "combat_steps": 0, "compared": 0, "skipped": 0, "combat_end": 0,
              "unmapped": [], "diffs": [], "first_divergence": None}
     eng_screen = engine_screen(env)
 
@@ -153,6 +153,12 @@ def run_trace(path, fields, verbose=False, max_report=25):
 
             want = normalize(after_raw)
             if not want:
+                continue
+            # 只比「双方都还在战斗」的步。战斗刚结束那一步（bridge 进 combat_reward）
+            # 比的是战后记账（手牌是否清空、奖励何时入账），与战斗规则无关。
+            if want.get("screen") != "combat":
+                stats["combat_end"] = stats.get("combat_end", 0) + 1
+                eng_screen = engine_screen(env)
                 continue
             got = engine_snapshot(env)
             d = diff_state(want, got, fields, prefix="[%d]" % i)
@@ -230,9 +236,9 @@ def main():
             total_fail += 1
             continue
         tag = "PASS" if r["ok"] else "FAIL"
-        print("%-32s %s  combat=%d compared=%d skipped=%d unmapped=%d diffs=%d" % (
-            os.path.basename(path), tag, r["combat_steps"], r["compared"],
-            r["skipped"], len(r["unmapped"]), len(r["diffs"])))
+        print("%-32s %s  combat=%d end=%d compared=%d skipped=%d unmapped=%d diffs=%d" % (
+            os.path.basename(path), tag, r["combat_steps"], r.get("combat_end", 0),
+            r["compared"], r["skipped"], len(r["unmapped"]), len(r["diffs"])))
         if r["diffs"]:
             for item in r["diffs"][:15]:
                 print("    %-26s want=%r got=%r" % (item[0], item[1], item[2]))
