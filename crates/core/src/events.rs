@@ -317,14 +317,34 @@ impl RunState {
         self.special_pool = special_pool();
     }
 
-    /// generateEvent：eventRng.random(1.0) < 0.25 → 神龛，否则事件（空回退神龛）
+    /// generateEvent（EventRoom.onPlayerEntry）
+    ///
+    /// ⚠️ 关键：Java 选事件用的是 eventRng 的**副本**，全局流不推进：
+    /// ```java
+    /// Random dup = new Random(Settings.seed, AbstractDungeon.eventRng.counter);
+    /// this.event = AbstractDungeon.generateEvent(dup);
+    /// ```
+    /// 实测（bridge RngWatch，PMCWKZEF 进 floor 4 事件房）：
+    ///   全局 eventRng 只 **+1**（该次由房间类型 roll 产生），事件选择本身不再推进。
+    /// 之前引擎直接在全局流上做 shrine roll + 池抽取（+2）→ rng.event 1 vs 2。
     pub fn enter_event(&mut self) {
+        // 1) 房间类型 roll：真游戏在 map transition 里用副本掷 1 次后把副本装回全局 ⇒ 全局净 +1
+        let _ = self.rng.event.random_float();
+        // 2) 事件选择：临时把全局 eventRng 换成「seed + 当前 counter」重建的副本，
+        //    选完立刻还原 —— 全局 counter 不变，副本掷了多少都无所谓。
+        let real = std::mem::replace(&mut self.rng.event, crate::rng::StsRandom::new(self.seed));
+        {
+            let mut dup = crate::rng::StsRandom::new(self.seed);
+            dup.set_counter(real.counter);
+            self.rng.event = dup;
+        }
         let shrine_first = self.rng.event.random_float() < 0.25;
         let kind = if shrine_first {
             self.pick_shrine()
         } else {
             self.pick_event().or_else(|| self.pick_shrine())
         };
+        self.rng.event = real;
         let Some(kind) = kind else { return };
         let ev = EventState {
             kind,
@@ -377,6 +397,8 @@ impl RunState {
         self.event_pool.retain(|k| *k != kind);
         Some(kind)
     }
+
+
 
     /// getShrine：神龛 + 条件过滤后的一次性事件，uniform 抽取后两池移除
     fn pick_shrine(&mut self) -> Option<EventKind> {

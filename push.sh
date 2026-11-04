@@ -13,10 +13,11 @@ for i in $(seq 1 "$MAX"); do
     out=$("$GIT" -c http.version=HTTP/1.1 \
                 -c http.proxy="$PROXY" -c https.proxy="$PROXY" \
                 -c http.postBuffer=524288000 \
+                -c http.lowSpeedLimit=0 -c http.lowSpeedTime=999999 \
                 push origin master 2>&1)
     rc=$?
-    echo "$out" | tail -3
-    if [ $rc -eq 0 ] || echo "$out" | grep -qi "up-to-date"; then
+    echo "$out" | tail -2
+    if [ $rc -eq 0 ]; then
         echo "PUSH OK"
         exit 0
     fi
