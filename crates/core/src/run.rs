@@ -1367,6 +1367,8 @@ pub enum RewardItem {
 
 /// 整局状态：幕/层/遭遇序列/当前战斗
 pub struct RunState {
+    /// 遗物预洗池（initializeRelicList：5 个 tier 各洗一次，之后只 remove(0)）
+    pub relic_pools: std::collections::HashMap<&'static str, Vec<crate::relics::RelicKind>>,
     /// 战斗结束时是否有偷钱怪成功逃逸（AbstractRoom.mugged）
     /// → 奖励屏走 openCombat，不生成卡牌奖励
     pub combat_mugged: bool,
@@ -1539,14 +1541,25 @@ impl RunState {
             neow_enemy_kill: 0,
             map_started: false,
             combat_mugged: false,
+            relic_pools: std::collections::HashMap::new(),
             rest_available: false,
         };
         s.populate_act();
         s.init_event_pools();
-        // AbstractDungeon 1217-1221：5 个遗物池各取 1 个 long 种子化 java.util.Random
-        // 洗牌——消耗 relicRng 5 次（真游戏开局 relic counter = 5）
-        for _ in 0..5 {
-            let _ = s.rng.relic.random_long();
+        // AbstractDungeon.initializeRelicList：5 个 tier 池各
+        //   `Collections.shuffle(pool, new Random(relicRng.randomLong()))`
+        // 共消耗 relicRng 5 次（真游戏开局 relic counter = 5）。
+        // 池内顺序 = 后续 addRelicToRewards(tier) 的弹出顺序。
+        {
+            let mut pools = std::collections::HashMap::new();
+            for tier in ["COMMON", "UNCOMMON", "RARE", "SHOP", "BOSS"] {
+                let mut pool = crate::relic_data::relics_of_tier(tier);
+                let seed = s.rng.relic.random_long();
+                let mut jr = crate::rng::JavaRandom::new(seed);
+                crate::rng::java_shuffle(&mut pool, &mut jr);
+                pools.insert(tier, pool);
+            }
+            s.relic_pools = pools;
         }
         s.init_neow();
         s
@@ -1884,6 +1897,9 @@ impl RunState {
                 self.enter_event();
             }
             Some(RoomKind::Treasury) => {
+                // ⚠️ AbstractChest.open：宝箱**只有**金币(可选) + 1 件遗物，
+                // **从不加卡牌奖励**。之前把宝箱走成普通战斗奖励流程，
+                // 多出 3 张卡（cardRng 多 9 次）与药水判定。
                 // 宝箱房（TreasureRoom.onPlayerEntry → getRandomChest →
                 // AbstractChest.randomizeReward；三幕同概率：小 50/中 33/大 17）。
                 // 箱子打开即入奖励屏（协议层 reward 动作拿取/跳过，无独立开箱动作；
@@ -1950,24 +1966,18 @@ impl RunState {
                 let g = self.rng.treasure.random_start_end(25, 35);
                 self.rewards.push(RewardItem::Gold(g));
                 // 3) 精英掉遗物：relicRng(0,99) <50 普通 >85 稀有 否则罕见
+                // AbstractRoom.addRelicToRewards(returnRandomRelicTier())：
+                //   relicRng.random(0,99) 只用来**判 tier**（1 次），
+                //   具体遗物从预洗池 remove(0)（0 次 RNG）。
                 let roll = self.rng.relic.random_start_end(0, 99);
-                let _tier = if roll < 50 {
+                let tier = if roll < 50 {
                     "COMMON"
                 } else if roll > 85 {
                     "RARE"
                 } else {
                     "UNCOMMON"
                 };
-                // ⚠️ 偏差：已实现遗物池无 tier 元数据，从 50 只里随机取未持有者
-                let owned: Vec<_> = self.relics.iter().map(|r| r.kind).collect();
-                let pool: Vec<_> = Self::IMPLEMENTED_RELICS
-                    .iter()
-                    .copied()
-                    .filter(|k| !owned.contains(k))
-                    .collect();
-                if let Some(&k) =
-                    pool.get((self.rng.relic.random_range(pool.len() as i32 - 1).max(0)) as usize)
-                {
+                if let Some(k) = self.pop_pooled_relic(tier) {
                     self.rewards.push(RewardItem::Relic(k));
                 }
             }
@@ -2781,12 +2791,25 @@ impl RunState {
     /// 之后每次取用只是 `remove(0)`。
     /// ⚠️ 偏差登记：此处未实现 tier 元数据与预洗池顺序，按「首个未持有」近似，
     ///    但**不掷 RNG**——这一点对 RNG 对拍是决定性的。
-    fn pop_pooled_relic(&mut self, _tier: &str) -> Option<crate::relics::RelicKind> {
+    fn pop_pooled_relic(&mut self, tier: &str) -> Option<crate::relics::RelicKind> {
+        // 从预洗池 remove(0)；跳过已持有（源码 addRelicToRewards 也不给重复）
         let owned: Vec<crate::relics::RelicKind> = self.relics.iter().map(|r| r.kind).collect();
-        Self::IMPLEMENTED_RELICS
-            .iter()
-            .copied()
-            .find(|k| !owned.contains(k))
+        let key: &'static str = match tier {
+            "COMMON" => "COMMON",
+            "UNCOMMON" => "UNCOMMON",
+            "RARE" => "RARE",
+            "SHOP" => "SHOP",
+            "BOSS" => "BOSS",
+            _ => "COMMON",
+        };
+        let pool = self.relic_pools.get_mut(key)?;
+        while !pool.is_empty() {
+            let k = pool.remove(0);
+            if !owned.contains(&k) {
+                return Some(k);
+            }
+        }
+        None
     }
 
     /// PotionHelper.getRandomPotion + 入槽（满槽丢弃）

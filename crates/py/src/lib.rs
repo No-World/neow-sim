@@ -399,6 +399,20 @@ impl GymEnv {
             o.push_str(&format!("{{\"id\":\"{}\",\"upgraded\":{}}}", cd.def.id, cd.upgraded));
         }
         o.push(']');
+        // 奖励项类型序列（对拍用）
+        o.push_str(",\"reward_kinds\":[");
+        for (i, r) in self.run.rewards.iter().enumerate() {
+            if i > 0 { o.push(','); }
+            let t = match r {
+                RewardItem::Gold(_) => "GOLD",
+                RewardItem::Card(_) => "CARD",
+                RewardItem::CardReward(_) => "CARDREWARD",
+                RewardItem::Potion(_) => "POTION",
+                RewardItem::Relic(_) => "RELIC",
+            };
+            o.push_str(&format!("\"{}\"", t));
+        }
+        o.push(']');
         o.push('}');       // 闭合顶层
         o
     }

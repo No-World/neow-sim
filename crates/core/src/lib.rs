@@ -22,6 +22,7 @@ pub mod events;
 pub mod generated;
 pub mod potions;
 pub mod powers;
+pub mod relic_data;
 pub mod relics;
 pub mod rng;
 pub mod run;
