@@ -1982,34 +1982,21 @@ impl RunState {
         // 所以这 3 次消耗必须复刻——否则后续所有 cardRng 消费全部错位
         // （实测第 2 场战斗的卡牌奖励因此抽到完全不同的卡）。
         let boss = room == Some(RoomKind::Boss);
-        // ⚠️ roll 顺序必须与 Java 的**两个循环**一致（AbstractDungeon.getCard）：
-        //   循环 1：取 3 张（每张 1 次 rollRarity + 1 次 pool pick）
-        //   循环 2：再对 3 张统一掷升级概率（每题 1 次 randomBoolean）
-        // 若交错成 [rarity,pick,upg] × 3，第 2 张起 RNG 位置就全错，
-        // 实测会抽到完全不同的卡（cardRng counter 却都是 9，看不出问题）。
-        let dbg = std::env::var("NEOW_TRACE_REWARD").is_ok();
+        // ⚠️ roll 顺序必须与 Java `AbstractDungeon.getRewardCards()` 一致：
+        //   **逐张**处理，每张 = rollRarity → 池 pick → 升级概率 roll，三步交错。
+        //   （升级 roll 在单卡版 `getCard(rarity)` 的收尾循环里，不是三张取完后统一做。）
+        //   注意：两种写法下 cardRng 总消耗都是 9，光看 counter 分辨不出来。
+        let chance = self.upgrade_chance();
         let mut cards: Vec<crate::cards::CardInst> = Vec::new();
         for _ in 0..3 {
-            let c0 = self.rng.card.counter;
             let rarity = self.roll_rarity(boss);
-            let after_rar = self.rng.card.counter;
-            let card = self.pick_card(rarity, &cards);
-            if dbg {
-                eprintln!(
-                    "[RWD] rarity={} rolls {}..{} pick={} rolls {}..{} blizz={}",
-                    rarity, c0, after_rar, card.def.id, after_rar, self.rng.card.counter,
-                    self.card_blizz
-                );
-            }
-            cards.push(card);
-        }
-        let chance = self.upgrade_chance();
-        for card in cards.iter_mut() {
+            let mut card = self.pick_card(rarity, &cards);
             let roll = self.rng.card.random_boolean_chance(chance);
             if card.def.rarity != "RARE" && roll && card.can_upgrade() {
                 card.upgraded = true;
                 card.upgrade_times = 1;
             }
+            cards.push(card);
         }
         self.rewards.push(RewardItem::CardReward(cards));
     }
@@ -2045,10 +2032,13 @@ impl RunState {
             return "RARE";
         }
         let roll = self.rng.card.random_range(99) + self.card_blizz;
+        // AbstractRoom.getCardRarity：RARE 阈值 = baseRareCardChance(3)，
+        // UNCOMMON 阈值 = baseRareCardChance + baseUncommonCardChance(37) = **40**。
+        // 写成 37 会让 roll ∈ [37,40) 从 UNCOMMON 错判成 COMMON（换池 → 抽到不同的卡）。
         if roll < 3 {
             self.card_blizz = 5;
             "RARE"
-        } else if roll < 37 {
+        } else if roll < 40 {
             "UNCOMMON"
         } else {
             self.card_blizz = (self.card_blizz - 1).max(-40);

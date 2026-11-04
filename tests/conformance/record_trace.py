@@ -151,6 +151,35 @@ def pick_action(obs, info, legal=None):
     return dict(legal[0])
 
 
+def _screen_payload(obs):
+    """提取屏专属信息里对拍关心的部分。
+
+    - card_reward：候选 3 张卡的 id（判断卡池/roll 位置是否正确）
+    - combat_reward：奖励项类型序列
+    """
+    scr = obs.get("screen") or {}
+    if not isinstance(scr, dict):
+        return None
+    t = scr.get("type")
+    if t == "card_reward":
+        return {"type": t, "cards": [c.get("id") for c in (scr.get("cards") or [])]}
+    if t == "combat_reward":
+        out = []
+        for r in (scr.get("items") or []):
+            e = {"type": r.get("type")}
+            if r.get("gold") is not None:
+                e["gold"] = r["gold"]
+            if r.get("relic_id"):
+                e["relic"] = r["relic_id"]
+            if r.get("potion_id"):
+                e["potion"] = r["potion_id"]
+            if r.get("cards"):
+                e["cards"] = [c.get("id") for c in r["cards"]]
+            out.append(e)
+        return {"type": t, "items": out}
+    return None
+
+
 def snapshot(resp):
     """提取用于 diff 的规范状态。"""
     if not resp.get("ok"):
@@ -202,6 +231,8 @@ def snapshot(resp):
         "exhaust_pile_n": (obs.get("exhaust_pile") or {}).get("count"),
         "deck": [(c.get("id"), bool(c.get("upgraded")))
                  for c in ((obs.get("master_deck") or {}).get("cards") or [])],
+        # 屏专属 payload（card_reward 的 3 张候选 / combat_reward 的奖励项列表等）
+        "screen_payload": _screen_payload(obs),
         "relics": [(r.get("id"), r.get("counter")) for r in (obs.get("relics") or [])],
         "rng": {k: v.get("counter") if isinstance(v, dict) else v
                 for k, v in (obs.get("rng") or {}).items()},
