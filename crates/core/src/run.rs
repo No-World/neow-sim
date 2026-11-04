@@ -1903,15 +1903,19 @@ impl RunState {
                     let g = ((gold_amt as f32) * jitter + 0.5) as i32; // MathUtils.round
                     self.rewards.push(RewardItem::Gold(g));
                 }
-                // tier 阈值与金币判定同掷（roll）；具体遗物 roll_relic_kind（relicRng）
-                let _tier = if roll < common_c {
+                // tier 阈值与金币判定同掷（roll）
+                let tier = if roll < common_c {
                     "COMMON"
                 } else if roll < common_c + uncommon_c {
                     "UNCOMMON"
                 } else {
                     "RARE"
                 };
-                if let Some(k) = self.roll_relic_kind() {
+                // ⚠️ 真游戏 AbstractChest.open → addRelicToRewards(tier)：
+                // 从**开局已洗好的 tier 池**弹出第一只，运行时 **0 次 relicRng 消耗**
+                // （洗牌发生在 initializeRelicList，用 relicRng.randomLong() 5 次）。
+                // 原来走 roll_relic_kind（tier 掷 + 抽取掷 = 2 次），会让 relicRng 多消耗。
+                if let Some(k) = self.pop_pooled_relic(tier) {
                     self.rewards.push(RewardItem::Relic(k));
                 }
             }
@@ -2768,6 +2772,21 @@ impl RunState {
         }
         self.neow_picks.clear();
         self.neow_category = None;
+    }
+
+    /// addRelicToRewards(tier)：从预洗池「弹出」一只（**不消耗 relicRng**）。
+    ///
+    /// 真游戏的 tier 池在 `initializeRelicList` 时用
+    /// `Collections.shuffle(pool, new Random(relicRng.randomLong()))` 洗好（5 次消耗），
+    /// 之后每次取用只是 `remove(0)`。
+    /// ⚠️ 偏差登记：此处未实现 tier 元数据与预洗池顺序，按「首个未持有」近似，
+    ///    但**不掷 RNG**——这一点对 RNG 对拍是决定性的。
+    fn pop_pooled_relic(&mut self, _tier: &str) -> Option<crate::relics::RelicKind> {
+        let owned: Vec<crate::relics::RelicKind> = self.relics.iter().map(|r| r.kind).collect();
+        Self::IMPLEMENTED_RELICS
+            .iter()
+            .copied()
+            .find(|k| !owned.contains(k))
     }
 
     /// PotionHelper.getRandomPotion + 入槽（满槽丢弃）
