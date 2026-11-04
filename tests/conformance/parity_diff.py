@@ -199,6 +199,10 @@ def diff_state(want, got, fields, prefix=""):
         if wm != gm:
             diffs.append((prefix + "monsters", wm, gm))
 
+    if "draw_order" in fields:
+        if want.get("draw_order") != got.get("draw_order"):
+            diffs.append((prefix + "draw_order", want.get("draw_order"), got.get("draw_order")))
+
     if "piles" in fields:
         wp = want.get("piles") or {}
         gp = got.get("piles") or {}

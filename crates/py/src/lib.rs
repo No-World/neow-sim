@@ -356,6 +356,19 @@ impl GymEnv {
                 ",\"draw_pile_n\":{},\"discard_pile_n\":{},\"exhaust_pile_n\":{}",
                 c.player.draw.len(), c.player.discard.len(), c.player.exhaust.len()
             ));
+            // 抽牌堆真实顺序（Vec 尾 = 堆顶 = 下一张抽到）
+            o.push_str(",\"draw_order\":[");
+            for (i, cd) in c.player.draw.iter().enumerate() {
+                if i > 0 { o.push(','); }
+                o.push_str(&format!("\"{}\"", cd.def.id));
+            }
+            o.push(']');
+            o.push_str(",\"discard_order\":[");
+            for (i, cd) in c.player.discard.iter().enumerate() {
+                if i > 0 { o.push(','); }
+                o.push_str(&format!("\"{}\"", cd.def.id));
+            }
+            o.push(']');
 
             o.push_str(",\"relics\":[");
             for (i, rl) in c.player_relics.iter().enumerate() {

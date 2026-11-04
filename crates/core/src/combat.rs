@@ -589,6 +589,12 @@ pub struct Combat {
     pub ascension: i32,
 }
 
+/// 洗牌追踪开关（`NEOW_TRACE_SHUFFLE=1`）；OnceLock 避免每场战斗读环境变量
+fn trace_shuffle() -> bool {
+    static ON: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    *ON.get_or_init(|| std::env::var("NEOW_TRACE_SHUFFLE").is_ok())
+}
+
 /// 项目默认状态：全解锁 + 进阶 20（评测基准，见 README/roadmap）
 pub const DEFAULT_ASCENSION: i32 = 20;
 
@@ -6686,8 +6692,22 @@ impl Combat {
                 if self.player.discard.is_empty() {
                     break;
                 }
+                // 洗牌可观测性（NEOW_TRACE_SHUFFLE=1 时打印洗牌前/后顺序）。
+                // 用于和真游戏 `get_state` 的 draw_pile.order="true" 逐项对拍。
                 let mut pile = std::mem::take(&mut self.player.discard);
+                let trace = trace_shuffle();
+                if trace {
+                    let pre: Vec<&str> = pile.iter().map(|c| c.def.id).collect();
+                    eprintln!(
+                        "[shuffle] turn={} seed_stream={} pre={:?}",
+                        self.turn, self.rng.shuffle.counter, pre
+                    );
+                }
                 card_group_shuffle(&mut pile, &mut self.rng.shuffle);
+                if trace {
+                    let post: Vec<&str> = pile.iter().map(|c| c.def.id).collect();
+                    eprintln!("[shuffle] post={:?}", post);
+                }
                 self.player.draw = pile;
                 // EmptyDeckShuffleAction → relics.onShuffle（Sundial）
                 self.relics_on_shuffle();

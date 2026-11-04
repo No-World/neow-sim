@@ -193,8 +193,12 @@ def snapshot(resp):
             }
             for m in (obs.get("monsters") or [])
         ],
+        # 真实抽牌堆顺序（需先 config cheat_draw_order=true；order=="hidden" 时不可比）
         "draw_pile_n": (obs.get("draw_pile") or {}).get("count"),
+        "draw_order": (None if (obs.get("draw_pile") or {}).get("order") == "hidden"
+                       else [c.get("id") for c in ((obs.get("draw_pile") or {}).get("cards") or [])]),
         "discard_pile_n": (obs.get("discard_pile") or {}).get("count"),
+        "discard_order": [c.get("id") for c in ((obs.get("discard_pile") or {}).get("cards") or [])],
         "exhaust_pile_n": (obs.get("exhaust_pile") or {}).get("count"),
         "deck": [(c.get("id"), bool(c.get("upgraded")))
                  for c in ((obs.get("master_deck") or {}).get("cards") or [])],
