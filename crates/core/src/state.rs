@@ -669,17 +669,23 @@ impl MonsterState {
                 )
             }
             MonsterKind::GremlinNob => {
+                // GremlinNob：setHp(82,86)/A8 (85,90)
+                //   rushDmg = A3+ 16 否则 14   → move 1 (Bull Rush, ATTACK)
+                //   bashDmg = A3+ 8  否则 6    → move 2 (Skull Bash, ATTACK_DEBUFF)
+                //   Bellow(Anger) 层数 = A18+ 3 否则 2 → move 3 (BUFF)
+                //   Skull Bash 的易伤层数固定 2
+                // ⚠️ take_turn 读的是 dark_strike_dmg(move1) / thrash_dmg(move2)，
+                //    原实现把 rush 放 chomp_dmg、bash 放 thrash_block → 两个都读不到。
                 let (lo, hi) = if ascension >= 2 { (85, 90) } else { (82, 86) };
                 let bash = if ascension >= 2 { 8 } else { 6 };
                 let rush = if ascension >= 2 { 16 } else { 14 };
+                let anger = if ascension >= 18 { 3 } else { 2 };
                 (hp_rng.random_start_end(lo, hi), MonsterStats {
-                    chomp_dmg: rush,
-                    thrash_dmg: 2,
-                    thrash_block: bash,
-                    bellow_str: 0,
-                    bellow_block: 2,
-                    dark_strike_dmg: 0,
-                    ritual_amt: 0,
+                    dark_strike_dmg: rush,   // move 1
+                    thrash_dmg: bash,        // move 2
+                    bellow_str: 2,           // 易伤层数
+                    ritual_amt: anger,       // Bellow 的 Anger 层数
+                    ..Default::default()
                 })
             }
             MonsterKind::Lagavulin => {

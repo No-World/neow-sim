@@ -136,6 +136,8 @@ pub enum PowerKind {
     Mantra,
     /// 偷窃（ThieveryPower）：记录可偷金币上限；Looter 每次攻击后按此上限偷取
     Thievery,
+    /// 愤怒（AngerPower）：持有者每打出一张 SKILL 牌 → 自身力量 +amount
+    Anger,
     // —— power 补缺第一批（每只解锁 1 张卡；钩子在 combat 接线）——
     /// 剧毒瘴气（NoxiousFumesPower：抽牌后回合开始 → 全体敌人中毒 amount）
     NoxiousFumes,
@@ -340,6 +342,7 @@ impl Power {
             PowerKind::NoDraw => "NoDrawPower",
             PowerKind::Mantra => "MantraPower",
             PowerKind::Thievery => "Thievery",
+            PowerKind::Anger => "Anger",
             PowerKind::NoxiousFumes => "Noxious Fumes",
             PowerKind::InfiniteBlades => "Infinite Blades",
             PowerKind::MentalFortress => "MentalFortress",

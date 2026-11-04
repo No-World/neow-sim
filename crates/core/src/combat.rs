@@ -1656,6 +1656,31 @@ impl Combat {
         let card = self.player.hand[i];
         // onUseCard 钩子（先于卡牌效果）：Rage —— 打出攻击牌获得 amount 格挡
         self.last_card_type = Some(card.def.card_type.to_string());
+        // AngerPower.onUseCard：**怪物**持有 Anger 时，玩家每打出 SKILL →
+        // 该怪物自身力量 +amount（GremlinNob 的 Bellow 就是这个）。
+        if card.def.card_type == "SKILL" {
+            let angers: Vec<(usize, i32)> = self
+                .monsters
+                .iter()
+                .enumerate()
+                .filter_map(|(mi, m)| {
+                    m.creature
+                        .powers
+                        .iter()
+                        .find(|pw| pw.kind == PowerKind::Anger)
+                        .map(|pw| (mi, pw.amount))
+                })
+                .collect();
+            for (mi, amt) in angers {
+                apply_power(
+                    &mut self.monsters[mi].creature.powers,
+                    PowerKind::Strength,
+                    amt,
+                    false,
+                    false,
+                );
+            }
+        }
         if card.def.card_type == "ATTACK" {
             if let Some(rage) = self
                 .player
@@ -2430,22 +2455,25 @@ impl Combat {
         }
     }
 
-    fn gremlin_nob_get_move(&mut self, i: usize, _num: i32) -> u8 {
-        // 首回合恒 Bellow
-        if self.monsters[i].first_move {
-            return 3;
-        }
-        // 之后：33%以下 Skull Bash（攻+易伤），否则 Bull Rush
-        // 简化：交替 Rush/Bash
+    fn gremlin_nob_get_move(&mut self, i: usize, num: i32) -> u8 {
+        // GremlinNob.getMove（源码逐行，A<18 分支）：
+        //   if (!usedBellow) { usedBellow = true; setMove(3, BUFF); return; }
+        //   if (num < 33)      → lastTwoMoves(1) ? move2 : move1
+        //   else               → lastTwoMoves(1) ? move2 : move1
+        // 即两个分支结构**相同**：只有「连续两次 Bull Rush」才切 Skull Bash。
+        // （A18+ 分支不同：先判 lastMove(2)/lastMoveBefore(2)）
+        // ⚠️ 原实现把 num<33 直接当成 move 2，且首招用 first_move 判 Bellow，
+        //    导致第二次行动就出 Skull Bash（意图 6 而非 14）。
         let h = &self.monsters[i].move_history;
-        let last_bash = h.last() == Some(&2);
+        if h.is_empty() {
+            return 3; // Bellow（用 move_history 判首次，等价于 usedBellow）
+        }
         let last2_rush = h.len() >= 2 && h[h.len() - 1] == 1 && h[h.len() - 2] == 1;
-        if _num < 33 || last2_rush {
+        let _ = num; // A<18 下 num 不改变结果
+        if last2_rush {
             2
-        } else if last_bash {
-            1
         } else {
-            2
+            1
         }
     }
 
@@ -3290,11 +3318,14 @@ impl Combat {
                     });
                 }
                 3 => {
-                    // Bellow：获得力量（Anger 近似为直接 STR）
+                    // GremlinNob.takeTurn case 3 (Bellow)：
+                    //   ApplyPowerAction(self, AngerPower(2))（A18+ 为 3）
+                    // AngerPower 的规则效果是「持有者每打出 SKILL → 自身力量 +amount」，
+                    // **不是**直接加力量。原实现错写成 Strength。
                     q.push(Q::ApplyPowerToMonster {
                         target: i,
-                        kind: PowerKind::Strength,
-                        amount: m.bellow_str,
+                        kind: PowerKind::Anger,
+                        amount: m.ritual_amt,
                     });
                 }
                 _ => {}
