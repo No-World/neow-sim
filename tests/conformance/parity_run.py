@@ -173,15 +173,41 @@ def run_trace(path, fields, verbose=False, max_report=25):
             eng_screen = engine_screen(env)
             continue
 
+        # ── 奖励屏：bridge 在 combat_reward 时引擎可能还停在 Combat/MapNode，
+        # 必须先把引擎推进到 RewardScreen，否则 TAKE_REWARD 会被跳过（deck 少卡）。
+        if atype in ("reward", "skip", "proceed") and ename != "RewardScreen":
+            # 引擎若在 Combat，先让它自然结束（end_turn）
+            guard = 0
+            while ename == "Combat" and guard < 5:
+                try:
+                    env.step(1, -1, -1)   # END_TURN
+                except Exception:
+                    break
+                ename = engine_screen(env)
+                guard += 1
+            # 引擎若在 MapNode，进当前节点的房间（choose_node 0）
+            if ename == "MapNode":
+                la = env.legal_actions.flat
+                if la:
+                    env.step(la[0].action_type, la[0].entity, la[0].target)
+                    ename = engine_screen(env)
+
         # 其它屏（reward/rest/shop/event…）：尝试用通用映射推进，不比对
+        if os.environ.get("NEOW_TRACE_REW"):
+            print("  [REW] i=%s bridge=%s engine=%s act=%s ent=%s" %
+                  (i, before, ename, atype, ent))
         ty = BRIDGE_MAP.get(atype)
         if ty is not None:
             try:
                 env.step(ty, ent, tgt)
                 stats["steps"] += 1
-            except Exception:
+            except Exception as e:
+                if os.environ.get("NEOW_TRACE_REW"):
+                    print("  [REW] SKIP i=%s engine=%s act=%s ent=%s err=%s" % (i, ename, atype, ent, e))
                 stats["skipped"] += 1
         else:
+            if os.environ.get("NEOW_TRACE_REW"):
+                print("  [REW] UNMAPPED i=%s act=%s" % (i, atype))
             stats["skipped"] += 1
         eng_screen = engine_screen(env)
 

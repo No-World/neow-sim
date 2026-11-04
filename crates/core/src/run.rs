@@ -2440,6 +2440,15 @@ impl RunState {
             let was_event_combat = self.event_combat;
             self.event_combat = false;
             let won = c.won;
+            // ⚠️ 玩家死亡 → 整局结束（真游戏 GameOverScreen → isDungeonBeaten）。
+            // 原来这里没有死亡判定：hp 归 0 后仍继续走 to_map_screen，
+            // 导致后续所有战斗都在 hp=0 状态下进行（奖励/卡组全错）。
+            if !won && c.player.creature.hp <= 0 && !c.escaped {
+                self.over = true;
+                self.won = false;
+                self.player.hp = 0;
+                return;
+            }
             // 胜利遗物钩子（BurningBlood 回血 / FaceOfCleric MaxHP+1）
             let max_hp_gain = if c.won { c.on_victory() } else { 0 };
             self.player.hp = c.player.creature.hp.max(0);
