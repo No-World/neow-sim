@@ -2645,7 +2645,12 @@ impl Combat {
             .any(|r| r.kind == crate::relics::RelicKind::RunicPyramid);
         if !has_pyramid {
             let hand = std::mem::take(&mut self.player.hand);
-            self.player.discard.extend(hand);
+            // ⚠️ 关键：Java DiscardAtEndOfTurnAction 会排队 N 个 DiscardAction，
+            // 每个都用 `hand.getTopCard()`（= group.get(size-1)，手牌**末尾/最右**）
+            // 逐个丢弃 ⇒ 弃牌顺序 = 手牌 group 的**逆序**。
+            // 正序会改变弃牌堆排列，进而让「重洗后的抽牌顺序」与真游戏不同
+            // （实测 turn3 起手 hand 顺序错位，因为洗牌输入顺序不同）。
+            self.player.discard.extend(hand.into_iter().rev());
         }
         // Runic Pyramid：保留手牌（不清不弃）
         // MonsterStartTurnAction（AbstractRoom:406 单次入队）：
@@ -5120,8 +5125,9 @@ impl Combat {
                 }
             }
             Q::DoDiscardAllHand => {
+                // DiscardAction(amount >= hand.size())：同样走 getTopCard() 从末尾取 ⇒ 逆序
                 let cards = std::mem::take(&mut self.player.hand);
-                self.player.discard.extend(cards);
+                self.player.discard.extend(cards.into_iter().rev());
             }
             Q::DoSetHandCostZero => {
                 // BulletTime：本回合手牌全部免费（setCostForTurn(-9)）
@@ -11447,6 +11453,29 @@ mod tests {
 #[cfg(test)]
 mod p3_parity_probe {
     use super::*;
+
+    /// 回合末弃牌顺序必须是手牌**逆序**。
+    ///
+    /// Java `DiscardAtEndOfTurnAction` 排队 N 个 `DiscardAction`，每个用
+    /// `hand.getTopCard()`（= group.get(size-1)，手牌末尾）逐个丢弃 ⇒ 弃牌堆里
+    /// 的顺序 = 手牌 group 的逆序。
+    ///
+    /// 这条顺序会一路传导到「重洗后的抽牌顺序」：弃牌堆是洗牌的输入，输入排列变了，
+    /// 即使洗牌种子与算法完全相同，结果排列也会不同（实测 turn3 起手手牌错位）。
+    #[test]
+    fn end_of_turn_discard_is_reversed() {
+        let mut c = Combat::new_with(1, 0, &[MonsterKind::JawWorm]);
+        c.player.discard.clear();
+        c.player.hand.clear();
+        for id in ["Strike_R", "Defend_R", "Bash"] {
+            c.player.hand.push(crate::cards::CardInst::new(id));
+        }
+        c.step(&Action::EndTurn);
+        let got: Vec<&str> = c.player.discard.iter().map(|x| x.def.id).collect();
+        // 末尾手牌先弃 ⇒ Bash, Defend_R, Strike_R
+        assert_eq!(got, vec!["Bash", "Defend_R", "Strike_R"],
+                   "回合末弃牌应逆序（getTopCard 从末尾取）");
+    }
 
     /// P3 探针：结束回合后怪物必须真的动手（否则 pyo3/RL 里敌人永不攻击）。
     /// 复现：真游戏 PMCWKZEF 首战 FuzzyLouseNormal，第一回合末玩家掉 7 血。
