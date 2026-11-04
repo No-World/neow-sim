@@ -548,8 +548,11 @@ impl GymEnv {
             }
             GameState::RewardScreen => {
                 if ty == action_type::PROCEED {
-                    // 奖励屏「继续」：把剩余奖励全部领取（真游戏 proceed 前必须清空）
-                    self.run.take_all_rewards_skip_cards();
+                    // 奖励屏「继续」：**不领取**剩余项（未选即放弃）。
+                    // ⚠️ 不能用 take_all_rewards_skip_cards()——它会把剩余的
+                    // 卡牌奖励全部塞进牌组（真游戏里卡牌奖励是「1 项含 3 选 1」，
+                    // 引擎建模为 3 个独立项，全领会多塞 2 张）。
+                    self.run.rewards.clear();
                     self.to_map_screen();
                     return Ok(0.0);
                 }

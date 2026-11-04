@@ -696,8 +696,8 @@ mod tests {
             c.won = true;
         }
         run.settle_combat(0);
-        // 奖励：金币 + 药水(概率) + 3 张卡
-        assert!(run.rewards.len() >= 4, "金币+3卡至少 4 项");
+        // 奖励：金币 + 药水(概率) + 1 个卡牌奖励项（内含 3 张候选）
+        assert!(run.rewards.len() >= 2, "金币+卡牌奖励至少 2 项");
         let golds: Vec<_> = run
             .rewards
             .iter()
@@ -707,20 +707,20 @@ mod tests {
         let cards: Vec<_> = run
             .rewards
             .iter()
-            .filter(|r| matches!(r, RewardItem::Card(_)))
+            .filter(|r| matches!(r, RewardItem::CardReward(_)))
             .collect();
-        assert_eq!(cards.len(), 3, "3 张卡");
-        // 卡牌去重
-        if let [RewardItem::Card(a), RewardItem::Card(b), RewardItem::Card(c)] =
-            &run.rewards[run.rewards.len() - 3..]
-        {
+        assert_eq!(cards.len(), 1, "1 个卡牌奖励项");
+        // 3 张候选且互不重复（真游戏语义：一个奖励项内含 3 选 1）
+        if let Some(RewardItem::CardReward(cands)) = run.rewards.last() {
+            assert_eq!(cands.len(), 3, "3 张候选");
+            let (a, b, c) = (&cands[0], &cands[1], &cands[2]);
             assert!(a.def.id != b.def.id && b.def.id != c.def.id && a.def.id != c.def.id);
         }
         // 领取：金币 + 一张卡
         let card_idx = run
             .rewards
             .iter()
-            .position(|r| matches!(r, RewardItem::Card(_)))
+            .position(|r| matches!(r, RewardItem::CardReward(_)))
             .unwrap();
         let deck_before = run.deck.len();
         run.take_reward(card_idx);
@@ -1358,6 +1358,9 @@ pub struct NeowPick {
 pub enum RewardItem {
     Gold(i32),
     Card(crate::cards::CardInst),
+    /// 卡牌奖励（真游戏语义：**一个**奖励项，内含 3 张候选，玩家选 1）。
+    /// 之前建模成 3 个独立 Card 项，导致「全领」会多塞 2 张、且奖励屏交互对不上。
+    CardReward(Vec<crate::cards::CardInst>),
     Potion(crate::potions::PotionKind),
     Relic(crate::relics::RelicKind),
 }
@@ -1972,14 +1975,67 @@ impl RunState {
             self.potion_pity += 10;
         }
         // 4) 卡牌奖励：3 张（Boss 恒稀有）
+        //
+        // ⚠️ AbstractDungeon.getCard 的收尾循环会为每张**非稀有**卡掷一次升级概率：
+        //   `if (c.rarity != RARE && cardRng.randomBoolean(cardUpgradedChance) && c.canUpgrade())`
+        // 而 `Random.randomBoolean(float)` 是**无条件 ++counter**（哪怕 chance==0），
+        // 所以这 3 次消耗必须复刻——否则后续所有 cardRng 消费全部错位
+        // （实测第 2 场战斗的卡牌奖励因此抽到完全不同的卡）。
         let boss = room == Some(RoomKind::Boss);
+        // ⚠️ roll 顺序必须与 Java 的**两个循环**一致（AbstractDungeon.getCard）：
+        //   循环 1：取 3 张（每张 1 次 rollRarity + 1 次 pool pick）
+        //   循环 2：再对 3 张统一掷升级概率（每题 1 次 randomBoolean）
+        // 若交错成 [rarity,pick,upg] × 3，第 2 张起 RNG 位置就全错，
+        // 实测会抽到完全不同的卡（cardRng counter 却都是 9，看不出问题）。
+        let dbg = std::env::var("NEOW_TRACE_REWARD").is_ok();
         let mut cards: Vec<crate::cards::CardInst> = Vec::new();
         for _ in 0..3 {
+            let c0 = self.rng.card.counter;
             let rarity = self.roll_rarity(boss);
+            let after_rar = self.rng.card.counter;
             let card = self.pick_card(rarity, &cards);
+            if dbg {
+                eprintln!(
+                    "[RWD] rarity={} rolls {}..{} pick={} rolls {}..{} blizz={}",
+                    rarity, c0, after_rar, card.def.id, after_rar, self.rng.card.counter,
+                    self.card_blizz
+                );
+            }
             cards.push(card);
         }
-        self.rewards.extend(cards.into_iter().map(RewardItem::Card));
+        let chance = self.upgrade_chance();
+        for card in cards.iter_mut() {
+            let roll = self.rng.card.random_boolean_chance(chance);
+            if card.def.rarity != "RARE" && roll && card.can_upgrade() {
+                card.upgraded = true;
+                card.upgrade_times = 1;
+            }
+        }
+        self.rewards.push(RewardItem::CardReward(cards));
+    }
+
+    /// 本幕的 cardUpgradedChance（AbstractDungeon.initializeLevelSpecificChances）
+    /// - Act1 Exordium：0.0
+    /// - Act2 TheCity：A12+ 0.125，否则 0.25
+    /// - Act3 TheBeyond / Act4 TheEnding：A12+ 0.25，否则 0.5
+    fn upgrade_chance(&self) -> f32 {
+        match self.act {
+            1 => 0.0,
+            2 => {
+                if self.ascension >= 12 {
+                    0.125
+                } else {
+                    0.25
+                }
+            }
+            _ => {
+                if self.ascension >= 12 {
+                    0.25
+                } else {
+                    0.5
+                }
+            }
+        }
     }
 
     /// rollRarity：cardRng.random(99) + 暴雪偏移；<3 稀有 / <37 罕见 / 普通
@@ -2110,6 +2166,11 @@ impl RunState {
                 if let Some(slot) = self.potions.iter_mut().find(|s| s.is_none()) {
                     *slot = Some(crate::potions::PotionInst::new(k));
                 } // 满槽：弃（简化：满槽领取前应由调用方先 discard）
+            }
+            RewardItem::CardReward(cands) => {
+                if let Some(c) = cands.first().cloned() {
+                    self.deck.push(c);
+                }
             }
             RewardItem::Relic(k) => {
                 self.relics.push(crate::relics::RelicInst::new(k));
@@ -2276,9 +2337,12 @@ impl RunState {
     pub fn take_all_rewards_skip_cards(&mut self) {
         let mut i = 0;
         while i < self.rewards.len() {
-            if matches!(self.rewards[i], RewardItem::Card(_)) {
+            if matches!(
+                self.rewards[i],
+                RewardItem::Card(_) | RewardItem::CardReward(_)
+            ) {
                 i += 1;
-                continue;
+                continue; // 卡牌奖励需要玩家选择，不自动领
             }
             self.take_reward(i);
         }
@@ -2899,9 +2963,13 @@ fn four_characters_card_reward_pool() {
         let cards: Vec<_> = run
             .rewards
             .iter()
-            .filter_map(|r| match r {
-                RewardItem::Card(c) => Some(c.def.color),
-                _ => None,
+            .flat_map(|r| match r {
+                // 卡牌奖励是真游戏语义的**一个**奖励项（内含 3 张候选）
+                RewardItem::CardReward(cands) => {
+                    cands.iter().map(|c| c.def.color).collect::<Vec<_>>()
+                }
+                RewardItem::Card(c) => vec![c.def.color],
+                _ => vec![],
             })
             .collect();
         assert_eq!(cards.len(), 3, "{:?} 三张卡牌奖励", ch);
@@ -3452,5 +3520,40 @@ mod seed_helper_tests {
         let b = seed_helper::decode("PMP"); // 不会，但 O 和 0 相同
         let _ = b;
         let _ = a;
+    }
+}
+
+#[cfg(test)]
+mod card_reward_probe {
+    use super::*;
+
+    /// 打印 PMCWKZEF 首战胜后的卡牌奖励候选（与 bridge 真游戏对照用）
+    #[test]
+    #[ignore]
+    fn dump_first_card_reward() {
+        let mut run = RunState::new(1585262650280, 0);
+        let col = run.start_columns()[0];
+        run.map_started = true;
+        run.pos = (0, col);
+        run.floor = 1;
+        run.enter_room();
+        let mut c = run.combat.take().unwrap();
+        c.over = true;
+        c.won = true;
+        run.combat = Some(c);
+        run.settle_combat(0);
+        for r in &run.rewards {
+            match r {
+                RewardItem::Gold(g) => println!("GOLD {g}"),
+                RewardItem::Potion(k) => println!("POTION {k:?}"),
+                RewardItem::Relic(k) => println!("RELIC {k:?}"),
+                RewardItem::CardReward(cs) => {
+                    let ids: Vec<&str> = cs.iter().map(|x| x.def.id).collect();
+                    println!("CARDS {ids:?}");
+                }
+                RewardItem::Card(x) => println!("CARD {}", x.def.id),
+            }
+        }
+        println!("cardRng counter = {}", run.rng.card.counter);
     }
 }

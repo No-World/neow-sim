@@ -731,6 +731,14 @@ pub fn encode_run(run: &RunState) -> EncodedObservation {
                     let ids = [crate::vocab::card_id(c.def.id), -1, -1];
                     w.push(token_type::SCREEN, ids, f);
                 }
+                RewardItem::CardReward(cands) => {
+                    f[0] = 4.0; // kind: card reward (3 选 1)
+                    let id = cands
+                        .first()
+                        .map(|c| crate::vocab::card_id(c.def.id))
+                        .unwrap_or(-1);
+                    w.push(token_type::SCREEN, [id, -1, -1], f);
+                }
                 RewardItem::Potion(k) => {
                     f[0] = 2.0; // kind: potion
                     let ids = [-1, -1, *k as i32];

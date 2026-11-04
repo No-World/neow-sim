@@ -169,6 +169,21 @@ impl CardInst {
         }
     }
 
+    /// AbstractCard.canUpgrade()：未升级且存在可升级的数值
+    ///
+    /// ⚠️ 对 RNG 对拍而言，关键是**是否掷那一次**（getCard 收尾循环里逐卡掷
+    /// `cardRng.randomBoolean(cardUpgradedChance)`，`Random.randomBoolean(float)`
+    /// 无条件 ++counter）。这里只要给出与真游戏一致的布尔即可。
+    pub fn can_upgrade(&self) -> bool {
+        if self.upgraded {
+            return false;
+        }
+        self.def.upg_damage.is_some()
+            || self.def.upg_block.is_some()
+            || self.def.upg_magic.is_some()
+            || self.def.upg_base_cost.is_some()
+    }
+
     pub fn base_damage(&self) -> Option<i32> {
         self.def
             .base_damage
