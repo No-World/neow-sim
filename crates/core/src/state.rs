@@ -515,9 +515,12 @@ impl MonsterState {
                 (hp_rng.random_start_end(lo, hi), (dmg, 0, 0, 0, 0, 0, 0))
             }
             MonsterKind::AcidSlimeS => {
+                // AcidSlime_S：setHp(8,12)/A7 (9,13)；TACKLE dmg A2+ 4 否则 3；
+                // Weak 1 层（.6）。
+                // ⚠️ 伤害放 .5（dark_strike_dmg）——move_base_damage / take_turn 读这里。
                 let (lo, hi) = if ascension >= 7 { (9, 13) } else { (8, 12) };
                 let dmg = if ascension >= 2 { 4 } else { 3 };
-                (hp_rng.random_start_end(lo, hi), (dmg, 1, 0, 0, 0, 0, 0))
+                (hp_rng.random_start_end(lo, hi), (0, 0, 0, 0, 0, dmg, 1))
             }
             MonsterKind::SpikeSlimeM => {
                 // SpikeSlime_M：setHp(28,32)/A7 (29,34)；TACKLE dmg A2+ 10 否则 8。

@@ -286,6 +286,8 @@ pub(crate) enum Q {
         amount: i32,
     },
     RollMove(usize),
+    /// SetMoveAction：确定性设置 next_move（不掷 aiRng）
+    SetMonsterMove { target: usize, next: u8 },
     // —— 药水系统 ——
     /// 纯伤害（THORNS 管线跳过双方 power：火焰/爆炸药水）
     DamagePure {
@@ -2686,7 +2688,8 @@ impl Combat {
                     MonsterKind::Hexaghost => executed == 5,
                     MonsterKind::Byrd => executed == 5,
                     // SetMove 驱动（takeTurn 无 RollMoveAction）：劫匪 + 五小鬼 + 火把头
-                    MonsterKind::Mugger
+                    MonsterKind::AcidSlimeS
+                    | MonsterKind::Mugger
                     | MonsterKind::GremlinWarrior
                     | MonsterKind::GremlinThief
                     | MonsterKind::GremlinFat
@@ -3014,17 +3017,30 @@ impl Combat {
                     base: m.dark_strike_dmg,
                 });
             }
-            MonsterKind::AcidSlimeS => match m.next_move {
-                1 => q.push(Q::MonsterDamage {
-                    src: i,
-                    base: m.dark_strike_dmg,
-                }),
-                2 => q.push(Q::ApplyPowerToPlayerFromMonster {
-                    kind: PowerKind::Weak,
-                    amount: m.ritual_amt,
-                }),
-                _ => {}
-            },
+            MonsterKind::AcidSlimeS => {
+                // AcidSlime_S.takeTurn 是**确定性换招**，不排 RollMoveAction：
+                //   case 1 → DamageAction + setMove(2, DEBUFF)
+                //   case 2 → ApplyPowerAction(Weak 1) + setMove(1, ATTACK)
+                // 所以回合末它**不消耗 aiRng**（真游戏日志已验证：
+                // move_history 增长但 aiRng.counter 不变）。
+                match m.next_move {
+                    1 => {
+                        q.push(Q::MonsterDamage {
+                            src: i,
+                            base: m.dark_strike_dmg,
+                        });
+                        q.push(Q::SetMonsterMove { target: i, next: 2 });
+                    }
+                    2 => {
+                        q.push(Q::ApplyPowerToPlayerFromMonster {
+                            kind: PowerKind::Weak,
+                            amount: m.ritual_amt,
+                        });
+                        q.push(Q::SetMonsterMove { target: i, next: 1 });
+                    }
+                    _ => {}
+                }
+            }
             MonsterKind::SpikeSlimeM => match m.next_move {
                 // SpikeSlime_M.takeTurn：
                 //   case 1   → DamageAction(玩家) + MakeTempCardInDiscardAction(Slimed, 1)
@@ -5656,6 +5672,11 @@ impl Combat {
                 }
             }
             Q::RollMove(i) => self.roll_move(i),
+            Q::SetMonsterMove { target, next: mv } => {
+                if target < self.monsters.len() {
+                    self.monsters[target].next_move = mv;
+                }
+            }
             // —— 药水系统 exec ——
             Q::DamagePure { target, dmg } => {
                 if self.alive(target) {
