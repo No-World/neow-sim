@@ -3143,23 +3143,27 @@ impl Combat {
                 _ => {}
             },
             MonsterKind::Looter => match m.next_move {
+                // Looter.takeTurn：
+                //   case 1 (MUG_SWIPE) → DamageAction(swipeDmg)  + 偷金币（上限 goldAmt）+ Thievery -amount
+                //   case 4 (LUNGE)     → DamageAction(lungeDmg)
+                // 字段：chomp_dmg=swipeDmg, thrash_block=lungeDmg, thrash_dmg=goldAmt
+                // ⚠️ 原实现的伤害读错字段（swipe 读 .5=0、lunge 读 .1=goldAmt），
+                //    且偷金币硬编码 15/20 而不是 goldAmt —— 实测金币少 35。
                 1 => {
                     q.push(Q::MonsterDamage {
                         src: i,
-                        base: m.dark_strike_dmg,
+                        base: m.chomp_dmg,
                     });
-                    // 偷金币
-                    let steal = self.gold.min(15);
-                    self.gold -= steal;
+                    let amt = m.thrash_dmg.max(0);
+                    let steal = self.gold.min(amt);
+                    if steal > 0 {
+                        self.gold -= steal;
+                    }
                 }
-                4 => {
-                    q.push(Q::MonsterDamage {
-                        src: i,
-                        base: m.thrash_dmg,
-                    });
-                    let steal = self.gold.min(20);
-                    self.gold -= steal;
-                }
+                4 => q.push(Q::MonsterDamage {
+                    src: i,
+                    base: m.thrash_block,
+                }),
                 _ => {} // 逃跑/烟雾弹暂不实现
             },
             MonsterKind::SlaverBlue => match m.next_move {

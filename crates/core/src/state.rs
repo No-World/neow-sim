@@ -537,8 +537,15 @@ impl MonsterState {
                 (hp_rng.random_start_end(lo, hi), (dmg, 1, dmg2, 0, 0, 0, 0))
             }
             MonsterKind::Looter => {
+                // Looter：setHp(44,48)/A7 (46,50)
+                //   .0 chomp_dmg    = swipeDmg  10 / A2+ 11
+                //   .1 thrash_dmg   = goldAmt   15 / A17+ 20（Thievery 层数）
+                //   .2 thrash_block = lungeDmg  12 / A2+ 14
                 let (lo, hi) = if ascension >= 7 { (46, 50) } else { (44, 48) };
-                (hp_rng.random_start_end(lo, hi), (10, 15, 12, 0, 0, 0, 0))
+                let swipe = if ascension >= 2 { 11 } else { 10 };
+                let lunge = if ascension >= 2 { 14 } else { 12 };
+                let gold = if ascension >= 17 { 20 } else { 15 };
+                (hp_rng.random_start_end(lo, hi), (swipe, gold, lunge, 0, 0, 0, 0))
             }
             MonsterKind::SlaverBlue => {
                 let (lo, hi) = if ascension >= 7 { (48, 52) } else { (46, 50) };
@@ -1553,13 +1560,16 @@ impl MonsterState {
                 2 => Some(self.thrash_dmg),
                 _ => None,
             },
-            MonsterKind::Looter | MonsterKind::SlaverBlue | MonsterKind::SlaverRed => {
-                match self.next_move {
-                    1 => Some(self.dark_strike_dmg),
-                    4 => Some(self.thrash_dmg),
-                    _ => None,
-                }
-            }
+            MonsterKind::Looter => match self.next_move {
+                1 => Some(self.chomp_dmg),    // swipeDmg
+                4 => Some(self.thrash_block), // lungeDmg
+                _ => None,
+            },
+            MonsterKind::SlaverBlue | MonsterKind::SlaverRed => match self.next_move {
+                1 => Some(self.dark_strike_dmg),
+                4 => Some(self.thrash_dmg),
+                _ => None,
+            },
             MonsterKind::GremlinNob => match self.next_move {
                 1 => Some(self.dark_strike_dmg),
                 2 => Some(self.thrash_dmg),
