@@ -560,6 +560,8 @@ fn power_kind(pid: &str) -> Option<PowerKind> {
 
 #[derive(Clone)]
 pub struct Combat {
+    /// 战斗中被偷、击败后应归还的金币总额（Looter/Mugger.die → STOLEN_GOLD 奖励）
+    pub stolen_gold_rewards: i32,
     pub player: PlayerState,
     pub monsters: Vec<MonsterState>,
     /// 玩家遗物栏（第一批：战斗内触发遗物，见 relics.rs；局外层回填跨战计数）
@@ -942,6 +944,7 @@ impl Combat {
             .map(|k| MonsterState::spawn(*k, ascension, &mut rng.monster_hp))
             .collect();
         let mut c = Combat {
+            stolen_gold_rewards: 0,
             player: PlayerState {
                 stance: crate::state::Stance::Neutral,
                 orbs: Vec::new(),
@@ -1000,6 +1003,7 @@ impl Combat {
             .map(|k| MonsterState::spawn(*k, ascension, &mut rng.monster_hp))
             .collect();
         let mut c = Combat {
+            stolen_gold_rewards: 0,
             player: PlayerState {
                 stance: crate::state::Stance::Neutral,
                 orbs: Vec::new(),
@@ -3183,11 +3187,12 @@ impl Combat {
                     if m.burn_upgraded == 0 {
                         let _ = self.rng.ai.random_boolean_chance(0.6);
                     }
-                    let amt = m.thrash_dmg.max(0);
-                    let steal = self.gold.min(amt);
-                    if steal > 0 {
-                        self.gold -= steal;
-                    }
+                    // 偷取必须走 Q::StealGold（会累加 stolenGold 到 bellow_block），
+                    // 直接 self.gold -= steal 会漏记，导致击败后不归还金币。
+                    q.push(Q::StealGold {
+                        src: i,
+                        amount: m.thrash_dmg.max(0),
+                    });
                     q.push(Q::MonsterDamage {
                         src: i,
                         base: m.chomp_dmg,
@@ -3211,11 +3216,10 @@ impl Combat {
                     if std::env::var("NEOW_TRACE_LOOTER").is_ok() {
                         eprintln!("[LOOT] move4 lunge={} slashCount={}", m.thrash_block, m.burn_upgraded);
                     }
-                    let amt = m.thrash_dmg.max(0);
-                    let steal = self.gold.min(amt);
-                    if steal > 0 {
-                        self.gold -= steal;
-                    }
+                    q.push(Q::StealGold {
+                        src: i,
+                        amount: m.thrash_dmg.max(0),
+                    });
                     q.push(Q::MonsterDamage {
                         src: i,
                         base: m.thrash_block,
@@ -6063,7 +6067,9 @@ impl Combat {
             Q::StealGold { src, amount } => {
                 let steal = amount.min(self.gold).max(0);
                 self.gold -= steal;
-                self.monsters[src].burn_upgraded += steal;
+                // ⚠️ stolenGold 记在 bellow_block；burn_upgraded 已被 slashCount 占用，
+                // 两者混用会让 Looter 的状态机判错。
+                self.monsters[src].bellow_block += steal;
             }
             Q::MonsterEscape { src } => {
                 // EscapeAction：离场；不触发亡语；全员离场=战斗结束
@@ -6427,6 +6433,20 @@ impl Combat {
 
     /// 怪物死亡钩子：Spore Cloud（对玩家施加易伤）→ 全灭判定
     fn on_monster_death(&mut self, i: usize) {
+        // Looter/Mugger.die → addStolenGoldToRewards(stolenGold)：
+        // 击败偷钱怪后，被偷的金币作为 STOLEN_GOLD 奖励项归还。
+        if matches!(
+            self.monsters[i].kind,
+            MonsterKind::Looter | MonsterKind::Mugger
+        ) && self.monsters[i].bellow_block > 0
+        {
+            let amt = self.monsters[i].bellow_block;
+            if std::env::var("NEOW_TRACE_LOOTER").is_ok() {
+                eprintln!("[LOOT] die -> stolen_gold_rewards += {amt}");
+            }
+            self.stolen_gold_rewards += amt;
+            self.monsters[i].bellow_block = 0;
+        }
         // Stasis（铜球）：死亡归还吸走的卡（手牌满则弃牌堆）
         if let Some(card) = self.monsters[i].stasis_card.take() {
             if self.player.hand.len() < 10 {
@@ -9889,9 +9909,12 @@ mod tests {
         }
         assert!(c.monsters[0].escaped, "最终逃离");
         assert!(c.over && c.won, "全员离场=战斗结束（胜）");
-        let stolen = c.monsters[0].burn_upgraded;
+        // stolenGold 记在 bellow_block（burn_upgraded 已被 slashCount 占用）
+        let stolen = c.monsters[0].bellow_block;
         assert!(stolen >= 40, "至少两次抢劫各 20");
         assert_eq!(c.gold, gold0 - stolen, "偷走不归还（逃离路径）");
+        // 逃离路径不产生 STOLEN_GOLD 奖励（只有 die() 才归还）
+        assert_eq!(c.stolen_gold_rewards, 0, "逃离不归还");
     }
 
     /// 咬人蛇草：可延展受击得甲递增（3→4→5）

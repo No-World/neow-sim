@@ -2415,6 +2415,13 @@ impl RunState {
             // RNG 流回写：战斗内推进的全局流必须带回局外层
             self.rng = c.rng.clone();
             self.player.gold = c.gold + if c.won { gold_reward } else { 0 };
+            // Looter/Mugger 被击败 → 被偷金币作为 STOLEN_GOLD 奖励项（源码
+            // AbstractRoom.addStolenGoldToRewards）。必须排在普通奖励之前，
+            // 与真游戏 combat_reward 列表顺序一致。
+            if c.won && c.stolen_gold_rewards > 0 {
+                self.rewards
+                    .push(RewardItem::Gold(c.stolen_gold_rewards));
+            }
             if c.won {
                 self.generate_rewards();
             }
