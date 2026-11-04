@@ -2391,17 +2391,13 @@ impl Combat {
         }
     }
 
-    fn looter_get_move(&mut self, i: usize, num: i32) -> u8 {
-        // Looter.getMove：num < 40 ? MUG_SWIPE(1) : LUNGE(4)
-        // 后续招式全部由 takeTurn 里的 SetMoveAction 决定（确定性，不再掷）
-        let h = &self.monsters[i].move_history;
-        if num < 40 {
-            1
-        } else if h.last() == Some(&4) {
-            1
-        } else {
-            4
-        }
+    fn looter_get_move(&mut self, _i: usize, _num: i32) -> u8 {
+        // Looter.getMove（源码全文只有一行）：
+        //   this.setMove((byte)1, Intent.ATTACK, this.damage.get(0).base);
+        // 即**恒 move 1**（swipeDmg）。后续招式全部由 takeTurn 里的 SetMoveAction
+        // 决定（确定性，不掷 aiRng）。
+        // ⚠️ 之前凭空写了「num<40 ? 1 : 4」分支，导致第 2 次行动就进 LUNGE。
+        1
     }
 
     fn slaver_blue_get_move(&mut self, i: usize, num: i32) -> u8 {
@@ -2775,7 +2771,9 @@ impl Combat {
                     MonsterKind::Hexaghost => executed == 5,
                     MonsterKind::Byrd => executed == 5,
                     // SetMove 驱动（takeTurn 无 RollMoveAction）：劫匪 + 五小鬼 + 火把头
+                    // Looter：takeTurn 内全部用 SetMoveAction（无 RollMoveAction）
                     MonsterKind::AcidSlimeS
+                    | MonsterKind::Looter
                     | MonsterKind::Mugger
                     | MonsterKind::GremlinWarrior
                     | MonsterKind::GremlinThief
@@ -3176,10 +3174,15 @@ impl Combat {
                 //   case 3 ESCAPE：逃跑（escaped=true，全员逃离则战斗结束）
                 // 字段：chomp_dmg=swipeDmg, thrash_block=lungeDmg, thrash_dmg=goldAmt
                 1 => {
-                    // ⚠️ 源码的 talk 判定 `slashCount == 0 && aiRng.randomBoolean(0.6f)` 里，
-                    // 只有 slashCount==0 时才会调用 randomBoolean（短路求值）。
-                    // 但实测 bridge rng.ai 在此处**并未**多消耗，说明该分支不推进全局流
-                    // （TalkAction 走的是 aiRng 的副本或短路未触发）。保守起见不掷。
+                    if std::env::var("NEOW_TRACE_LOOTER").is_ok() {
+                        eprintln!("[LOOT] move1 slashCount={} next_move_before={}", m.burn_upgraded, m.next_move);
+                    }
+                    // talk 判定：`slashCount == 0 && aiRng.randomBoolean(0.6f)`
+                    // Java 是短路求值：slashCount != 0 时不调用 randomBoolean。
+                    // ⇒ slashCount==0（首次 MUG）时必须掷一次，之后不掷。
+                    if m.burn_upgraded == 0 {
+                        let _ = self.rng.ai.random_boolean_chance(0.6);
+                    }
                     let amt = m.thrash_dmg.max(0);
                     let steal = self.gold.min(amt);
                     if steal > 0 {
@@ -3190,6 +3193,9 @@ impl Combat {
                         base: m.chomp_dmg,
                     });
                     let slash = m.burn_upgraded + 1;
+                    if std::env::var("NEOW_TRACE_LOOTER").is_ok() {
+                        eprintln!("[LOOT] setting slashCount {} -> {}", m.burn_upgraded, slash);
+                    }
                     q.push(Q::SetMonsterCounter { target: i, value: slash });
                     if slash == 2 {
                         if self.rng.ai.random_boolean_chance(0.5) {
@@ -3202,6 +3208,9 @@ impl Combat {
                     }
                 }
                 4 => {
+                    if std::env::var("NEOW_TRACE_LOOTER").is_ok() {
+                        eprintln!("[LOOT] move4 lunge={} slashCount={}", m.thrash_block, m.burn_upgraded);
+                    }
                     let amt = m.thrash_dmg.max(0);
                     let steal = self.gold.min(amt);
                     if steal > 0 {
