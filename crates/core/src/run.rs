@@ -1367,6 +1367,9 @@ pub enum RewardItem {
 
 /// 整局状态：幕/层/遭遇序列/当前战斗
 pub struct RunState {
+    /// 战斗结束时是否有偷钱怪成功逃逸（AbstractRoom.mugged）
+    /// → 奖励屏走 openCombat，不生成卡牌奖励
+    pub combat_mugged: bool,
     pub seed: u64,
     pub ascension: i32,
     /// 可玩角色（决定起始组/初始遗物/血量/卡池色/职业药水）
@@ -1535,6 +1538,7 @@ impl RunState {
             neow_picks: Vec::new(),
             neow_enemy_kill: 0,
             map_started: false,
+            combat_mugged: false,
             rest_available: false,
         };
         s.populate_act();
@@ -1976,8 +1980,22 @@ impl RunState {
             (40 + self.potion_pity).clamp(0, 100)
         };
         if self.rng.potion.random_start_end(0, 99) < chance {
+            // 真游戏 AbstractRoom.addPotionToRewards → AbstractDungeon.returnRandomPotion(false)：
+            //   1) potionRng.random(0,99) 判稀有度（<65 COMMON / <90 UNCOMMON / RARE）
+            //   2) PotionHelper.getRandomPotion() → potionRng.random(pool-1) 均匀抽一张
+            //   3) limited=false ⇒ while 循环不会重掷（第一张就通过）
+            // 共 **2 次** potionRng 消耗。上一版误改成单次均匀抽，少消耗 1 次。
             let pool = crate::potions::pool_for_class(self.char_kind.id());
-            let k = crate::potions::return_random_potion(&pool, false, &mut self.rng.potion);
+            let roll = self.rng.potion.random_start_end(0, 99);
+            let _rarity = if roll < 65 {
+                crate::potions::PotionRarity::Common
+            } else if roll < 90 {
+                crate::potions::PotionRarity::Uncommon
+            } else {
+                crate::potions::PotionRarity::Rare
+            };
+            let idx = self.rng.potion.random_range(pool.len() as i32 - 1).max(0) as usize;
+            let k = pool[idx.min(pool.len() - 1)];
             self.rewards.push(RewardItem::Potion(k));
             self.potion_pity -= 10;
         } else {
@@ -1990,6 +2008,13 @@ impl RunState {
         // 而 `Random.randomBoolean(float)` 是**无条件 ++counter**（哪怕 chance==0），
         // 所以这 3 次消耗必须复刻——否则后续所有 cardRng 消费全部错位
         // （实测第 2 场战斗的卡牌奖励因此抽到完全不同的卡）。
+        // ⚠️ mugged（Looter/Mugger 逃逸）：真游戏走 openCombat(TEXT[0])，
+        // **完全不生成卡牌奖励**（cardRng 少 3 次 rollRarity + 3 次 pick + 3 次升级 = 少 9）
+        // 实测 floor 5（Looter 战）cardRng delta = 8 而非 9。
+        if self.combat_mugged {
+            self.combat_mugged = false;
+            return;
+        }
         let boss = room == Some(RoomKind::Boss);
         // ⚠️ roll 顺序（实测确认，配合 HashMap 池序）：
         //   先把 3 张的 rarity+pick 全部做完，再统一掷 3 次升级概率。
@@ -2005,8 +2030,14 @@ impl RunState {
         }
         let chance = self.upgrade_chance();
         for card in cards.iter_mut() {
+            // ⚠️ Java 是短路求值：`c.rarity != RARE && cardRng.randomBoolean(...)`
+            // ⇒ **RARE 卡不掷升级概率**（不消耗 cardRng）。
+            // 无条件掷会让每次奖励多 1 次消耗（实测 floor 5 有 RARE 卡时 9 vs 8）。
+            if card.def.rarity == "RARE" {
+                continue;
+            }
             let roll = self.rng.card.random_boolean_chance(chance);
-            if card.def.rarity != "RARE" && roll && card.can_upgrade() {
+            if roll && card.can_upgrade() {
                 card.upgraded = true;
                 card.upgrade_times = 1;
             }
@@ -2406,6 +2437,11 @@ impl RunState {
             let max_hp_gain = if c.won { c.on_victory() } else { 0 };
             self.player.hp = c.player.creature.hp.max(0);
             self.player.max_hp += max_hp_gain;
+            // 偷钱怪逃逸 → mugged（奖励屏不给卡牌奖励）
+            self.combat_mugged = c
+                .monsters
+                .iter()
+                .any(|m| m.escaped && matches!(m.kind, crate::state::MonsterKind::Looter | crate::state::MonsterKind::Mugger));
             // 药水栏同步（战斗内使用/丢弃）
             self.potions = c.player.potions.clone();
             // 主牌组永久新增（OrbWalker 灼伤 / 寄生前置）
