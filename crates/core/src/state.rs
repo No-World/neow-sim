@@ -481,6 +481,10 @@ pub struct MonsterState {
     pub stasis_card: Option<CardInst>,
     /// 小暗灵半死状态（全员半死=真死；否则下回合复活半血）
     pub half_dead: bool,
+    /// Guardian：isOpen（true=Offensive 开放形态；false=Defensive 闭合形态+Sharp Hide）
+    pub guardian_open: bool,
+    /// Guardian：本相位已累计受击伤害（≥ 阈值触发模式切换）
+    pub guardian_dmg_taken: i32,
 }
 
 impl MonsterState {
@@ -1808,6 +1812,8 @@ impl MonsterState {
             escaped: false,
             stasis_card: None,
             half_dead: false,
+            guardian_open: kind == MonsterKind::Guardian,
+            guardian_dmg_taken: 0,
         }
     }
 
@@ -1895,12 +1901,13 @@ impl MonsterState {
                 _ => Intent::Attack,
             },
             MonsterKind::Guardian => match self.next_move {
-                2 => Intent::Attack,
-                3 => Intent::Attack,
-                4 => Intent::AttackBuff,
-                5 => Intent::Attack,
-                6 => Intent::Defend,
-                7 => Intent::Debuff,
+                1 => Intent::Buff,         // Close Up（Sharp Hide）
+                2 => Intent::Attack,       // Fierce Bash 32
+                3 => Intent::Attack,       // Roll Attack 9
+                4 => Intent::AttackBuff,   // Twin Slam 8×2
+                5 => Intent::Attack,       // Whirlwind 5×4
+                6 => Intent::Defend,       // Charge Up +9 格挡
+                7 => Intent::StrongDebuff, // Vent Steam：Weak 2 + Vulnerable 2
                 _ => Intent::Defend,
             },
             MonsterKind::SlimeBoss => match self.next_move {
@@ -2185,10 +2192,12 @@ impl MonsterState {
                 _ => None,
             },
             MonsterKind::Guardian => match self.next_move {
-                2 => Some(self.dark_strike_dmg),
+                // 槽位与 spawn 对齐：fierce=chomp、roll=thrash、twin=bellow_str、
+                // whirl=thrash_block（曾用 dark_strike=VENT 数=0，意图伤害显示 0）
+                2 => Some(self.chomp_dmg),
                 3 => Some(self.thrash_dmg),
-                4 => Some(self.thrash_block),
-                5 => Some(self.bellow_str),
+                4 => Some(self.bellow_str),
+                5 => Some(self.thrash_block),
                 _ => None,
             },
             MonsterKind::SlimeBoss => match self.next_move {

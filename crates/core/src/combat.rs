@@ -413,6 +413,11 @@ pub(crate) enum Q {
         acid: bool,
         hp: i32,
     },
+    /// Guardian Twin Slam 开头：ChangeState(OFFENSIVE)——重挂 Mode Shift 计数、
+    /// 清格挡、dmgTaken 归零、isOpen=true（Sharp Hide 的移除一并处理）
+    GuardianOffensive {
+        target: usize,
+    },
     /// 爆炸形体自爆：先自灭（真死路径）再对玩家 30 THORNS 伤（不可格挡）
     ExploderBlast {
         src: usize,
@@ -589,6 +594,8 @@ pub struct Combat {
     pub next_turn_copy_count: i32,
     skip_monster_turn: bool,
     force_end_turn_after_queue: bool,
+    /// Guardian 模式切换挂起（伤害累计达标后于当前队列末尾结算，镜像 ChangeStateAction 排底）
+    guardian_shift_pending: bool,
     pub discarded_this_turn: i32,
     pub last_card_type: Option<String>,
     pub turn: i32,
@@ -984,6 +991,7 @@ impl Combat {
             next_turn_copy_count: 0,
             skip_monster_turn: false,
             force_end_turn_after_queue: false,
+            guardian_shift_pending: false,
             discarded_this_turn: 0,
             last_card_type: None,
             turn: 1,
@@ -1048,6 +1056,7 @@ impl Combat {
             next_turn_copy_count: 0,
             skip_monster_turn: false,
             force_end_turn_after_queue: false,
+            guardian_shift_pending: false,
             discarded_this_turn: 0,
             last_card_type: None,
             turn: 1,
@@ -1118,6 +1127,7 @@ impl Combat {
             next_turn_copy_count: 0,
             skip_monster_turn: false,
             force_end_turn_after_queue: false,
+            guardian_shift_pending: false,
             discarded_this_turn: 0,
             last_card_type: None,
             turn: 1,
@@ -2624,16 +2634,12 @@ impl Combat {
     }
 
     fn guardian_get_move(&mut self, i: usize) -> u8 {
-        // Guardian 固定循环: Charge Up(6) → Fierce Bash(2) → Vent Steam(7) → Whirlwind(5) → repeat
-        if self.monsters[i].first_move {
-            return 6;
-        }
-        match self.monsters[i].move_history.last() {
-            Some(&6) => 2,
-            Some(&2) => 7,
-            Some(&7) => 5,
-            Some(&5) => 6,
-            _ => 6,
+        // Java getMove：仅 init/rollMove 调用；isOpen → Charge Up，否则 Roll Attack。
+        // 开放形态的招式链由 take_turn 的 setMove 串接（无 RollMoveAction）。
+        if self.monsters[i].guardian_open {
+            6
+        } else {
+            3
         }
     }
 
@@ -2921,6 +2927,9 @@ impl Combat {
                     // takeTurn 里**没有 RollMoveAction**（实测 floor14 ai 5 vs 真 4）
                     MonsterKind::AcidSlimeL => executed == 3,
                     MonsterKind::SpikeSlimeL => executed == 3,
+                    // Guardian：确定性招式链，所有 takeTurn case 均**无 RollMoveAction**
+                    //（实测 floor16 ai 5 vs 真 1：init rollMove 后不再掷）
+                    MonsterKind::Guardian => true,
                     // SetMove 驱动（takeTurn 无 RollMoveAction）：劫匪 + 五小鬼 + 火把头
                     // Looter：takeTurn 内全部用 SetMoveAction（无 RollMoveAction）
                     MonsterKind::AcidSlimeS
@@ -3479,56 +3488,77 @@ impl Combat {
                 }),
                 _ => {}
             },
+            // Guardian：确定性招式链（各招 setMove 指定下一招，**无 RollMoveAction**）；
+            // 链：Charge Up → Fierce Bash → Vent Steam → Whirlwind → Charge Up…
+            // 受击累计 ≥ 阈值（30/35/40，每次 Defensive +10）→ 模式切换 → Close Up。
             MonsterKind::Guardian => match m.next_move {
                 6 => {
-                    // Charge Up: 获得格挡
+                    // Charge Up: 格挡 9 + 下招 Fierce Bash
                     q.push(Q::MonsterBlock {
                         target: i,
                         amount: m.bellow_block,
                     });
+                    q.push(Q::SetMonsterMove { target: i, next: 2 });
                 }
                 2 => {
-                    // Fierce Bash: 重击
+                    // Fierce Bash: 32
                     q.push(Q::MonsterDamage {
                         src: i,
-                        base: m.dark_strike_dmg,
+                        base: m.chomp_dmg,
                     });
+                    q.push(Q::SetMonsterMove { target: i, next: 7 });
                 }
                 7 => {
-                    // Vent Steam: 虚弱+易伤
+                    // Vent Steam: Weak 2 + Vulnerable 2（Intent.STRONG_DEBUFF）
                     q.push(Q::ApplyPowerToPlayerFromMonster {
                         kind: PowerKind::Weak,
-                        amount: 2,
+                        amount: m.dark_strike_dmg,
                     });
                     q.push(Q::ApplyPowerToPlayerFromMonster {
                         kind: PowerKind::Vulnerable,
-                        amount: 2,
+                        amount: m.dark_strike_dmg,
                     });
+                    q.push(Q::SetMonsterMove { target: i, next: 5 });
                 }
                 5 => {
-                    // Whirlwind: 5伤×4
+                    // Whirlwind: 5 伤 ×4
                     for _ in 0..m.ritual_amt {
-                        q.push(Q::MonsterDamage {
-                            src: i,
-                            base: m.bellow_str,
-                        });
-                    }
-                }
-                4 => {
-                    // Twin Slam: 8伤×2
-                    for _ in 0..2 {
                         q.push(Q::MonsterDamage {
                             src: i,
                             base: m.thrash_block,
                         });
                     }
+                    q.push(Q::SetMonsterMove { target: i, next: 6 });
+                }
+                1 => {
+                    // Close Up（Defensive 形态）：Sharp Hide 3（A19+ 4）→ 下招 Roll Attack。
+                    // ⚠️ 真游戏 SharpHidePower 按**攻击卡**触发（每卡 1 次）；
+                    //    引擎 Thorns 为每次受击触发——单段攻击等价，多段攻击有偏差。
+                    q.push(Q::ApplyPowerToMonster {
+                        target: i,
+                        kind: PowerKind::Thorns,
+                        amount: if self.ascension >= 19 { 4 } else { 3 },
+                    });
+                    q.push(Q::SetMonsterMove { target: i, next: 3 });
                 }
                 3 => {
-                    // Roll Attack: 9伤
+                    // Roll Attack: 9
                     q.push(Q::MonsterDamage {
                         src: i,
                         base: m.thrash_dmg,
                     });
+                    q.push(Q::SetMonsterMove { target: i, next: 4 });
+                }
+                4 => {
+                    // Twin Slam: ChangeState(OFFENSIVE) 先行，再 8×2
+                    q.push(Q::GuardianOffensive { target: i });
+                    for _ in 0..2 {
+                        q.push(Q::MonsterDamage {
+                            src: i,
+                            base: m.bellow_str,
+                        });
+                    }
+                    q.push(Q::SetMonsterMove { target: i, next: 5 });
                 }
                 _ => {}
             },
@@ -5041,6 +5071,11 @@ impl Combat {
         while !q.is_empty() {
             let act = q.remove(0);
             self.exec(act);
+            if self.guardian_shift_pending {
+                // ChangeState(DEFENSIVE_MODE) 排底：当前动作队列结束后结算
+                self.guardian_shift_pending = false;
+                self.guardian_apply_defensive_shift();
+            }
             if self.over {
                 return;
             }
@@ -5055,6 +5090,23 @@ impl Combat {
                 return;
             }
         }
+    }
+
+    /// Guardian ChangeState(DEFENSIVE_MODE)：+20 格挡、阈值 +10（切换计数 +1）、
+    /// isOpen=false、setMove(CLOSE_UP=1 BUFF)（setMove 会 push moveHistory）
+    fn guardian_apply_defensive_shift(&mut self) {
+        let idx = self
+            .monsters
+            .iter()
+            .position(|m| m.kind == MonsterKind::Guardian)
+            .expect("Guardian 切换挂起但场上无 Guardian");
+        let m = &mut self.monsters[idx];
+        m.creature.block += 20; // DEFENSIVE_BLOCK
+        m.guardian_open = false;
+        m.guardian_dmg_taken = 0;
+        m.burn_upgraded += 1; // 阈值 = base + 10 × 切换次数
+        m.next_move = 1;
+        m.move_history.push(1);
     }
 
     /// AbstractPlayer.damage 的玩家侧收尾：decrementBlock（HP_LOSS 绕过格挡）
@@ -6476,6 +6528,15 @@ impl Combat {
                     self.won = true;
                 }
             }
+            Q::GuardianOffensive { target } => {
+                // ChangeState(OFFENSIVE)：重挂 Mode Shift（阈值保持 +10×切换次数）、
+                // dmgTaken 归零、isOpen=true、清格挡；Sharp Hide 移除
+                let m = &mut self.monsters[target];
+                m.guardian_open = true;
+                m.guardian_dmg_taken = 0;
+                m.creature.block = 0;
+                m.creature.powers.retain(|p| p.kind != PowerKind::Thorns);
+            }
             Q::BlockAllMonsters(amount) => {
                 for mi in 0..self.monsters.len() {
                     if self.alive(mi) {
@@ -6693,6 +6754,24 @@ impl Combat {
             }
             let alive_after = cr.hp > 0;
             let hp_lost = hp_before - cr.hp;
+            // Guardian 模式切换累计（Java TheGuardian.damage：isOpen 且实际掉血时
+            // dmgTaken += 实际损失；≥ 阈值 → ChangeState(DEFENSIVE_MODE) 排底）。
+            // 不限伤害类型：THORNS（如 Mercury Hourglass）同样计入。
+            if hp_lost > 0 && m.kind == MonsterKind::Guardian && m.guardian_open && alive_after {
+                m.guardian_dmg_taken += hp_lost;
+                let base = if self.ascension >= 19 {
+                    40
+                } else if self.ascension >= 9 {
+                    35
+                } else {
+                    30
+                };
+                let threshold = base + 10 * m.burn_upgraded;
+                if m.guardian_dmg_taken >= threshold && !self.guardian_shift_pending {
+                    m.guardian_dmg_taken = 0;
+                    self.guardian_shift_pending = true;
+                }
+            }
             if alive_after && dmg > 0 && ty == DamageType::Normal {
                 // Angry（战鬼）：受击 → 力量 +amount
                 if let Some(angry) = cr
@@ -11909,5 +11988,156 @@ mod floor11_probe {
                 .map(|m| (m.kind, m.creature.hp, m.creature.max_hp, m.dark_strike_dmg))
                 .collect::<Vec<_>>()
         );
+    }
+}
+
+#[cfg(test)]
+mod boss_and_lice_probe {
+    use super::*;
+
+    /// 复现真游戏 floor 10（3 Louse）：Strike→Defe、Bash→Defe（击杀）、end_turn。
+    /// 锁定：CurlUp 掉血后加挡、死怪跳过（不掷 rollMove）、回合末逐怪 rollMove。
+    #[test]
+    fn floor10_strike_bash_then_end_turn() {
+        let mut c = Combat::new_with(
+            10,
+            0,
+            &[
+                MonsterKind::LouseDefensive,
+                MonsterKind::LouseNormal,
+                MonsterKind::LouseNormal,
+            ],
+        );
+        // 强设为真游戏观到的初始状态（PMCWKZEF floor10）：
+        // Defe hp10 bite6 curl3 / N7 hp12 bite7 curl6 / N6 hp10 bite6 curl6
+        let spec = [(10, 6, 3), (12, 7, 6), (10, 6, 6)];
+        for (i, (hp, bite, curl)) in spec.iter().enumerate() {
+            c.monsters[i].creature.hp = *hp;
+            c.monsters[i].creature.max_hp = *hp;
+            c.monsters[i].dark_strike_dmg = *bite;
+            c.monsters[i].creature.powers.clear();
+            apply_power(
+                &mut c.monsters[i].creature.powers,
+                PowerKind::CurlUp,
+                *curl,
+                false,
+                false,
+            );
+            c.monsters[i].move_history.clear();
+            c.roll_move(i);
+        }
+        c.player.hand.clear();
+        for cls in ["Strike_R", "Bash", "Juggernaut", "Iron Wave", "Strike_R"] {
+            c.player.hand.push(CardInst::new(cls));
+        }
+        c.player.energy = 3;
+        c.step(&Action::PlayCard {
+            index: 0,
+            target: Some(0),
+        });
+        assert_eq!(c.monsters[0].creature.hp, 4, "Strike 6 → 10-6");
+        assert_eq!(c.monsters[0].creature.block, 3, "CurlUp 掉血后 +3");
+        let bi = c
+            .player
+            .hand
+            .iter()
+            .position(|x| x.def.id == "Bash")
+            .unwrap();
+        c.step(&Action::PlayCard {
+            index: bi,
+            target: Some(0),
+        });
+        assert!(c.monsters[0].creature.is_dead(), "Bash 击杀 Defe");
+        c.step(&Action::EndTurn);
+        // Defe 死亡 → 跳过其 rollMove：aiRng 恰好消耗 2 次（两只存活虱）
+        assert_eq!(c.rng.ai.counter, 8, "3 init + 2 rollMove");
+        // 玩家挨 7+6=13：88-13 = 75（初始满血）
+        assert_eq!(c.player.creature.hp, 80 - 13, "回合 1 承 13 伤");
+    }
+
+    /// Guardian：确定性招式链 + 30 伤害阈值模式切换（TheGuardian.java 逐行镜像）
+    #[test]
+    fn guardian_mode_shift_chain() {
+        let mut c = Combat::new_with(16, 0, &[MonsterKind::Guardian]);
+        // 玩家加厚：完整走完招式链而不死亡（真实轨迹中玩家 max=91 满血入场）
+        c.player.creature.max_hp = 200;
+        c.player.creature.hp = 200;
+        let g = &c.monsters[0];
+        assert!(g.guardian_open, "初始 Offensive（isOpen）");
+        assert_eq!(g.next_move, 6, "init rollMove：isOpen → Charge Up");
+        assert_eq!(g.creature.hp, 240, "setHp(240)（掷 nextInt(1)，值恒 240）");
+        assert_eq!(c.rng.ai.counter, 1, "init rollMove 消耗 1 次 aiRng");
+
+        // 回合 1：Charge Up（+9 格挡）→ 链 Fierce Bash
+        c.step(&Action::EndTurn);
+        let g = &c.monsters[0];
+        assert_eq!(g.creature.block, 9, "Charge Up +9");
+        assert_eq!(g.next_move, 2, "链：Charge Up → Fierce Bash");
+        assert_eq!(g.guardian_dmg_taken, 0, "本测试无 Mercury，累计为 0");
+
+        // 回合 2：Fierce Bash 32 → 链 Vent Steam
+        let php0 = c.player.creature.hp;
+        c.step(&Action::EndTurn);
+        assert_eq!(c.player.creature.hp, php0 - 32, "Fierce Bash 32（无格挡）");
+        assert_eq!(c.monsters[0].next_move, 7, "链：Fierce Bash → Vent Steam");
+
+        // 回合 3：Vent Steam（Weak 2 + Vuln 2）→ 链 Whirlwind
+        c.step(&Action::EndTurn);
+        let pp = &c.player.creature.powers;
+        assert!(pp
+            .iter()
+            .any(|p| p.kind == PowerKind::Weak && p.amount == 2));
+        assert!(pp
+            .iter()
+            .any(|p| p.kind == PowerKind::Vulnerable && p.amount == 2));
+        assert_eq!(c.monsters[0].next_move, 5, "链：Vent Steam → Whirlwind");
+
+        // 回合 4：Whirlwind 5×4 → 链 Charge Up；玩家有 Vuln 2 → 每段 5×1.5=7.5→7，
+        // 共 28（真游戏同：Vent 后接 Whirlwind 必吃易伤乘区）
+        let php0 = c.player.creature.hp;
+        c.step(&Action::EndTurn);
+        assert_eq!(
+            c.player.creature.hp,
+            php0 - 28,
+            "Whirlwind 7×4（Vuln 1.5×）"
+        );
+        assert_eq!(c.monsters[0].next_move, 6, "链：Whirlwind → Charge Up");
+
+        // 手动累计至阈值-1 再补 1 点伤害 → 越阈挂起（damage() → ChangeState 排底）
+        c.monsters[0].guardian_dmg_taken = 29;
+        c.hit_monster(0, 1, DamageType::Normal);
+        assert!(c.guardian_shift_pending, "越阈挂起");
+        c.guardian_apply_defensive_shift();
+        let g = &c.monsters[0];
+        assert_eq!(g.creature.block, 20, "Defensive +20 格挡");
+        assert_eq!(g.burn_upgraded, 1, "切换计数 +1（阈值 40）");
+        assert_eq!(g.next_move, 1, "链：切 Close Up");
+        assert!(!g.guardian_open, "进入 Defensive 形态");
+
+        // 回合：Close Up（Sharp Hide 3）→ 链 Roll Attack
+        c.step(&Action::EndTurn);
+        assert!(c.monsters[0]
+            .creature
+            .powers
+            .iter()
+            .any(|p| p.kind == PowerKind::Thorns && p.amount == 3));
+        assert_eq!(c.monsters[0].next_move, 3, "链：Close Up → Roll Attack");
+
+        // Roll Attack 9 → 链 Twin Slam；Twin Slam：Offensive 回归（清格挡/去刺）+ 8×2
+        c.step(&Action::EndTurn);
+        assert_eq!(c.monsters[0].next_move, 4, "链：Roll Attack → Twin Slam");
+        let php0 = c.player.creature.hp;
+        c.step(&Action::EndTurn);
+        assert_eq!(c.player.creature.hp, php0 - 16, "Twin Slam 8×2");
+        let g = &c.monsters[0];
+        assert!(g.guardian_open, "Offensive 回归");
+        assert_eq!(g.guardian_dmg_taken, 0, "重挂计数归零");
+        assert_eq!(g.creature.block, 0, "Offensive 回归清格挡");
+        assert_eq!(g.next_move, 5, "链：Twin Slam → Whirlwind");
+        assert!(!g
+            .creature
+            .powers
+            .iter()
+            .any(|p| p.kind == PowerKind::Thorns));
     }
 }
