@@ -1002,6 +1002,70 @@ impl Combat {
         c
     }
 
+    /// 预构建怪物入场（MonsterHelper「候选全构造」镜像）：
+    /// Exordium Wildlife/Thugs 等遭遇在真游戏里把**所有候选怪都构造出来**
+    /// （各自掷 setHp/bite），再 miscRng 选 2/1 只——未选中的掷点也占用
+    /// monsterHpRng。resolve_encounter 已按真实顺序 spawn 全部候选并挑好，
+    /// 这里不得再掷。
+    #[allow(clippy::too_many_arguments)]
+    pub fn new_run_battle_with_states(
+        mut rng: RngStreams,
+        ascension: i32,
+        monsters: Vec<MonsterState>,
+        relics: Vec<RelicInst>,
+        deck: Vec<CardInst>,
+        potions: Vec<Option<crate::potions::PotionInst>>,
+        hp: i32,
+        max_hp: i32,
+        gold: i32,
+    ) -> Self {
+        let mut c = Combat {
+            boss_vocab: 0.0,
+            stolen_gold_rewards: 0,
+            player: PlayerState {
+                stance: crate::state::Stance::Neutral,
+                orbs: Vec::new(),
+                max_orbs: 3,
+                creature: Creature::new(hp, max_hp),
+                energy: 3,
+                hand: Vec::new(),
+                draw: deck,
+                discard: Vec::new(),
+                exhaust: Vec::new(),
+                potions,
+            },
+            monsters,
+            rng,
+            pending: None,
+            pending_queue: None,
+            attacks_this_turn: 0,
+            hand_cost_zero_this_turn: false,
+            hand_cost_max_one: false,
+            next_turn_draw: 0,
+            next_turn_energy: 0,
+            gold,
+            next_turn_copies: Vec::new(),
+            next_turn_copy_count: 0,
+            skip_monster_turn: false,
+            force_end_turn_after_queue: false,
+            discarded_this_turn: 0,
+            last_card_type: None,
+            turn: 1,
+            turn_has_ended: false,
+            over: false,
+            won: false,
+            escaped: false,
+            master_deck_additions: Vec::new(),
+            player_relics: relics,
+            ascension,
+        };
+        card_group_shuffle(&mut c.player.draw, &mut c.rng.shuffle);
+        c.draw_cards(5);
+        self_monster_prebattle(&mut c);
+        c.relics_battle_start();
+        c
+    }
+
     /// 带计数器的遗物实例构造（Du-Vu Doll 诅咒数/Girya 举重次数/Pen Nib 跨战
     /// 计数等由局外层回填；战斗开始钩子在内部末尾触发）
     pub fn new_with_relic_insts(
@@ -2853,6 +2917,10 @@ impl Combat {
                 let skip_roll = match self.monsters[i].kind {
                     MonsterKind::Hexaghost => executed == 5,
                     MonsterKind::Byrd => executed == 5,
+                    // 大史莱姆分裂（case 3）：CannotLose→Suicide→Spawn×2→CanLose，
+                    // takeTurn 里**没有 RollMoveAction**（实测 floor14 ai 5 vs 真 4）
+                    MonsterKind::AcidSlimeL => executed == 3,
+                    MonsterKind::SpikeSlimeL => executed == 3,
                     // SetMove 驱动（takeTurn 无 RollMoveAction）：劫匪 + 五小鬼 + 火把头
                     // Looter：takeTurn 内全部用 SetMoveAction（无 RollMoveAction）
                     MonsterKind::AcidSlimeS
@@ -6372,7 +6440,11 @@ impl Combat {
                 self.next_turn_draw += n;
             }
             Q::SlimeSplit { src, acid, hp } => {
-                // CannotLose→SuicideAction(不计击杀)→2×SpawnMonster(M, newHp=currentHealth)
+                // CannotLose→SuicideAction(不计击杀)→2×SpawnMonsterAction(M, newHp=currentHealth)
+                // ⚠️ 真游戏 SpawnMonsterAction 用 AcidSlime_M/SpikeSlime_M 的 **4 参构造器**
+                //   （newHealth=currentHealth）——不掷 setHp；且 m.init() 会 rollMove
+                //   （各消耗 aiRng.random(99) 1 次）。曾用 spawn() 掷 HP 又强制 move 1，
+                //   实测 PMCWKZEF floor14 monsterHp 3 vs 1、ai 3 vs 4、第二只意图分叉。
                 let kind = if acid {
                     MonsterKind::AcidSlimeM
                 } else {
@@ -6382,15 +6454,23 @@ impl Combat {
                 self.monsters[src].creature.block = 0;
                 // 不走 on_monster_death（SuicideAction 不触发亡语/胜利判定）
                 let asc = self.ascension;
-                for _ in 0..2 {
-                    let mut m = MonsterState::spawn(kind, asc, &mut self.rng.monster_hp);
-                    // M 版 HP = 分裂时 L 版当前 HP（构造器 newHealth 参数）
+                let mut scratch = crate::rng::StsRandom::new(0);
+                let mut first = MonsterState::spawn(kind, asc, &mut scratch);
+                let mut second = MonsterState::spawn(kind, asc, &mut scratch);
+                // M 版 HP = 分裂时 L 版当前 HP（4 参构造器 newHealth 参数）
+                for m in [&mut first, &mut second] {
                     m.creature.max_hp = hp;
                     m.creature.hp = hp;
-                    m.next_move = 1;
-                    m.move_history.push(1);
-                    self.monsters.push(m);
                 }
+                // 真游戏 MonsterGroup 按 x 位序插入：[M(左), L(尸), M(右)]——
+                // 死 L 仍占位（真游戏 [164] Strike target 0 打左 M、[167] target 2
+                // 打右 M，目标下标 = 含尸体的完整数组序），故左右包夹插入
+                let l_idx = src;
+                self.monsters.insert(l_idx, first);
+                self.monsters.insert(l_idx + 2, second);
+                // SpawnMonsterAction → Monster.init() → rollMove（各 1 次 aiRng）
+                self.roll_move(l_idx);
+                self.roll_move(l_idx + 2);
                 if self.all_monsters_dead() {
                     self.over = true;
                     self.won = true;
@@ -8018,7 +8098,9 @@ impl Combat {
 
     /// 意图决策（逐行对照各怪 getMove；num = aiRng.random(99)）
     fn roll_move(&mut self, i: usize) {
+        let c0 = self.rng.ai.counter;
         let num = self.rng.ai.random_range(99);
+        let trace = std::env::var("NEOW_TRACE_AIROLL").is_ok();
         let mv: u8 = match self.monsters[i].kind {
             MonsterKind::JawWorm => self.jaw_worm_get_move(i, num),
             MonsterKind::Cultist => {
@@ -8145,6 +8227,18 @@ impl Combat {
                 }
             }
         };
+        if trace {
+            eprintln!(
+                "[AI] mon{} kind={:?} counter {}->{} num={} mv={} hist={:?}",
+                i,
+                self.monsters[i].kind,
+                c0,
+                self.rng.ai.counter,
+                num,
+                mv,
+                self.monsters[i].move_history
+            );
+        }
         self.monsters[i].first_move = false;
         self.monsters[i].move_history.push(mv);
         self.monsters[i].next_move = mv;
@@ -11793,5 +11887,27 @@ mod curlup_order_probe {
         let hp_loss = hp0 - c.monsters[0].creature.hp;
         assert_eq!(hp_loss, base, "Curl Up 不应吸收触发它的伤害（curl={curl}）");
         assert_eq!(c.monsters[0].creature.block, curl, "结算后才加格挡");
+    }
+}
+
+#[cfg(test)]
+mod floor11_probe {
+    use super::*;
+
+    #[test]
+    fn floor11_wildlife_hp_rolls() {
+        let mut c = Combat::new_with(
+            1585262650280 + 11,
+            0,
+            &[MonsterKind::FungiBeast, MonsterKind::LouseNormal],
+        );
+        eprintln!(
+            "[P] counter={} mons={:?}",
+            c.rng.monster_hp.counter,
+            c.monsters
+                .iter()
+                .map(|m| (m.kind, m.creature.hp, m.creature.max_hp, m.dark_strike_dmg))
+                .collect::<Vec<_>>()
+        );
     }
 }

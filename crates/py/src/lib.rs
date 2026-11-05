@@ -282,8 +282,10 @@ impl GymEnv {
         let p = &self.run.player;
         let mut o = String::from("{\"meta\":{");
         o.push_str(&format!(
-            "\"pos\":[{},{}],\"hp\":{},\"max_hp\":{},\"gold\":{},\"act\":{},\"floor\":{}",
-            self.run.pos.0, self.run.pos.1, p.hp, p.max_hp, p.gold, self.run.act, self.run.floor
+            "\"pos\":[{},{}],\"hp\":{},\"max_hp\":{},\"gold\":{},\"act\":{},\"floor\":{},\"enc_idx\":{},\"enc\":\"{}\"",
+            self.run.pos.0, self.run.pos.1, p.hp, p.max_hp, p.gold, self.run.act, self.run.floor,
+            self.run.encounter_idx,
+            self.run.encounter_list.get(self.run.encounter_idx.min(self.run.encounter_list.len().saturating_sub(1))).map(|s| *s).unwrap_or("")
         ));
         // RNG 计数器（对拍定位分叉的关键）
         o.push_str(",\"rng\":{");
@@ -798,12 +800,15 @@ impl GymEnv {
                 } else {
                     0
                 };
-                if edges > 0 {
-                    self.run.choose_node(edge);
-                    self.open_current_room();
-                } else if y == MAP_HEIGHT - 1 {
-                    // Boss 行：直接进 Boss 房
+                if y == MAP_HEIGHT - 1 {
+                    // Boss 行（行 14 有指向 Boss 门的边）：优先进 Boss 房。
+                    // 曾先走 choose_node——行末 choose_node 早退，导致重进当前房
+                    // （实测 PMCWKZEF floor15 rest 卡死，真游戏 [176] boss 门进不去）。
+                    self.run.floor += 1; // 真游戏 floorNum 在转场时 ++（floor 16 = Boss）
                     self.run.map.rows[y][x].room = Some(RoomKind::Boss);
+                    self.open_current_room();
+                } else if edges > 0 {
+                    self.run.choose_node(edge);
                     self.open_current_room();
                 } else {
                     self.set_done();

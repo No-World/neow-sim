@@ -374,7 +374,8 @@ impl MonsterKind {
             MonsterKind::GremlinNob => "GremlinNob",
             MonsterKind::Lagavulin => "Lagavulin",
             MonsterKind::Sentry => "Sentry",
-            MonsterKind::Guardian => "Guardian",
+            // 真游戏 ID = TheGuardian（exordium/TheGuardian.java；曾误写 Guardian）
+            MonsterKind::Guardian => "TheGuardian",
             MonsterKind::SlimeBoss => "SlimeBoss",
             MonsterKind::Hexaghost => "Hexaghost",
             MonsterKind::SphericGuardian => "SphericGuardian",
@@ -551,6 +552,9 @@ impl MonsterState {
                 )
             }
             MonsterKind::FungiBeast => {
+                // Java FungiBeast：BITE_DMG = 6（A2+ 仍 6）、GROW_STR = 3 / A2+ 4。
+                // take_turn 的 bite=dark_strike_dmg、grow=ritual_amt，两者都要填
+                //（曾错存进 chomp/thrash，导致 bite 打出 0——实测 floor11 玩家少掉 1 HP）。
                 let (lo, hi) = if ascension >= 7 { (24, 28) } else { (22, 28) };
                 let str_amt = if ascension >= 2 { 4 } else { 3 };
                 (
@@ -561,8 +565,8 @@ impl MonsterState {
                         thrash_block: 0,
                         bellow_str: 0,
                         bellow_block: 0,
-                        dark_strike_dmg: 0,
-                        ritual_amt: 0,
+                        dark_strike_dmg: 6,
+                        ritual_amt: str_amt,
                     },
                 )
             }
@@ -681,6 +685,9 @@ impl MonsterState {
                 )
             }
             MonsterKind::SlaverBlue => {
+                // Java SlaverBlue：Stab = 12（A2+ 13）、Skull Bash = 7（A2+ 8）+ Weak 1。
+                // take_turn 的 stab=dark_strike_dmg、rake=thrash_dmg、weak=ritual_amt，
+                // 曾错存进 chomp/thrash/thrash_block（floor12 实测玩家 0 伤害）。
                 let (lo, hi) = if ascension >= 7 { (48, 52) } else { (46, 50) };
                 let stab = if ascension >= 2 { 13 } else { 12 };
                 let rake = if ascension >= 2 { 8 } else { 7 };
@@ -688,16 +695,18 @@ impl MonsterState {
                     hp_rng.random_start_end(lo, hi),
                     MonsterStats {
                         chomp_dmg: stab,
-                        thrash_dmg: 1,
-                        thrash_block: rake,
+                        thrash_dmg: rake,
+                        thrash_block: 0,
                         bellow_str: 0,
                         bellow_block: 0,
-                        dark_strike_dmg: 0,
-                        ritual_amt: 0,
+                        dark_strike_dmg: stab,
+                        ritual_amt: 1,
                     },
                 )
             }
             MonsterKind::SlaverRed => {
+                // Java SlaverRed：Stab = 13（A2+ 14）、Scrape = 8（A2+ 9）+ Vulnerable 2。
+                // take_turn 的 stab=dark_strike_dmg、scrape=thrash_dmg、vuln=ritual_amt。
                 let (lo, hi) = if ascension >= 7 { (48, 52) } else { (46, 50) };
                 let stab = if ascension >= 2 { 14 } else { 13 };
                 let scrape = if ascension >= 2 { 9 } else { 8 };
@@ -705,12 +714,12 @@ impl MonsterState {
                     hp_rng.random_start_end(lo, hi),
                     MonsterStats {
                         chomp_dmg: stab,
-                        thrash_dmg: 1,
-                        thrash_block: scrape,
+                        thrash_dmg: scrape,
+                        thrash_block: 0,
                         bellow_str: 0,
                         bellow_block: 0,
-                        dark_strike_dmg: 0,
-                        ritual_amt: 0,
+                        dark_strike_dmg: stab,
+                        ritual_amt: 2,
                     },
                 )
             }
@@ -759,6 +768,8 @@ impl MonsterState {
                 )
             }
             MonsterKind::Sentry => {
+                // Java Sentry：Beam 攻击 = 9（A3+ 10）；Debuff 版加 2 张 Dazed。
+                // take_turn 的 beam=dark_strike_dmg、dazed 数=ritual_amt。
                 let (lo, hi) = if ascension >= 2 { (39, 45) } else { (38, 42) };
                 let beam = if ascension >= 3 { 10 } else { 9 };
                 (
@@ -769,13 +780,22 @@ impl MonsterState {
                         thrash_block: 0,
                         bellow_str: 0,
                         bellow_block: 0,
-                        dark_strike_dmg: 0,
-                        ritual_amt: 0,
+                        dark_strike_dmg: beam,
+                        ritual_amt: 2,
                     },
                 )
             }
             MonsterKind::Guardian => {
-                let hp = if ascension >= 2 { 250 } else { 240 };
+                // Java TheGuardian：setHp(240)（1 参 setHp 仍消耗 monsterHpRng.random(240,240)
+                // = nextInt(1) 1 次）。曾不掷，实测 PMCWKZEF floor16 monsterHp 0 vs 真 1。
+                let hp = {
+                    let _rolled = hp_rng.random_start_end(240, 240);
+                    if ascension >= 2 {
+                        250
+                    } else {
+                        240
+                    }
+                };
                 let bash = if ascension >= 2 { 36 } else { 32 };
                 let roll = if ascension >= 2 { 10 } else { 9 };
                 (

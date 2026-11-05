@@ -200,15 +200,20 @@ pub const RELIC_TIERS: &[(&str, crate::relics::RelicKind, &str)] = &[
     ("GoldenEye", RelicKind::GoldenEye, "RARE"),
     ("Shovel", RelicKind::Shovel, "RARE"),
     ("The Specimen", RelicKind::TheSpecimen, "RARE"),
+    (
+        "White Beast Statue",
+        RelicKind::WhiteBeastStatue,
+        "UNCOMMON",
+    ),
 ];
 
-/// 按 tier 过滤（保持 RELIC_TIERS 顺序 = `CardLibrary` 声明序）
+/// 按 tier 取预洗池（保持 Java HashMap 迭代序，见 RELIC_POOL_ITER_ORDER）
 pub fn relics_of_tier(tier: &str) -> Vec<crate::relics::RelicKind> {
-    RELIC_TIERS
+    RELIC_POOL_ITER_ORDER
         .iter()
-        .filter(|(_, _, t)| *t == tier)
-        .map(|(_, k, _)| *k)
-        .collect()
+        .find(|(t, _)| *t == tier)
+        .map(|(_, pool)| pool.to_vec())
+        .unwrap_or_default()
 }
 
 /// 单只遗物的 tier
@@ -219,3 +224,174 @@ pub fn relic_tier(kind: crate::relics::RelicKind) -> &'static str {
         .map(|(_, _, t)| *t)
         .unwrap_or("SPECIAL")
 }
+
+// ── 遗物预洗池：Java HashMap 迭代序（由 tools/relic_pool_probe.py 生成）──
+//
+// 真游戏 `populateRelicPool` 按 `sharedRelics`/`redRelics`（HashMap）的**迭代序**
+// 收集，再 `Collections.shuffle(pool, new Random(relicRng.randomLong()))`。
+// 之前按 relic_data.rs 声明序过滤，与 Java HashMap 桶序不同，导致 elite/shop
+// 抽到的遗物与真游戏不一致（实测 seed PMCWKZEF floor7 elite：真=Mercury Hourglass，
+// 引擎=Pear）。此表由 Java 21 实测迭代序（javagen/HashMapOrder）+ 反编译 super()
+// 的 tier 元数据生成，与 Python 模拟逐位一致（javagen 138/138、11/11 全匹配）。
+pub static RELIC_POOL_ITER_ORDER: &[(&str, &[crate::relics::RelicKind])] = &[
+    (
+        "COMMON",
+        &[
+            RelicKind::Whetstone,
+            RelicKind::Boot,
+            RelicKind::BloodVial,
+            RelicKind::MealTicket,
+            RelicKind::PenNib,
+            RelicKind::Akabeko,
+            RelicKind::Lantern,
+            RelicKind::RegalPillow,
+            RelicKind::BagOfPreparation,
+            RelicKind::AncientTeaSet,
+            RelicKind::SmilingMask,
+            RelicKind::PotionBelt,
+            RelicKind::PreservedInsect,
+            RelicKind::Omamori,
+            RelicKind::MawBank,
+            RelicKind::ArtOfWar,
+            RelicKind::ToyOrnithopter,
+            RelicKind::CeramicFish,
+            RelicKind::Vajra,
+            RelicKind::CentennialPuzzle,
+            RelicKind::Strawberry,
+            RelicKind::HappyFlower,
+            RelicKind::OddlySmoothStone,
+            RelicKind::WarPaint,
+            RelicKind::BronzeScales,
+            RelicKind::JuzuBracelet,
+            RelicKind::DreamCatcher,
+            RelicKind::Nunchaku,
+            RelicKind::TinyChest,
+            RelicKind::Orichalcum,
+            RelicKind::Anchor,
+            RelicKind::BagOfMarbles,
+            RelicKind::RedSkull,
+        ],
+        // 33 只
+    ),
+    (
+        "UNCOMMON",
+        &[
+            RelicKind::BottledTornado,
+            RelicKind::Sundial,
+            RelicKind::Kunai,
+            RelicKind::Pear,
+            RelicKind::BlueCandle,
+            RelicKind::EternalFeather,
+            RelicKind::StrikeDummy,
+            RelicKind::SingingBowl,
+            RelicKind::Matryoshka,
+            RelicKind::InkBottle,
+            RelicKind::TheCourier,
+            RelicKind::FrozenEgg,
+            RelicKind::OrnamentalFan,
+            RelicKind::BottledLightning,
+            RelicKind::GremlinHorn,
+            RelicKind::HornCleat,
+            RelicKind::ToxicEgg,
+            RelicKind::LetterOpener,
+            RelicKind::QuestionCard,
+            RelicKind::BottledFlame,
+            RelicKind::Shuriken,
+            RelicKind::MoltenEgg,
+            RelicKind::MeatOnTheBone,
+            RelicKind::DarkstonePeriapt,
+            RelicKind::MummifiedHand,
+            RelicKind::Pantograph,
+            RelicKind::WhiteBeastStatue,
+            RelicKind::MercuryHourglass,
+            RelicKind::SelfFormingClay,
+            RelicKind::PaperFrog,
+        ],
+        // 30 只
+    ),
+    (
+        "RARE",
+        &[
+            RelicKind::Ginger,
+            RelicKind::OldCoin,
+            RelicKind::BirdFacedUrn,
+            RelicKind::UnceasingTop,
+            RelicKind::Torii,
+            RelicKind::StoneCalendar,
+            RelicKind::Shovel,
+            RelicKind::WingedGreaves,
+            RelicKind::ThreadAndNeedle,
+            RelicKind::Turnip,
+            RelicKind::IceCream,
+            RelicKind::Calipers,
+            RelicKind::LizardTail,
+            RelicKind::PrayerWheel,
+            RelicKind::Girya,
+            RelicKind::DeadBranch,
+            RelicKind::DuVuDoll,
+            RelicKind::Pocketwatch,
+            RelicKind::Mango,
+            RelicKind::IncenseBurner,
+            RelicKind::GamblingChip,
+            RelicKind::PeacePipe,
+            RelicKind::CaptainsWheel,
+            RelicKind::FossilizedHelix,
+            RelicKind::TungstenRod,
+            RelicKind::MagicFlower,
+            RelicKind::CharonsAshes,
+            RelicKind::ChampionBelt,
+        ],
+        // 28 只
+    ),
+    (
+        "SHOP",
+        &[
+            RelicKind::Sling,
+            RelicKind::HandDrill,
+            RelicKind::Toolbox,
+            RelicKind::ChemicalX,
+            RelicKind::LeesWaffle,
+            RelicKind::Orrery,
+            RelicKind::DollysMirror,
+            RelicKind::OrangePellets,
+            RelicKind::PrismaticShard,
+            RelicKind::ClockworkSouvenir,
+            RelicKind::FrozenEye,
+            RelicKind::Abacus,
+            RelicKind::MedicalKit,
+            RelicKind::Cauldron,
+            RelicKind::StrangeSpoon,
+            RelicKind::MembershipCard,
+            RelicKind::Brimstone,
+        ],
+        // 17 只
+    ),
+    (
+        "BOSS",
+        &[
+            RelicKind::FusionHammer,
+            RelicKind::VelvetChoker,
+            RelicKind::RunicDome,
+            RelicKind::SlaversCollar,
+            RelicKind::SneckoEye,
+            RelicKind::PandorasBox,
+            RelicKind::CursedKey,
+            RelicKind::BustedCrown,
+            RelicKind::Ectoplasm,
+            RelicKind::TinyHouse,
+            RelicKind::Sozu,
+            RelicKind::PhilosopherStone,
+            RelicKind::Astrolabe,
+            RelicKind::BlackStar,
+            RelicKind::SacredBark,
+            RelicKind::EmptyCage,
+            RelicKind::RunicPyramid,
+            RelicKind::CallingBell,
+            RelicKind::CoffeeDripper,
+            RelicKind::BlackBlood,
+            RelicKind::MarkOfPain,
+            RelicKind::RunicCube,
+        ],
+        // 22 只
+    ),
+];

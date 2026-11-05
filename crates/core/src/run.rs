@@ -576,14 +576,22 @@ mod tests {
         let hp_at_split = c.monsters[0].creature.hp;
         // 分裂回合
         c.step(&Action::EndTurn);
-        // L 版自灭 + 2 只 M 版入場
-        assert!(c.monsters[0].creature.is_dead(), "L 版自灭");
-        assert_eq!(c.monsters.len(), 3, "2 只 M 版");
+        // 真游戏 MonsterGroup 按 x 位序插入：[M左, L(尸), M右]——死 L 仍占位，
+        // 目标下标 = 完整数组序（[164] target 0 打左 M、[167] target 2 打右 M）。
+        // 曾 push 到 vec 尾（[L, M左, M右]），导致 target 0 打到尸体上。
+        assert_eq!(c.monsters.len(), 3, "[M左, L(尸), M右]");
+        assert_eq!(c.monsters[0].kind, MonsterKind::AcidSlimeM);
+        assert_eq!(c.monsters[1].kind, MonsterKind::AcidSlimeL);
+        assert!(c.monsters[1].creature.is_dead(), "L 版自灭");
+        assert_eq!(c.monsters[2].kind, MonsterKind::AcidSlimeM);
         assert_eq!(
-            c.monsters[1].creature.max_hp, hp_at_split,
+            c.monsters[0].creature.max_hp, hp_at_split,
             "M 版承分裂时 HP"
         );
         assert_eq!(c.monsters[2].creature.max_hp, hp_at_split);
+        // M 版入场 rollMove：意图已掷（非固定）
+        assert!(matches!(c.monsters[0].next_move, 1 | 2 | 4));
+        assert!(matches!(c.monsters[2].next_move, 1 | 2 | 4));
         // 战斗继续（M 版可打）
         assert!(!c.over);
     }
@@ -742,6 +750,85 @@ mod tests {
 
     /// 精英奖励：遗物 + 金币 25-35；怜悯递增
     #[test]
+    /// 回归锁定（seed PMCWKZEF = 1585262650280，真游戏 long.jsonl 轨迹）：
+    /// floor 7 精英 → Mercury Hourglass；floor 9 精英 → Pear。
+    /// 曾因预洗池用声明序（≠ Java HashMap 迭代序）+ 精英 tier 阈值 85（应 82）双双分叉。
+    #[test]
+    fn elite_relic_order_pmcwkzef() {
+        let mut run = RunState::new(1585262650280, 0);
+        run.pos = (6, 0);
+        run.map.rows[6][0].room = Some(RoomKind::Elite);
+        run.combat = Some(Combat::new_run_battle(
+            7,
+            0,
+            &[MonsterKind::GremlinNob],
+            run.relics.clone(),
+            run.deck.clone(),
+            run.potions.clone(),
+            999,
+            999,
+            99,
+        ));
+        if let Some(c) = run.combat.as_mut() {
+            for m in c.monsters.iter_mut() {
+                m.creature.hp = 0;
+            }
+            c.over = true;
+            c.won = true;
+        }
+        run.settle_combat(0);
+        let got = run
+            .rewards
+            .iter()
+            .find_map(|r| match r {
+                RewardItem::Relic(k) => Some(*k),
+                _ => None,
+            })
+            .expect("elite 应掉遗物");
+        assert_eq!(
+            got,
+            crate::relics::RelicKind::MercuryHourglass,
+            "floor7 精英遗物应为 Mercury Hourglass"
+        );
+
+        // 第二次精英（floor 9）：池已移除 Mercury → Pear
+        run.pos = (8, 0);
+        run.map.rows[8][0].room = Some(RoomKind::Elite);
+        run.combat = Some(Combat::new_run_battle(
+            9,
+            0,
+            &[MonsterKind::GremlinNob],
+            run.relics.clone(),
+            run.deck.clone(),
+            run.potions.clone(),
+            999,
+            999,
+            99,
+        ));
+        if let Some(c) = run.combat.as_mut() {
+            for m in c.monsters.iter_mut() {
+                m.creature.hp = 0;
+            }
+            c.over = true;
+            c.won = true;
+        }
+        run.rewards.clear();
+        run.settle_combat(0);
+        let got2 = run
+            .rewards
+            .iter()
+            .find_map(|r| match r {
+                RewardItem::Relic(k) => Some(*k),
+                _ => None,
+            })
+            .expect("elite2 应掉遗物");
+        assert_eq!(
+            got2,
+            crate::relics::RelicKind::Pear,
+            "floor9 精英遗物应为 Pear"
+        );
+    }
+
     fn elite_rewards_relic() {
         let mut run = RunState::new(13, 20);
         run.pos = (5, 2);
@@ -1689,9 +1776,10 @@ impl RunState {
     /// ⚠️ 关键：怪物种类不是静态的。`2 Louse` 的每只 Louse 由 `miscRng.randomBoolean()`
     /// 决定 Normal/Defensive；`Small Slimes` 逐只掷；`Large Slime` 掷一次。
     /// 且 **先定种类再 spawn（掷 HP）**，顺序决定 monsterHpRng 的取值。
-    fn resolve_encounter(&mut self, name: &str) -> Vec<MonsterKind> {
+    fn resolve_encounter(&mut self, name: &str) -> Vec<crate::state::MonsterState> {
+        use crate::state::MonsterState;
         use MonsterKind::*;
-        match name {
+        let kinds: Vec<MonsterKind> = match name {
             "2 Louse" => {
                 // MonsterHelper.getLouse ×2：先掷两只的种类，再各自 spawn
                 let a = if self.rng.misc.random_boolean() {
@@ -1777,9 +1865,75 @@ impl RunState {
                 }
                 v
             }
-            "Exordium Thugs" | "Exordium Wildlife" => {
-                // bottomHumanoid / bottomWildlife：简化为一强怪（⚠️ 偏差登记）
-                vec![SlaverBlue]
+            "Exordium Thugs" => {
+                // MonsterHelper.bottomHumanoid：**候选全构造**（未选中者也掷 HP）——
+                //   [0] bottomGetWeakWildlife：getLouse 掷 bool（T→Normal/F→Defensive）
+                //       → 三只全部 spawn（Louse 2 掷 / SpikeM 1 掷 / AcidM 1 掷）
+                //       → miscRng.random(0,2) 选
+                //   [1] bottomGetStrongHumanoid：[Cultist(0 掷), getSlaver(bool→Red/Blue,
+                //       1 掷), Looter(1 掷)] → miscRng.random(0,2) 选
+                let b_louse = self.rng.misc.random_boolean();
+                let louse = MonsterState::spawn(
+                    if b_louse { LouseNormal } else { LouseDefensive },
+                    self.ascension,
+                    &mut self.rng.monster_hp,
+                );
+                let spike =
+                    MonsterState::spawn(SpikeSlimeM, self.ascension, &mut self.rng.monster_hp);
+                let acid =
+                    MonsterState::spawn(AcidSlimeM, self.ascension, &mut self.rng.monster_hp);
+                let wk = match self.rng.misc.random_start_end(0, 2) {
+                    0 => louse,
+                    1 => spike,
+                    _ => acid,
+                };
+                let cultist =
+                    MonsterState::spawn(Cultist, self.ascension, &mut self.rng.monster_hp);
+                let b_slaver = self.rng.misc.random_boolean();
+                let slaver = MonsterState::spawn(
+                    if b_slaver { SlaverRed } else { SlaverBlue },
+                    self.ascension,
+                    &mut self.rng.monster_hp,
+                );
+                let looter = MonsterState::spawn(Looter, self.ascension, &mut self.rng.monster_hp);
+                let stg = match self.rng.misc.random_start_end(0, 2) {
+                    0 => cultist,
+                    1 => slaver,
+                    _ => looter,
+                };
+                return vec![wk, stg];
+            }
+            "Exordium Wildlife" => {
+                // MonsterHelper.bottomWildlife：**候选全构造**（未选中者也掷 HP）——
+                //   [0] bottomGetStrongWildlife：FungiBeast(1 掷) + JawWorm(1 掷)
+                //       → miscRng.random(0,1) 选
+                //   [1] bottomGetWeakWildlife：getLouse(bool) + SpikeM + AcidM
+                //       → miscRng.random(0,2) 选
+                // （实测 PMCWKZEF floor11：真游戏 monsterHp 7 次消耗 = 6 构造 + 1 CurlUp）
+                let stg_fungi =
+                    MonsterState::spawn(FungiBeast, self.ascension, &mut self.rng.monster_hp);
+                let stg_jaw =
+                    MonsterState::spawn(JawWorm, self.ascension, &mut self.rng.monster_hp);
+                let stg = match self.rng.misc.random_start_end(0, 1) {
+                    0 => stg_fungi,
+                    _ => stg_jaw,
+                };
+                let b_louse = self.rng.misc.random_boolean();
+                let louse = MonsterState::spawn(
+                    if b_louse { LouseNormal } else { LouseDefensive },
+                    self.ascension,
+                    &mut self.rng.monster_hp,
+                );
+                let spike =
+                    MonsterState::spawn(SpikeSlimeM, self.ascension, &mut self.rng.monster_hp);
+                let acid =
+                    MonsterState::spawn(AcidSlimeM, self.ascension, &mut self.rng.monster_hp);
+                let wk = match self.rng.misc.random_start_end(0, 2) {
+                    0 => louse,
+                    1 => spike,
+                    _ => acid,
+                };
+                return vec![stg, wk];
             }
             "Gremlin Nob" => vec![GremlinNob],
             "Lagavulin" => vec![Lagavulin],
@@ -1816,7 +1970,11 @@ impl RunState {
             }
             // 其余按名字映射到单只
             _ => self.static_encounter_kinds(name),
-        }
+        };
+        kinds
+            .into_iter()
+            .map(|k| MonsterState::spawn(k, self.ascension, &mut self.rng.monster_hp))
+            .collect()
     }
 
     /// 兜底：从 act pools 的静态 kinds 取（不含随机成分的组合）
@@ -1932,36 +2090,52 @@ impl RunState {
         self.rest_available = false;
         match room {
             Some(RoomKind::Monster) | Some(RoomKind::Elite) => {
-                let kinds: Vec<MonsterKind> = if room == Some(RoomKind::Elite) {
-                    let k = self.elite_list[self.elite_idx];
-                    self.elite_idx += 1;
-                    k.to_vec()
-                } else {
-                    let name =
-                        self.encounter_list[self.encounter_idx.min(self.encounter_list.len() - 1)];
-                    self.encounter_idx += 1;
-                    // 遭遇名 → 具体怪物组（按 miscRng 掷种类/数量，见 MonsterHelper）
-                    self.resolve_encounter(name)
-                };
                 let relics: Vec<_> = self.relics.clone();
-                // 战斗继承整局 RNG 流（真游戏里的全局流贯穿整局，不是每战重播种）
+                let deck = self.deck.clone();
+                let potions = self.potions.clone();
+                let (php, pmax, gold) = (self.player.hp, self.player.max_hp, self.player.gold);
                 let boss_vocab = self
                     .boss
                     .first()
                     .map(|k| (*k as i32 as f32 + 1.0) / 80.0)
                     .unwrap_or(0.0);
-                let mut cb = Combat::new_run_battle_with_rng(
-                    self.rng.clone(),
-                    self.ascension,
-                    &kinds,
-                    relics,
-                    self.deck.clone(),
-                    self.potions.clone(),
-                    self.player.hp,
-                    self.player.max_hp,
-                    self.player.gold,
-                );
-                cb.boss_vocab = boss_vocab;
+                let mut cb = if room == Some(RoomKind::Elite) {
+                    let k = self.elite_list[self.elite_idx];
+                    self.elite_idx += 1;
+                    let mut c = Combat::new_run_battle_with_rng(
+                        self.rng.clone(),
+                        self.ascension,
+                        &k,
+                        relics,
+                        deck,
+                        potions,
+                        php,
+                        pmax,
+                        gold,
+                    );
+                    c.boss_vocab = boss_vocab;
+                    c
+                } else {
+                    let name =
+                        self.encounter_list[self.encounter_idx.min(self.encounter_list.len() - 1)];
+                    self.encounter_idx += 1;
+                    // 遭遇名 → 具体怪物组（按 miscRng 掷种类/数量，见 MonsterHelper；
+                    // Wildlife/Thugs 等「候选全构造」遭遇在此处按真实顺序掷完全部候选）
+                    let states = self.resolve_encounter(name);
+                    let mut c = Combat::new_run_battle_with_states(
+                        self.rng.clone(),
+                        self.ascension,
+                        states,
+                        relics,
+                        deck,
+                        potions,
+                        php,
+                        pmax,
+                        gold,
+                    );
+                    c.boss_vocab = boss_vocab;
+                    c
+                };
                 self.combat = Some(cb);
                 // 战斗内喝掉的药水同步回局外
             }
@@ -2035,9 +2209,11 @@ impl RunState {
                 }
             }
             Some(RoomKind::Boss) => {
+                // Boss 战斗继承整局 RNG 流（真游戏无 boss 专属换种——曾用
+                // seed^0xDEAD_BEEF 独立播种，实测 PMCWKZEF floor16 起手牌序分叉）
                 let relics: Vec<_> = self.relics.clone();
-                self.combat = Some(Combat::new_run_battle(
-                    self.seed ^ 0xDEAD_BEEF,
+                self.combat = Some(Combat::new_run_battle_with_rng(
+                    self.rng.clone(),
                     self.ascension,
                     self.boss,
                     relics,
@@ -2064,14 +2240,16 @@ impl RunState {
             Some(RoomKind::Elite) => {
                 let g = self.rng.treasure.random_start_end(25, 35);
                 self.rewards.push(RewardItem::Gold(g));
-                // 3) 精英掉遗物：relicRng(0,99) <50 普通 >85 稀有 否则罕见
+                // 3) 精英掉遗物：MonsterRoomElite.returnRandomRelicTier
+                //   relicRng.random(0,99) <50 普通 >82 稀有 否则罕见
+                //   ⚠️ 精英阈值是 **82**（普通房 MonsterRoom 才是 85），曾写错致 tier 分叉
                 // AbstractRoom.addRelicToRewards(returnRandomRelicTier())：
                 //   relicRng.random(0,99) 只用来**判 tier**（1 次），
                 //   具体遗物从预洗池 remove(0)（0 次 RNG）。
                 let roll = self.rng.relic.random_start_end(0, 99);
                 let tier = if roll < 50 {
                     "COMMON"
-                } else if roll > 85 {
+                } else if roll > 82 {
                     "RARE"
                 } else {
                     "UNCOMMON"
@@ -2096,19 +2274,28 @@ impl RunState {
             // 真游戏 AbstractRoom.addPotionToRewards → AbstractDungeon.returnRandomPotion(false)：
             //   1) potionRng.random(0,99) 判稀有度（<65 COMMON / <90 UNCOMMON / RARE）
             //   2) PotionHelper.getRandomPotion() → potionRng.random(pool-1) 均匀抽一张
-            //   3) limited=false ⇒ while 循环不会重掷（第一张就通过）
-            // 共 **2 次** potionRng 消耗。上一版误改成单次均匀抽，少消耗 1 次。
+            //   3) while (temp.rarity != rarity)：**稀有度不符就重抽**（limited=false 只关
+            //      spamCheck，不关稀有度检查；Fruit Juice 一律跳过重抽）
+            // 消耗 = 1 判定 + 1 tier + N 次抽取（实测 PMCWKZEF floor10：1+1+4=6 次）
             let pool = crate::potions::pool_for_class(self.char_kind.id());
             let roll = self.rng.potion.random_start_end(0, 99);
-            let _rarity = if roll < 65 {
+            let target = if roll < 65 {
                 crate::potions::PotionRarity::Common
             } else if roll < 90 {
                 crate::potions::PotionRarity::Uncommon
             } else {
                 crate::potions::PotionRarity::Rare
             };
-            let idx = self.rng.potion.random_range(pool.len() as i32 - 1).max(0) as usize;
-            let k = pool[idx.min(pool.len() - 1)];
+            let k = loop {
+                let idx = self.rng.potion.random_range(pool.len() as i32 - 1).max(0) as usize;
+                let k = pool[idx.min(pool.len() - 1)];
+                if k == crate::potions::PotionKind::FruitJuice {
+                    continue;
+                }
+                if k.rarity() == target {
+                    break k;
+                }
+            };
             self.rewards.push(RewardItem::Potion(k));
             self.potion_pity -= 10;
         } else {

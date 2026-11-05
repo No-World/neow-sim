@@ -1120,7 +1120,10 @@ mod pile_token_tests {
                 // 走 else 分支 push 空 token，频次为 0 是正常的。
                 if obs.token_feats[t][1] > 0.0 {
                     non_empty += 1;
-                    assert!(obs.token_ids[t][0] >= 0, "非空堆 token4 必须带卡牌 vocab id");
+                    assert!(
+                        obs.token_ids[t][0] >= 0,
+                        "非空堆 token4 必须带卡牌 vocab id"
+                    );
                 }
             }
             pile_idx += 1;
