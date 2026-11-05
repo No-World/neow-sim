@@ -128,6 +128,10 @@ def run_trace(path, fields, verbose=False, max_report=25):
                 eng_screen = engine_screen(env)
                 continue
             col = int(ent) % MAP_WIDTH if not str(ent).startswith("-") else 0
+            if os.environ.get("NEOW_TRACE_MAP"):
+                st = json.loads(env.state_json())
+                print("  [MAP] i=%s node_index=%s -> col=%s engine_pos=%s floor=%s" %
+                      (i, ent, col, st["meta"].get("pos"), st["meta"]["floor"]))
             ok = _choose_map(env, col)
             if not ok:
                 stats["unmapped"].append((i, "map col=%d" % col))
@@ -194,8 +198,9 @@ def run_trace(path, fields, verbose=False, max_report=25):
 
         # 其它屏（reward/rest/shop/event…）：尝试用通用映射推进，不比对
         if os.environ.get("NEOW_TRACE_REW"):
-            print("  [REW] i=%s bridge=%s engine=%s act=%s ent=%s" %
-                  (i, before, ename, atype, ent))
+            st = json.loads(env.state_json())
+            print("  [REW] i=%s bridge=%s engine=%s act=%s ent=%s pos=%s floor=%s" %
+                  (i, before, ename, atype, ent, st["meta"].get("pos"), st["meta"]["floor"]))
         ty = BRIDGE_MAP.get(atype)
         if ty is not None:
             try:
@@ -224,20 +229,31 @@ def _neow_opt_count(env):
 
 
 def _choose_map(env, col):
-    """让引擎走到 row0 的目标列 / 或当前节点指向该列的边。"""
+    """让引擎走到 row0 的目标列 / 或当前节点指向该列的边。
+
+    ⚠️ 必须先判「已起步」：已起步时 entity 是**边下标**、target 才是目标列。
+    若先按「entity == col」匹配，会把「边下标 1」误当成「列 1」
+    （实测 node(8,2) edges=[1,2,3]，col=1 时错选了 target=2 的边，进了 Event 而非 Monster）。
+    """
     st = json.loads(env.state_json())
+    started = bool(st["meta"].get("pos")) and st["meta"]["floor"] > 0
     la = env.legal_actions
     acts = [(a.action_type, a.entity, a.target) for a in la.flat]
-    # 首次选列：entity 就是列号
-    for ty, e, t in acts:
-        if ty == 4 and e == col:
-            env.step(4, e, -1)
-            return True
-    # 已起步：entity 是 edge 下标，target 是目标列
-    for ty, e, t in acts:
-        if ty == 4 and t == col:
-            env.step(4, e, -1)
-            return True
+    if started:
+        # 已起步：优先按 target 匹配目标列
+        for ty, e, t in acts:
+            if ty == 4 and t == col:
+                env.step(4, e, -1)
+                return True
+        for ty, e, t in acts:
+            if ty == 4 and t >= 0 and t != col:
+                continue
+    else:
+        # 首次选列：entity 就是列号
+        for ty, e, t in acts:
+            if ty == 4 and e == col:
+                env.step(4, e, -1)
+                return True
     # 兜底走第一条
     for ty, e, t in acts:
         if ty == 4:

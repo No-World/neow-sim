@@ -282,7 +282,8 @@ impl GymEnv {
         let p = &self.run.player;
         let mut o = String::from("{\"meta\":{");
         o.push_str(&format!(
-            "\"hp\":{},\"max_hp\":{},\"gold\":{},\"act\":{},\"floor\":{}",
+            "\"pos\":[{},{}],\"hp\":{},\"max_hp\":{},\"gold\":{},\"act\":{},\"floor\":{}",
+            self.run.pos.0, self.run.pos.1,
             p.hp, p.max_hp, p.gold, self.run.act, self.run.floor
         ));
         // RNG 计数器（对拍定位分叉的关键）
@@ -578,6 +579,13 @@ impl GymEnv {
                 Ok(0.0)
             }
             GameState::RewardScreen => {
+                // chest_open：宝箱的奖励在**进房时**已结算（AbstractChest.randomizeReward
+                // + open 时 addGold/addRelic），这里是无操作。
+                // ⚠️ 若把它当 TAKE_REWARD 处理会立刻领光奖励并跳回地图，
+                // 后续 bridge 的 take/skip/proceed 就全落空（实测 floor 10 少 15 金币）。
+                if ty == 12 {
+                    return Ok(0.0);
+                }
                 if ty == action_type::PROCEED {
                     // 奖励屏「继续」：**不领取**剩余项（未选即放弃）。
                     // ⚠️ 不能用 take_all_rewards_skip_cards()——它会把剩余的
