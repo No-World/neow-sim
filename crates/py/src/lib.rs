@@ -20,7 +20,6 @@ use neow_sim_core::state::CharKind;
 use numpy::{PyArray1, PyArray2};
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
-use pyo3::types::PyTuple;
 
 // ── 动作类型常量（与 observation-encoding.md §2.2 对齐）──
 
@@ -285,7 +284,11 @@ impl GymEnv {
             "\"pos\":[{},{}],\"hp\":{},\"max_hp\":{},\"gold\":{},\"act\":{},\"floor\":{},\"enc_idx\":{},\"enc\":\"{}\"",
             self.run.pos.0, self.run.pos.1, p.hp, p.max_hp, p.gold, self.run.act, self.run.floor,
             self.run.encounter_idx,
-            self.run.encounter_list.get(self.run.encounter_idx.min(self.run.encounter_list.len().saturating_sub(1))).map(|s| *s).unwrap_or("")
+            self.run
+                .encounter_list
+                .get(self.run.encounter_idx.min(self.run.encounter_list.len().saturating_sub(1)))
+                .copied()
+                .unwrap_or("")
         ));
         // RNG 计数器（对拍定位分叉的关键）
         o.push_str(",\"rng\":{");
@@ -552,12 +555,12 @@ impl GymEnv {
         } else {
             // 空房间（宝箱已入奖励 / 事件已完）→ 领奖励后回地图
             self.run.take_all_rewards_skip_cards();
-            self.to_map_screen();
+            self.back_to_map_screen();
         }
     }
 
     /// 回到地图屏（房间结束后的唯一合法状态）
-    fn to_map_screen(&mut self) {
+    fn back_to_map_screen(&mut self) {
         if self.run.over {
             self.set_done();
             return;
@@ -591,7 +594,7 @@ impl GymEnv {
             GameState::Combat => self.combat_step(ty, entity, target),
             GameState::EventChoice => {
                 let Some(ev) = self.run.event.as_ref() else {
-                    self.to_map_screen();
+                    self.back_to_map_screen();
                     self.update_state();
                     return Ok(0.0);
                 };
@@ -638,7 +641,7 @@ impl GymEnv {
 
                 // 事件完成 → 领奖励 → 下一房
                 self.run.take_all_rewards_skip_cards();
-                self.to_map_screen();
+                self.back_to_map_screen();
                 self.update_state();
                 Ok(0.0)
             }
@@ -656,7 +659,7 @@ impl GymEnv {
                     // 卡牌奖励全部塞进牌组（真游戏里卡牌奖励是「1 项含 3 选 1」，
                     // 引擎建模为 3 个独立项，全领会多塞 2 张）。
                     self.run.rewards.clear();
-                    self.to_map_screen();
+                    self.back_to_map_screen();
                     return Ok(0.0);
                 }
                 if ty == action_type::SKIP_REWARD {
@@ -693,7 +696,7 @@ impl GymEnv {
                 }
                 // 奖励屏空 → 离开
                 self.run.take_all_rewards_skip_cards();
-                self.to_map_screen();
+                self.back_to_map_screen();
                 self.update_state();
                 Ok(0.0)
             }
@@ -722,13 +725,13 @@ impl GymEnv {
                         self.run.rest_sleep(); // 默认睡觉
                     }
                 }
-                self.to_map_screen();
+                self.back_to_map_screen();
                 self.update_state();
                 Ok(0.0)
             }
             GameState::ShopScreen => {
-                let Some(shop) = self.run.shop.as_mut() else {
-                    self.to_map_screen();
+                let Some(_shop) = self.run.shop.as_mut() else {
+                    self.back_to_map_screen();
                     self.update_state();
                     return Ok(0.0);
                 };
@@ -764,7 +767,7 @@ impl GymEnv {
                     }
                     _ => {
                         // 离开商店
-                        self.to_map_screen();
+                        self.back_to_map_screen();
                         self.update_state();
                         return Ok(0.0);
                     }
@@ -822,7 +825,7 @@ impl GymEnv {
     /// 战斗内动作
     fn combat_step(&mut self, ty: i32, entity: i32, target: i32) -> PyResult<f64> {
         let Some(mut c) = self.run.combat.take() else {
-            self.to_map_screen();
+            self.back_to_map_screen();
             self.update_state();
             return Ok(0.0);
         };
@@ -873,7 +876,6 @@ impl GymEnv {
         }
 
         if c.over {
-            let won = c.won;
             self.run.combat = Some(c);
             self.run.settle_combat(0);
             if self.run.over {
@@ -889,7 +891,7 @@ impl GymEnv {
                 self.update_run_obs();
                 Ok(0.0)
             } else {
-                self.to_map_screen();
+                self.back_to_map_screen();
                 Ok(0.0)
             }
         } else {
@@ -908,7 +910,7 @@ impl GymEnv {
             self.update_combat_obs();
         } else {
             // 非战斗——回地图屏等玩家选下一节点
-            self.to_map_screen();
+            self.back_to_map_screen();
         }
     }
 

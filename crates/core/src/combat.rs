@@ -1017,7 +1017,7 @@ impl Combat {
     /// 这里不得再掷。
     #[allow(clippy::too_many_arguments)]
     pub fn new_run_battle_with_states(
-        mut rng: RngStreams,
+        rng: RngStreams,
         ascension: i32,
         monsters: Vec<MonsterState>,
         relics: Vec<RelicInst>,
@@ -11975,7 +11975,7 @@ mod floor11_probe {
 
     #[test]
     fn floor11_wildlife_hp_rolls() {
-        let mut c = Combat::new_with(
+        let c = Combat::new_with(
             1585262650280 + 11,
             0,
             &[MonsterKind::FungiBeast, MonsterKind::LouseNormal],

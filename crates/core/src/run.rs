@@ -748,8 +748,6 @@ mod tests {
         assert!(run.player.gold >= 99 + 10, "金币累计");
     }
 
-    /// 精英奖励：遗物 + 金币 25-35；怜悯递增
-    #[test]
     /// 回归锁定（seed PMCWKZEF = 1585262650280，真游戏 long.jsonl 轨迹）：
     /// floor 7 精英 → Mercury Hourglass；floor 9 精英 → Pear。
     /// 曾因预洗池用声明序（≠ Java HashMap 迭代序）+ 精英 tier 阈值 85（应 82）双双分叉。
@@ -829,6 +827,8 @@ mod tests {
         );
     }
 
+    /// 精英奖励：遗物 + 金币 25-35；怜悯递增
+    #[test]
     fn elite_rewards_relic() {
         let mut run = RunState::new(13, 20);
         run.pos = (5, 2);
@@ -2099,13 +2099,13 @@ impl RunState {
                     .first()
                     .map(|k| (*k as i32 as f32 + 1.0) / 80.0)
                     .unwrap_or(0.0);
-                let mut cb = if room == Some(RoomKind::Elite) {
+                let cb = if room == Some(RoomKind::Elite) {
                     let k = self.elite_list[self.elite_idx];
                     self.elite_idx += 1;
                     let mut c = Combat::new_run_battle_with_rng(
                         self.rng.clone(),
                         self.ascension,
-                        &k,
+                        k,
                         relics,
                         deck,
                         potions,
