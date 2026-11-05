@@ -1812,6 +1812,11 @@ impl RunState {
 
     /// 进房重播种：monsterHpRng / aiRng / shuffleRng / cardRandomRng / miscRng
     /// 全部 `new Random(seed + floorNum)`（counter 归零）。
+    #[cfg(test)]
+    pub fn reseed_floor_streams_for_test(&mut self) {
+        self.reseed_floor_streams();
+    }
+
     fn reseed_floor_streams(&mut self) {
         let f = self.floor as u64;
         let s = self.seed.wrapping_add(f);

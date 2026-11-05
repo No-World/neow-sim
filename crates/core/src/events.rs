@@ -444,12 +444,17 @@ impl RunState {
                 ev.gold_loss = if asc >= 15 { 75 } else { 50 };
             }
             EventKind::DeadAdventurer => {
+                // Java DeadAdventurer 构造器（逐行）：
+                //   rewards = [GOLD, NOTHING, RELIC]
+                //   Collections.shuffle(rewards, new Random(miscRng.randomLong()))  ← 1 次
+                //   encounterChance = A15+ ? 35 : 25
+                //   enemy = miscRng.random(0, 2)                                    ← 1 次
+                // 共 **2 次** miscRng（曾用 Fisher-Yates 的 2 次 random_range
+                // + 1 次 random_start_end = 3 次，且洗牌算法不同 → 流分叉）
                 ev.bag = vec![0, 1, 2];
-                // ⚠️ 偏差：Fisher-Yates（miscRng）替代 JavaRandom 种子洗牌
-                for i in (1..ev.bag.len()).rev() {
-                    let j = self.rng.misc.random_range(i as i32) as usize;
-                    ev.bag.swap(i, j);
-                }
+                let seed = self.rng.misc.random_long();
+                let mut jr = crate::rng::JavaRandom::new(seed);
+                crate::rng::java_shuffle(&mut ev.bag, &mut jr);
                 ev.chance = if asc >= 15 { 35 } else { 25 };
                 ev.enemy = self.rng.misc.random_start_end(0, 2).clamp(0, 2);
             }
@@ -3064,5 +3069,50 @@ mod tests {
             assert_eq!(gold, 99 - 50, "输局只扣 50");
         }
         panic!("64 种子未见庄家输（30% 概率异常）");
+    }
+}
+
+#[cfg(test)]
+mod dead_adventurer_probe {
+    use super::*;
+
+    /// DeadAdventurer 构造期 miscRng 消耗：应为 2 次
+    /// （randomLong 洗牌种子 + random(0,2) 选敌人），且首次 Search 判定值 = 24（<25 → 遇怪）。
+    #[test]
+    fn dead_adventurer_ctor_rng() {
+        let mut run = RunState::new(1849839045330, 10);
+        // 直接进入 floor 11 的 misc 流（seed + 11）
+        run.floor = 11;
+        run.reseed_floor_streams_for_test();
+        let c0 = run.rng.misc.counter;
+        let ev = EventState {
+            kind: EventKind::DeadAdventurer,
+            screen: 0,
+            done: false,
+            heal_amt: 0,
+            damage: 0,
+            maxhp_loss: 0,
+            gold: 0,
+            gold_loss: 0,
+            chance: 0,
+            counter: 0,
+            enemy: 0,
+            bag: Vec::new(),
+            pending: Vec::new(),
+            library: Vec::new(),
+            costs: [0; 3],
+        };
+        let ev = run.construct_event(ev);
+        eprintln!("[DA] ctor misc 消耗 = {}", run.rng.misc.counter - c0);
+        eprintln!(
+            "[DA] enemy={} bag={:?} chance={}",
+            ev.enemy, ev.bag, ev.chance
+        );
+        let v = run.rng.misc.random_start_end(0, 99);
+        eprintln!(
+            "[DA] 首次 Search 判定 = {v}（chance={}）→ {}",
+            ev.chance,
+            if v < ev.chance { "遇怪" } else { "奖励" }
+        );
     }
 }
