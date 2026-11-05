@@ -1,3 +1,6 @@
 target/
 __pycache__/
 .tools/
+
+# 游戏运行日志不入库（Java 侧跑真类时会轮转写入）
+sendToDevs/logs/

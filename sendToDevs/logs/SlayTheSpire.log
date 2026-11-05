@@ -1,4 +1,0 @@
-07:07:07.181 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
-07:07:07.188 INFO map.RoomTypeAssigner> class com.megacrit.cardcrawl.rooms.RestRoom
-07:07:07.189 INFO map.RoomTypeAssigner> INFO: Node=(4,13):[(4,14)] was null. Changed to a MonsterRoom.
-07:07:07.212 INFO map.RoomTypeAssigner> #### Unassigned Rooms:
