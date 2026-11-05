@@ -2615,25 +2615,42 @@ impl Combat {
     }
 
     fn gremlin_nob_get_move(&mut self, i: usize, num: i32) -> u8 {
-        // GremlinNob.getMove（源码逐行，A<18 分支）：
+        // GremlinNob.getMove（源码逐行）：
         //   if (!usedBellow) { usedBellow = true; setMove(3, BUFF); return; }
-        //   if (num < 33) → **无条件 move 2（Skull Bash）**，直接 return
-        //   else if (lastTwoMoves(1)) → move 2（Skull Bash）
-        //   else                      → move 1（Bull Rush）
-        // ⚠️ 两个分支**不对称**：num<33 时不看历史，直接 Skull Bash。
-        //    （A18+ 分支又不同：先判 lastMove(2)/lastMoveBefore(2)）
+        //   A18+：if (!lastMove(2) && !lastMoveBefore(2)) → move 2（**不看 num！**）
+        //         else if (lastTwoMoves(1))              → move 2
+        //         else                                   → move 1
+        //   A<18：if (num < 33) → move 2；else if (lastTwoMoves(1)) → move 2；else move 1
+        // ⚠️ 曾只实现 A<18 分支 —— A18+ 完全不用 num，只按「最近两招有没有 2」决定
+        //    （实测 A20 floor7 GremlinNob：真游戏 hist=[3] → move 2 ATTACK_DEBUFF，
+        //      引擎按 num=74 走了 A<18 的 lastTwoMoves(1) → move 1 纯 ATTACK）。
         let h = &self.monsters[i].move_history;
         if h.is_empty() {
             return 3; // Bellow（用 move_history 判首次，等价于 usedBellow）
         }
-        if num < 33 {
-            return 2;
-        }
-        let last2_rush = h.len() >= 2 && h[h.len() - 1] == 1 && h[h.len() - 2] == 1;
-        if last2_rush {
-            2
+        let last = h.last().copied();
+        let last_before = if h.len() >= 2 {
+            Some(h[h.len() - 2])
         } else {
-            1
+            None
+        };
+        let last2_rush = h.len() >= 2 && h[h.len() - 1] == 1 && h[h.len() - 2] == 1;
+        // 两个分支的判定条件不同、但都是「命中条件 → move 2，否则 move 1」
+        if self.ascension >= 18 {
+            // A18+：不看 num；只要「最近两招里没有 2」就继续 Skull Bash
+            let keep_bash = last != Some(2) && last_before != Some(2);
+            if keep_bash || last2_rush {
+                2
+            } else {
+                1
+            }
+        } else {
+            // A<18：num<33 无条件 Skull Bash；否则连打两次 Bull Rush 后转 Bash
+            if num < 33 || last2_rush {
+                2
+            } else {
+                1
+            }
         }
     }
 
@@ -3365,14 +3382,23 @@ impl Combat {
                 }),
                 _ => {}
             },
+            // AcidSlime_M.takeTurn：
+            //   case 1 WOUND → DamageAction(damage[0]) + MakeTempCardInDiscard(Slimed, 1)
+            //   case 2 TACKLE → DamageAction(damage[1])
+            //   case 4 WEAK → ApplyPowerAction(Weak, weakAmt=1)
             MonsterKind::AcidSlimeM => match m.next_move {
-                1 => q.push(Q::MonsterDamage {
-                    src: i,
-                    base: m.dark_strike_dmg,
-                }),
+                1 => {
+                    q.push(Q::MonsterDamage {
+                        src: i,
+                        base: m.chomp_dmg,
+                    });
+                    if let Some(slimed) = CardInst::new_by_class("Slimed") {
+                        q.push(Q::MakeDiscard(slimed));
+                    }
+                }
                 2 => q.push(Q::MonsterDamage {
                     src: i,
-                    base: m.thrash_dmg,
+                    base: m.thrash_block,
                 }),
                 4 => q.push(Q::ApplyPowerToPlayerFromMonster {
                     kind: PowerKind::Weak,
@@ -5847,12 +5873,11 @@ impl Combat {
                     self.relics_on_use_card(card.def.card_type, &mut q2);
                     self.powers_on_use_card(card.def.card_type, &mut q2);
                     self.monster_powers_on_use_card(card.def.card_type, &mut q2);
-                    // 去向
-                    if card.def.flags.contains(&"exhaust") {
-                        self.push_exhaust(card);
-                    } else {
-                        self.player.discard.push(card);
-                    }
+                    // 去向：PlayTopCardAction 设 `card.exhaustOnUseOnce = true`
+                    // → UseCardAction 里 `exhaustOnUseOnce || exhaust` 恒进**消耗堆**。
+                    // 曾按卡自身 exhaust 旗标分流 → Havoc 打出的非消耗牌进了弃牌堆
+                    // （实测 floor7 消耗堆 1 vs 真 2，连带整条抽牌/洗牌序分叉）。
+                    self.push_exhaust(card);
                     self.drain(q2);
                 }
             }

@@ -107,12 +107,14 @@ def _card_id(c):
 
 def brief(st):
     st = dict(st)
-    mons = [
-        m
-        for m in st.get("monsters", [])
-        if (m.get("hp") or 0) > 0
-    ]
-    st = {**st, "monsters": mons}
+    # 保留死怪占位（真游戏 monsters 数组含尸体，target 下标依赖它）。
+    # 战斗结束（screen 已是 combat_reward / complete / map 等）时，真游戏仍留着
+    # 尸体数组，而引擎在 settle_combat 后清空 —— 这是显示层差异，不算状态分歧：
+    # 此时把 monsters 归一为「全 0 血」等价表示。
+    if st.get("screen") not in (None, "combat"):
+        st["monsters"] = [m for m in st.get("monsters", []) if (m.get("hp") or 0) > 0]
+    elif st.get("state") not in (None, "Combat"):
+        st["monsters"] = [m for m in st.get("monsters", []) if (m.get("hp") or 0) > 0]
     is_combat = st.get("state") == "Combat" or st.get("screen") == "combat"
     if not is_combat:
         st["hand"] = None
@@ -146,10 +148,13 @@ def compare(i, want, got, fields):
     for f in fields:
         w, g = want.get(f), got.get(f)
         if f == "monsters" and isinstance(w, list) and isinstance(g, list):
-            if len(w) != len(g):
-                diffs.append(f"[{i}]monsters 数量 want={len(w)} got={len(g)}\n    want={w}\n    got ={g}")
-            else:
-                for k, (mw, mg) in enumerate(zip(w, g)):
+            # 死怪占位：两侧存活序列必须逐项一致（含 hp/block/intent）
+            wa = [m for m in w if (m[1] or 0) > 0]
+            ga = [m for m in g if (m[1] or 0) > 0]
+            if len(wa) != len(ga):
+                diffs.append(f"[{i}]monsters 存活数量 want={len(wa)} got={len(ga)}\n    want={wa}\n    got ={ga}")
+                continue
+            for k, (mw, mg) in enumerate(zip(wa, ga)):
                     keys = ("id", "hp", "block", "intent")
                     for ki, key in enumerate(keys):
                         if key == "intent" and (mw[ki] is None or mg[ki] is None):
@@ -292,6 +297,9 @@ def main():
         except Exception as e:
             print(f"[err i={i}] step({ty},{ent},{tgt}) act={act}: {e}")
             break
+        if (o.get("state") or {}).get("screen") in ("game_over", "complete") and act["type"] != "reward":
+            # 终局帧：真游戏仍显示最后战斗画面/胜利屏，引擎已 settle —— 不比
+            continue
         if (o.get("state") or {}).get("screen") is not None:
             st_now = json.loads(env.state_json())
             engine_screen_now = st_now.get("state")

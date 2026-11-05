@@ -366,9 +366,10 @@ impl GymEnv {
             o.push_str(",\"monsters\":[");
             let mut first = true;
             for (mi, m) in c.monsters.iter().enumerate() {
-                if m.creature.hp <= 0 {
-                    continue;
-                }
+                // ⚠️ 死怪**必须保留占位**：真游戏 monsters 数组含尸体（isDying/isDead），
+                // 出牌 target 下标依赖完整数组序（大史莱姆分裂后是 [M左, L(尸), M右]）。
+                // 曾在此 continue 跳过死怪 → 引擎侧下标与真游戏错位、对拍被掩盖。
+                let _ = &m;
                 if !first {
                     o.push(',');
                 }
@@ -378,7 +379,8 @@ impl GymEnv {
                 let idmg = c.intent_damage(mi);
                 o.push_str(&format!(
                     "{{\"id\":\"{}\",\"hp\":{},\"max_hp\":{},\"block\":{},\"intent\":\"{:?}\",\"intent_dmg\":{},\"powers\":[",
-                    m.kind.id(), m.creature.hp, m.creature.max_hp, m.creature.block,
+                    // 真游戏 AbstractMonster.die() 把 currentHealth 钳到 0（负值不保留）
+                    m.kind.id(), m.creature.hp.max(0), m.creature.max_hp, m.creature.block,
                     m.intent(),
                     idmg.map(|d| d.to_string()).unwrap_or_else(|| "null".into())
                 ));

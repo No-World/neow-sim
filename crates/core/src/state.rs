@@ -661,19 +661,25 @@ impl MonsterState {
                 )
             }
             MonsterKind::AcidSlimeM => {
+                // 槽位与 take_turn 对齐：chomp=WOUND(7/8)、thrash_block=TACKLE(10/11)、
+                // ritual_amt=Weak 层数(1)。曾把 TACKLE 塞进 thrash_dmg(=1)、
+                // Weak 层数写 0 → move2 只打 1 伤、move4 施加 0 层虚弱
+                // （实测 A20 floor7：真游戏 turn2 掉 15，引擎只掉 6）。
                 let (lo, hi) = if ascension >= 7 { (29, 34) } else { (28, 32) };
-                let dmg = if ascension >= 2 { 8 } else { 7 };
-                let dmg2 = if ascension >= 2 { 11 } else { 10 };
+                // Java AcidSlime_M 4 参构造器：A2+ → damage[0]=8 / damage[1]=**12**；
+                // 否则 7 / 10。（曾把 TACKLE 写 11 → floor7 每回合少掉 1 血）
+                let wound = if ascension >= 2 { 8 } else { 7 };
+                let tackle = if ascension >= 2 { 12 } else { 10 };
                 (
                     hp_rng.random_start_end(lo, hi),
                     MonsterStats {
-                        chomp_dmg: dmg,
-                        thrash_dmg: 1,
-                        thrash_block: dmg2,
+                        chomp_dmg: wound,
+                        thrash_dmg: 0,
+                        thrash_block: tackle,
                         bellow_str: 0,
                         bellow_block: 0,
                         dark_strike_dmg: 0,
-                        ritual_amt: 0,
+                        ritual_amt: 1,
                     },
                 )
             }
