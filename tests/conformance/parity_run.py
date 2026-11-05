@@ -139,6 +139,11 @@ def run_trace(path, fields, verbose=False, max_report=25):
             continue
 
         if ename == "Combat":
+            if os.environ.get("NEOW_TRACE_CBT") and atype == "play":
+                st = json.loads(env.state_json())
+                h = [c["id"] for c in (st.get("hand") or [])]
+                print("  [CBT] i=%s ent=%s bridge_card=%s engine_hand=%s" %
+                      (i, ent, act.get("card_id"), h))
             if atype not in ("play", "end_turn", "potion", "potion_discard"):
                 stats["skipped"] += 1
                 continue

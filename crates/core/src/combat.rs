@@ -622,7 +622,11 @@ fn self_monster_prebattle(c: &mut Combat) {
                     false,
                 );
             }
-            MonsterKind::LouseNormal => {
+            // LouseNormal / LouseDefensive 的 usePreBattleAction 完全相同：
+            //   ApplyPowerAction(自身, CurlUpPower(monsterHpRng.random(3,7)/A7 4-8/A17 9-12))
+            // ⚠️ LouseDefensive 原来漏了这个分支 —— 每只 Defensive 少掷 1 次
+            // monster_hp，实测 floor 10（2 Normal + 1 Defensive）9 vs 8。
+            MonsterKind::LouseNormal | MonsterKind::LouseDefensive => {
                 let curl = if c.ascension >= 17 {
                     c.rng.monster_hp.random_start_end(9, 12)
                 } else if c.ascension >= 7 {
@@ -11717,5 +11721,27 @@ mod p3_parity_probe {
             "怪物回合未造成伤害：next_move={nm} hp {hp0} -> {}",
             c.player.creature.hp
         );
+    }
+}
+
+#[cfg(test)]
+mod curlup_order_probe {
+    use super::*;
+    #[test]
+    fn curlup_does_not_absorb_its_own_trigger() {
+        let mut c = Combat::new_with(1, 0, &[MonsterKind::LouseDefensive]);
+        let hp0 = c.monsters[0].creature.hp;
+        let curl = c.monsters[0]
+            .creature
+            .powers
+            .iter()
+            .find(|p| p.kind == PowerKind::CurlUp)
+            .map(|p| p.amount)
+            .unwrap_or(0);
+        let base = 6;
+        c.hit_monster(0, base, DamageType::Normal);
+        let hp_loss = hp0 - c.monsters[0].creature.hp;
+        assert_eq!(hp_loss, base, "Curl Up 不应吸收触发它的伤害（curl={curl}）");
+        assert_eq!(c.monsters[0].creature.block, curl, "结算后才加格挡");
     }
 }
