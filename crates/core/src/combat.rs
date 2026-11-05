@@ -557,6 +557,7 @@ fn power_kind(pid: &str) -> Option<PowerKind> {
         "Brutality" => Some(PowerKind::Brutality),
         "Barricade" => Some(PowerKind::Barricade),
         "Thorns" => Some(PowerKind::Thorns),
+        "Sharp Hide" => Some(PowerKind::SharpHide),
         "Artifact" => Some(PowerKind::Artifact),
         "IntangiblePlayer" => Some(PowerKind::IntangiblePlayer),
         "Energized" => Some(PowerKind::Energized),
@@ -1813,6 +1814,7 @@ impl Combat {
         // 遗物 onUseCard（手里剑/苦无/扇/双节棍/笔尖计数、书信刀、饕饣之瓮…）
         self.relics_on_use_card(card.def.card_type, &mut q);
         self.powers_on_use_card(card.def.card_type, &mut q);
+        self.monster_powers_on_use_card(card.def.card_type, &mut q);
         // Slow（GiantHead）：玩家每打出一张牌 → 所有 Slow 怪 +1 层（本回合）
         for mi in 0..self.monsters.len() {
             if let Some(p) = self.monsters[mi]
@@ -1951,6 +1953,8 @@ impl Combat {
                         .retain(|p| !matches!(p.kind, PowerKind::Vigor | PowerKind::PenNib));
                     self.relics_on_use_card(card.def.card_type, &mut q);
                     self.powers_on_use_card(card.def.card_type, &mut q);
+                    self.monster_powers_on_use_card(card.def.card_type, &mut q);
+                    self.monster_powers_on_use_card(card.def.card_type, &mut q);
                 }
                 self.player.creature.powers[di].amount -= 1;
                 if self.player.creature.powers[di].amount == 0 {
@@ -2020,6 +2024,7 @@ impl Combat {
         }
         self.relics_on_use_card(card.def.card_type, &mut q);
         self.powers_on_use_card(card.def.card_type, &mut q);
+        self.monster_powers_on_use_card(card.def.card_type, &mut q);
         if card.def.flags.contains(&"exhaust") {
             self.push_exhaust(card);
         } else {
@@ -3545,11 +3550,11 @@ impl Combat {
                 }
                 1 => {
                     // Close Up（Defensive 形态）：Sharp Hide 3（A19+ 4）→ 下招 Roll Attack。
-                    // ⚠️ 真游戏 SharpHidePower 按**攻击卡**触发（每卡 1 次）；
-                    //    引擎 Thorns 为每次受击触发——单段攻击等价，多段攻击有偏差。
+                    // SharpHidePower.onUseCard：**每张攻击卡**对玩家 1 次 THORNS 伤
+                    // （与 Thorns 的「每次受击」语义不同，故用独立 PowerKind）。
                     q.push(Q::ApplyPowerToMonster {
                         target: i,
-                        kind: PowerKind::Thorns,
+                        kind: PowerKind::SharpHide,
                         amount: if self.ascension >= 19 { 4 } else { 3 },
                     });
                     q.push(Q::SetMonsterMove { target: i, next: 3 });
@@ -5751,6 +5756,7 @@ impl Combat {
                     }
                     self.relics_on_use_card(card.def.card_type, &mut q2);
                     self.powers_on_use_card(card.def.card_type, &mut q2);
+                    self.monster_powers_on_use_card(card.def.card_type, &mut q2);
                     // 去向
                     if card.def.flags.contains(&"exhaust") {
                         self.push_exhaust(card);
@@ -6548,7 +6554,7 @@ impl Combat {
                 m.guardian_open = true;
                 m.guardian_dmg_taken = 0;
                 m.creature.block = 0;
-                m.creature.powers.retain(|p| p.kind != PowerKind::Thorns);
+                m.creature.powers.retain(|p| p.kind != PowerKind::SharpHide);
             }
             Q::BlockAllMonsters(amount) => {
                 for mi in 0..self.monsters.len() {
@@ -6591,6 +6597,33 @@ impl Combat {
                     if self.alive(mi) {
                         self.hit_monster(mi, dmg, DamageType::Thorns);
                     }
+                }
+            }
+        }
+    }
+
+    /// UseCardAction 里的怪物 power onUseCard 循环。
+    ///
+    /// 触发顺序在玩家 powers / relics / 手牌 / 抽牌堆钩子之后。
+    /// Sharp Hide：打出攻击卡 → 对玩家 amount THORNS 伤，每张攻击卡各 1 次
+    /// （真游戏 SharpHidePower.onUseCard）。
+    fn monster_powers_on_use_card(&mut self, card_type: &str, q: &mut Vec<Q>) {
+        if card_type != "ATTACK" {
+            return;
+        }
+        for m in &self.monsters {
+            if m.creature.is_dead() || m.escaped {
+                continue;
+            }
+            if let Some(amt) = m
+                .creature
+                .powers
+                .iter()
+                .find(|p| p.kind == PowerKind::SharpHide)
+                .map(|p| p.amount)
+            {
+                if amt > 0 {
+                    q.push(Q::PlayerFlatDamage(amt));
                 }
             }
         }
@@ -12134,7 +12167,7 @@ mod boss_and_lice_probe {
             .creature
             .powers
             .iter()
-            .any(|p| p.kind == PowerKind::Thorns && p.amount == 3));
+            .any(|p| p.kind == PowerKind::SharpHide && p.amount == 3));
         assert_eq!(c.monsters[0].next_move, 3, "链：Close Up → Roll Attack");
 
         // Roll Attack 9 → 链 Twin Slam；Twin Slam：Offensive 回归（清格挡/去刺）+ 8×2
@@ -12152,6 +12185,77 @@ mod boss_and_lice_probe {
             .creature
             .powers
             .iter()
-            .any(|p| p.kind == PowerKind::Thorns));
+            .any(|p| p.kind == PowerKind::SharpHide));
+    }
+
+    /// Sharp Hide 语义锁定（SharpHidePower.onUseCard）：
+    /// ① **每张攻击卡**触发 1 次（多段攻击也只 1 次）；
+    /// ② 技能/能力牌不触发；
+    /// ③ 与 Thorns（每次受击反弹）不同——Sharp Hide 不因怪物受击触发。
+    #[test]
+    fn guardian_sharp_hide_triggers_per_attack_card_only() {
+        let mk = |hand: &[&str]| {
+            let mut c = Combat::new_with(16, 0, &[MonsterKind::Guardian]);
+            c.player.creature.max_hp = 200;
+            c.player.creature.hp = 200;
+            c.player.hand.clear();
+            for id in hand {
+                c.player.hand.push(CardInst::new(id));
+            }
+            c.player.energy = 99;
+            apply_power(
+                &mut c.monsters[0].creature.powers,
+                PowerKind::SharpHide,
+                3,
+                false,
+                false,
+            );
+            c
+        };
+
+        // ① 单段攻击卡（Strike 6）：玩家掉 3（Sharp Hide），怪掉 6
+        let mut c = mk(&["Strike_R"]);
+        let (php0, mhp0) = (c.player.creature.hp, c.monsters[0].creature.hp);
+        c.step(&Action::PlayCard {
+            index: 0,
+            target: Some(0),
+        });
+        assert_eq!(php0 - c.player.creature.hp, 3, "Strike → Sharp Hide 3 一次");
+        assert_eq!(mhp0 - c.monsters[0].creature.hp, 6, "Strike 打怪 6");
+
+        // ①' 多段攻击卡（Pummel 2×4 = 8 伤）：玩家仍只掉 3
+        let mut c = mk(&["Pummel"]);
+        let (php0, mhp0) = (c.player.creature.hp, c.monsters[0].creature.hp);
+        c.step(&Action::PlayCard {
+            index: 0,
+            target: Some(0),
+        });
+        let dealt = mhp0 - c.monsters[0].creature.hp;
+        assert!(dealt >= 8, "Pummel 多段（怪吃 {dealt}）");
+        assert_eq!(
+            php0 - c.player.creature.hp,
+            3,
+            "多段攻击卡 Sharp Hide **只 1 次**（不是每段 3）"
+        );
+
+        // ② 技能牌（Defend）：不触发
+        let mut c = mk(&["Defend_R"]);
+        let php0 = c.player.creature.hp;
+        c.step(&Action::PlayCard {
+            index: 0,
+            target: Some(0),
+        });
+        assert_eq!(php0 - c.player.creature.hp, 0, "技能牌不触发 Sharp Hide");
+        assert_eq!(c.player.creature.block, 5, "Defend 得 5 格挡");
+
+        // ③ Sharp Hide 不是受击反弹（那是 Thorns）
+        let mut c = mk(&["Strike_R"]);
+        let php0 = c.player.creature.hp;
+        c.hit_monster(0, 5, DamageType::Normal);
+        assert_eq!(
+            php0 - c.player.creature.hp,
+            0,
+            "Sharp Hide 不因怪物受击触发"
+        );
     }
 }

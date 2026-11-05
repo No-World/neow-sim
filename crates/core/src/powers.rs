@@ -45,6 +45,9 @@ pub enum PowerKind {
     Barricade,
     /// 荆棘（Thorns：受击反弹 amount，THORNS 类型）
     Thorns,
+    /// 尖刺外壳（Sharp Hide：**打出攻击卡**时对玩家造成 amount THORNS 伤，
+    /// 每张攻击卡只触发 1 次——与 Thorns 的「每次受击」语义不同）
+    SharpHide,
     /// 神器（Artifact：抵消下一个施加到自身的减益）
     Artifact,
     /// 无形（IntangiblePlayer：FinalReceive 管线伤害 >1 → 1，轮末衰减）
@@ -308,6 +311,7 @@ impl Power {
             PowerKind::Brutality => "Brutality",
             PowerKind::Barricade => "Barricade",
             PowerKind::Thorns => "Thorns",
+            PowerKind::SharpHide => "Sharp Hide",
             PowerKind::Artifact => "Artifact",
             PowerKind::IntangiblePlayer => "IntangiblePlayer",
             PowerKind::Energized => "Energized",
