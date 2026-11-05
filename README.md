@@ -38,3 +38,7 @@ env = Env(seed=12345, character="IRONCLAD", ascension=20)
 obs, legal = env.reset()
 obs, legal, r, done, info = env.step({"type": "play", "card_index": 0, "target": 0})
 ```
+
+## 许可与声明
+
+本项目原创代码以 [MIT License](LICENSE) 授权；`data/` 游戏数据提取自《Slay the Spire》，版权归 Mega Crit 所有，不受 MIT 约束，详见 [LICENSE](LICENSE)。使用需持有正版游戏。
