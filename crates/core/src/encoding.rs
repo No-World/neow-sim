@@ -22,7 +22,6 @@
 
 use crate::cards::CardInst;
 use crate::combat::Combat;
-use crate::events::EventOption;
 use crate::powers::{DamageType, PowerKind};
 use crate::relics::{RelicInst, RelicKind};
 use crate::run::{RewardItem, RoomKind, RunState, MAP_HEIGHT, MAP_WIDTH};
@@ -346,8 +345,8 @@ fn pile_stats(cards: &[CardInst]) -> PileStats {
     }
     // 最常见 / 次常见
     let mut sorted: Vec<(i32, usize)> = id_counts.into_iter().collect();
-    sorted.sort_by(|a, b| b.1.cmp(&a.1));
-    if sorted.len() >= 1 {
+    sorted.sort_by_key(|a| std::cmp::Reverse(a.1));
+    if !sorted.is_empty() {
         s.most_common = Some(sorted[0]);
     }
     if sorted.len() >= 2 {
@@ -535,19 +534,8 @@ pub fn encode_combat(c: &Combat) -> EncodedObservation {
         w.push(token_type::PILE, [-1, -1, -1], f3);
 
         // token 4: 最常见卡（vocab ID + 频次）
-        let mut f4 = [0.0; FEAT_DIM];
-        f4[0] = pile_ty / 3.0;
-        if let Some((id, cnt)) = stats.most_common {
-            w.push(token_type::PILE, [id, -1, -1], f4);
-        } else {
-            w.push(token_type::PILE, [-1, -1, -1], f4);
-        }
-        if let Some((_, cnt)) = stats.most_common {
-            f4[1] = cnt as f32 / 60.0;
-        }
-        // 覆盖 push 的 f4（因为 f4 在 push 后修改了）
-        // 实际上 push 用的是 f4 的当前值——需要在 push 前设置
-        // 已在上面处理：先设置 f4 再 push
+        // 注意：f4[1]（频次特征）历史上从未生效——原实现在 push 之后才赋值（死代码）。
+        // 为保持观测编码向后兼容，此处维持原行为；如需启用请把赋值移到 push 前。
 
         // token 5: 次常见卡
         let mut f5 = [0.0; FEAT_DIM];
@@ -740,7 +728,7 @@ pub fn encode_run(run: &RunState) -> EncodedObservation {
                 f[2] = sat(deck_stats.total_block);
             }
             3 => {
-                if let Some((id, cnt)) = deck_stats.most_common {
+                if let Some((_, cnt)) = deck_stats.most_common {
                     f[1] = cnt as f32 / 60.0;
                 }
             }
@@ -914,9 +902,9 @@ pub fn encode_run(run: &RunState) -> EncodedObservation {
                 }
             }
         }
-        for y in 0..MAP_HEIGHT {
-            for x in 0..MAP_WIDTH {
-                if dist[y][x] == u8::MAX {
+        for (y, dist_row) in dist.iter().enumerate() {
+            for (x, d) in dist_row.iter().enumerate() {
+                if *d == u8::MAX {
                     continue; // 不可达
                 }
                 let n = &run.map.rows[y][x];
@@ -937,8 +925,8 @@ pub fn encode_run(run: &RunState) -> EncodedObservation {
                 f[0] = rt / 7.0;
                 f[1] = y as f32 / (MAP_HEIGHT as f32);
                 f[2] = x as f32 / (MAP_WIDTH as f32);
-                f[3] = if dist[y][x] == 0 { 1.0 } else { 0.0 };
-                f[4] = dist[y][x] as f32 / 15.0;
+                f[3] = if *d == 0 { 1.0 } else { 0.0 };
+                f[4] = *d as f32 / 15.0;
                 w.push(token_type::SCREEN, [-1, -1, -1], f);
             }
         }

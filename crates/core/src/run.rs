@@ -1625,7 +1625,7 @@ impl RunState {
         let exclusions = act_exclusions(&weak, &strong, list.last().copied());
         loop {
             let name = enc_roll(&strong, self.rng.monster.random_float());
-            if exclusions.iter().any(|e| *e == name) {
+            if exclusions.contains(&name) {
                 continue;
             }
             if list.last() == Some(&name) {
@@ -3066,19 +3066,6 @@ impl RunState {
     }
 }
 
-trait IfEmpty {
-    fn if_empty(self, other: &'static [MonsterKind]) -> &'static [MonsterKind];
-}
-impl IfEmpty for &'static [MonsterKind] {
-    fn if_empty(self, other: &'static [MonsterKind]) -> &'static [MonsterKind] {
-        if self.is_empty() {
-            other
-        } else {
-            self
-        }
-    }
-}
-
 /// 休息房：进房不自动回血；睡觉回 30%；锻造升级；只能选一项
 #[test]
 fn rest_room_options() {
@@ -3716,6 +3703,7 @@ mod parity_golden_tests {
     }
 }
 
+#[cfg(test)]
 mod seed_helper_tests {
     use super::seed_helper;
 
