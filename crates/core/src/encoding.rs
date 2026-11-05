@@ -534,8 +534,21 @@ pub fn encode_combat(c: &Combat) -> EncodedObservation {
         w.push(token_type::PILE, [-1, -1, -1], f3);
 
         // token 4: 最常见卡（vocab ID + 频次）
-        // 注意：f4[1]（频次特征）历史上从未生效——原实现在 push 之后才赋值（死代码）。
-        // 为保持观测编码向后兼容，此处维持原行为；如需启用请把赋值移到 push 前。
+        //
+        // 修复说明：此 token 原先**整块缺失**（注释残留、从未 push），
+        // 与 `encode_run` 的牌堆编码不一致（那边 token 4 是有的）。
+        // 后果：战斗内「牌组最常见的卡是哪张、出现几次」完全不可见，
+        // 而战斗外可见 —— 同一局内观测结构前后不一致。
+        // 现补回，并把频次特征 f[1] 在 push **之前**赋值
+        // （原实现若在 push 后赋值则是死存储，这里一并修正）。
+        let mut f4 = [0.0; FEAT_DIM];
+        f4[0] = pile_ty / 3.0;
+        if let Some((id, cnt)) = stats.most_common {
+            f4[1] = cnt as f32 / 60.0;
+            w.push(token_type::PILE, [id, -1, -1], f4);
+        } else {
+            w.push(token_type::PILE, [-1, -1, -1], f4);
+        }
 
         // token 5: 次常见卡
         let mut f5 = [0.0; FEAT_DIM];
@@ -1071,5 +1084,50 @@ mod decision_info_tests {
             .find(|r| r.kind == crate::relics::RelicKind::WingedGreaves)
             .unwrap();
         assert!(r.counter <= 3);
+    }
+}
+
+#[cfg(test)]
+mod pile_token_tests {
+    use super::*;
+
+    /// token 4（最常见卡）必须存在，且频次特征 f[1] 在 push 前赋值。
+    ///
+    /// 回归点：`encode_combat` 里 token 4 原先**整块缺失**（注释残留、从未 push），
+    /// 导致「牌组最常见的卡是哪张、几次」在战斗内完全不可见。
+    #[test]
+    fn pile_most_common_present_in_combat() {
+        let mut run = crate::run::RunState::new(42, 0);
+        let col = run.start_columns()[0];
+        run.map_started = true;
+        run.pos = (0, col);
+        run.floor = 1;
+        run.enter_room();
+        let c = run.combat.as_ref().expect("首房应为战斗");
+        let obs = encode_combat(c);
+
+        // 每个堆 5 个 PILE token，第 4 个（下标 %5 == 3）是最常见卡
+        let mut pile_idx = 0;
+        let mut token4_count = 0;
+        let mut non_empty = 0;
+        for t in 0..obs.seq_len {
+            if obs.token_types[t] != token_type::PILE {
+                continue;
+            }
+            if pile_idx % 5 == 3 {
+                token4_count += 1;
+                // 只有**非空堆**的 token4 才有频次；空堆（如首回合 discard）
+                // 走 else 分支 push 空 token，频次为 0 是正常的。
+                if obs.token_feats[t][1] > 0.0 {
+                    non_empty += 1;
+                    assert!(obs.token_ids[t][0] >= 0, "非空堆 token4 必须带卡牌 vocab id");
+                }
+            }
+            pile_idx += 1;
+        }
+        assert_eq!(token4_count, 4, "战斗内 4 堆各有 1 个 token4");
+        // 首回合：draw(5) + deck_all(10) 非空，discard/exhaust 空
+        assert_eq!(non_empty, 2, "非空堆数（draw + deck_all）");
+        assert_eq!(pile_idx, 20, "战斗内 4 堆 × 5 token");
     }
 }
