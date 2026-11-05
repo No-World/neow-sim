@@ -485,9 +485,20 @@ pub struct MonsterState {
     pub guardian_open: bool,
     /// Guardian：本相位已累计受击伤害（≥ 阈值触发模式切换）
     pub guardian_dmg_taken: i32,
+    /// JawWorm hardMode（Jaw Worm Horde）：构造器置 firstMove=false（首招按 num 掷），
+    /// 且 usePreBattleAction 叠 Strength(bellowStr) + Block(bellowBlock)
+    pub hard_mode: bool,
 }
 
 impl MonsterState {
+    /// Java `AbstractMonster.setHp(int hp)`（单参）= `setHp(hp, hp)` →
+    /// `monsterHpRng.random(hp, hp)` = `nextInt(1)` ——**仍然消耗 1 次 monsterHpRng**。
+    /// 干跑该次抽取后返回固定值（值恒为 hp，但流推进必须精确）。
+    fn set_hp_fixed(hp_rng: &mut StsRandom, hp: i32) -> i32 {
+        let _ = hp_rng.random_start_end(hp, hp);
+        hp
+    }
+
     /// 构造：按种类掷 HP（monsterHpRng 流，调用方传入保证流序）
     pub fn spawn(kind: MonsterKind, ascension: i32, hp_rng: &mut StsRandom) -> Self {
         let (hp, st) = match kind {
@@ -816,7 +827,8 @@ impl MonsterState {
                 )
             }
             MonsterKind::SlimeBoss => {
-                let hp = if ascension >= 2 { 150 } else { 140 };
+                // 真游戏 this.setHp(单参) → 仍耗 1 次 monsterHpRng（nextInt(1)）
+                let hp = Self::set_hp_fixed(hp_rng, if ascension >= 2 { 150 } else { 140 });
                 let slam = if ascension >= 2 { 38 } else { 35 };
                 (
                     hp,
@@ -836,7 +848,8 @@ impl MonsterState {
             //（激活回合锁定=玩家 HP/12+1），dark_strike=灼烙伤 6，ritual=已激活球数
             MonsterKind::Hexaghost => {
                 // Boss 血量提升在 A9（构造器：>=9 → 264，否则 250）
-                let hp = if ascension >= 9 { 264 } else { 250 };
+                // this.setHp(单参) → 仍耗 1 次 monsterHpRng
+                let hp = Self::set_hp_fixed(hp_rng, if ascension >= 9 { 264 } else { 250 });
                 if ascension >= 19 {
                     (
                         hp,
@@ -1168,6 +1181,9 @@ impl MonsterState {
             }
             // 监工：chomp=鞭笞7 + thrash=伤口数(1/2 A3/3 A18)（A18 再自+1 力量）
             MonsterKind::Taskmaster => {
+                // 真游戏 super(..., monsterHpRng.random(54, 60), ...)
+                // + 随后 setHp(...) —— **2 次消耗**（首次 HP 被覆盖，但流必须推进）
+                let _super_hp = hp_rng.random_start_end(54, 60);
                 let (lo, hi) = if ascension >= 8 { (57, 64) } else { (54, 60) };
                 let wounds = if ascension >= 18 {
                     3
@@ -1191,6 +1207,9 @@ impl MonsterState {
             }
             // 铜球：chomp=光束8 thrash=支援格挡12；STASIS 吸牌（死亡归还）
             MonsterKind::BronzeOrb => {
+                // 真游戏 super(..., monsterHpRng.random(52, 58), ...)
+                // + 随后 setHp(...) —— **2 次消耗**（首次 HP 被覆盖，但流必须推进）
+                let _super_hp = hp_rng.random_start_end(52, 58);
                 let (lo, hi) = if ascension >= 9 { (54, 60) } else { (52, 58) };
                 (
                     hp_rng.random_start_end(lo, hi),
@@ -1208,7 +1227,8 @@ impl MonsterState {
             // 铜制自动机：chomp=连枷(7/8)×2 thrash=超究光束(45/50) thrash_block=强化格挡(9/12)
             // bellow_str=强化力量(3/4)；counter=回合计；战前神器3
             MonsterKind::BronzeAutomaton => {
-                let hp = if ascension >= 9 { 320 } else { 300 };
+                // 真游戏 this.setHp(单参) → 仍耗 1 次 monsterHpRng（nextInt(1)）
+                let hp = Self::set_hp_fixed(hp_rng, if ascension >= 9 { 320 } else { 300 });
                 let (flail, beam, str_amt) = if ascension >= 4 {
                     (8, 50, 4)
                 } else {
@@ -1230,6 +1250,9 @@ impl MonsterState {
             }
             // 火把头：chomp=冲撞7（恒定，SetMove 驱动）
             MonsterKind::TorchHead => {
+                // 真游戏 super(..., monsterHpRng.random(60, 70), ...)
+                // + 随后 setHp(...) —— **2 次消耗**（首次 HP 被覆盖，但流必须推进）
+                let _super_hp = hp_rng.random_start_end(60, 70);
                 let (lo, hi) = if ascension >= 9 { (40, 45) } else { (38, 40) };
                 (
                     hp_rng.random_start_end(lo, hi),
@@ -1247,7 +1270,8 @@ impl MonsterState {
             // 收集者：chomp=火球(18/21) thrash=群力(3/4/5) thrash_block=自我格挡(15/18)
             // bellow_str=超大减益(3/5 A19)；turns=history.len()
             MonsterKind::TheCollector => {
-                let hp = if ascension >= 9 { 300 } else { 282 };
+                // 真游戏 this.setHp(单参) → 仍耗 1 次 monsterHpRng（nextInt(1)）
+                let hp = Self::set_hp_fixed(hp_rng, if ascension >= 9 { 300 } else { 282 });
                 let (fb, str_amt, mega) = if ascension >= 19 {
                     (21, 5, 5)
                 } else if ascension >= 4 {
@@ -1272,7 +1296,8 @@ impl MonsterState {
             // 冠军：chomp=重斩(16/18) thrash=处决10×2 thrash_block=扇击(12/14)
             // bellow_str=力量(2/3/4) bellow_block=锻造金属化(5/6/7) dark_strike=格挡(15/18/20)
             MonsterKind::Champ => {
-                let hp = if ascension >= 9 { 440 } else { 420 };
+                // 真游戏 this.setHp(单参) → 仍耗 1 次 monsterHpRng（nextInt(1)）
+                let hp = Self::set_hp_fixed(hp_rng, if ascension >= 9 { 440 } else { 420 });
                 let slash = if ascension >= 4 { 18 } else { 16 };
                 let slap = if ascension >= 4 { 14 } else { 12 };
                 let (str_amt, forge, block_amt) = if ascension >= 19 {
@@ -1338,6 +1363,9 @@ impl MonsterState {
             }
             // 天球行者：chomp=激光(10/11) thrash=利爪(15/16)；战前力量 3(5 A17)
             MonsterKind::OrbWalker => {
+                // 真游戏 super(..., monsterHpRng.random(90, 96), ...)
+                // + 随后 setHp(...) —— **2 次消耗**（首次 HP 被覆盖，但流必须推进）
+                let _super_hp = hp_rng.random_start_end(90, 96);
                 let (lo, hi) = if ascension >= 7 { (92, 102) } else { (90, 96) };
                 (
                     hp_rng.random_start_end(lo, hi),
@@ -1354,7 +1382,8 @@ impl MonsterState {
             }
             // 尖塔生长体：chomp=快击(16/18) thrash=重击(22/25) thrash_block=紧缠(10)
             MonsterKind::SpireGrowth => {
-                let hp = if ascension >= 7 { 190 } else { 170 };
+                // 真游戏 this.setHp(单参) → 仍耗 1 次 monsterHpRng（nextInt(1)）
+                let hp = Self::set_hp_fixed(hp_rng, if ascension >= 7 { 190 } else { 170 });
                 let (tackle, smash) = if ascension >= 2 { (18, 25) } else { (16, 22) };
                 (
                     hp,
@@ -1381,6 +1410,7 @@ impl MonsterState {
             ),
             // 巨口：chomp=猛击(25/30) thrash=啃食5 thrash_block=咆哮时长3；
             // bellow_str=流涎力量3；counter=turnCount 起 1
+            // 巨口：super 常量 300（无 setHp → **0 次 monsterHpRng**）
             MonsterKind::Maw => (
                 300,
                 MonsterStats {
@@ -1394,7 +1424,8 @@ impl MonsterState {
             // 蠕动聚块：chomp=巨击(32/38) thrash=连击(7/9)×3 thrash_block=攻防(15/16)
             // bellow_str=削弱攻击(10/12) bellow_block=弱易2；战前 Reactive+Malleable
             MonsterKind::WrithingMass => {
-                let hp = if ascension >= 7 { 175 } else { 160 };
+                // 真游戏 this.setHp(单参) → 仍耗 1 次 monsterHpRng（nextInt(1)）
+                let hp = Self::set_hp_fixed(hp_rng, if ascension >= 7 { 175 } else { 160 });
                 if ascension >= 2 {
                     (
                         hp,
@@ -1444,7 +1475,8 @@ impl MonsterState {
             // 复仇者：chomp=镰刀45 thrash=三连火(6/7 A3)×3 thrash_block=灼伤(3/5 A18)；
             // counter=镰刀冷却；每回合尾自动无形 1
             MonsterKind::Nemesis => {
-                let hp = if ascension >= 8 { 200 } else { 185 };
+                // 真游戏 this.setHp(单参) → 仍耗 1 次 monsterHpRng（nextInt(1)）
+                let hp = Self::set_hp_fixed(hp_rng, if ascension >= 8 { 200 } else { 185 });
                 (
                     hp,
                     MonsterStats {
@@ -1514,7 +1546,8 @@ impl MonsterState {
             // thrash_block=黑暗回响40 bellow_str=污泥18 bellow_block=冲撞10
             // dark=冲击段数4 ritual=冲撞段数3；counter=阶段2标记
             MonsterKind::AwakenedOne => {
-                let hp = if ascension >= 9 { 320 } else { 300 };
+                // 真游戏 this.setHp(单参) → 仍耗 1 次 monsterHpRng（nextInt(1)）
+                let hp = Self::set_hp_fixed(hp_rng, if ascension >= 9 { 320 } else { 300 });
                 (
                     hp,
                     MonsterStats {
@@ -1530,7 +1563,8 @@ impl MonsterState {
             }
             // 多努：chomp=光束(10/12)×2 thrash=力量环3；起手力量环；神器2(3 A19)
             MonsterKind::Donu => {
-                let hp = if ascension >= 9 { 265 } else { 250 };
+                // 真游戏 this.setHp(单参) → 仍耗 1 次 monsterHpRng（nextInt(1)）
+                let hp = Self::set_hp_fixed(hp_rng, if ascension >= 9 { 265 } else { 250 });
                 (
                     hp,
                     MonsterStats {
@@ -1546,7 +1580,8 @@ impl MonsterState {
             }
             // 德卡：chomp=光束(10/12)×2+晕2 thrash=护甲环3；起手光束；神器2(3 A19)
             MonsterKind::Deca => {
-                let hp = if ascension >= 9 { 265 } else { 250 };
+                // 真游戏 this.setHp(单参) → 仍耗 1 次 monsterHpRng（nextInt(1)）
+                let hp = Self::set_hp_fixed(hp_rng, if ascension >= 9 { 265 } else { 250 });
                 (
                     hp,
                     MonsterStats {
@@ -1563,7 +1598,8 @@ impl MonsterState {
             // 吞时者：chomp=回响(7/8)×3 thrash=头撞(26/32)+下回合抽牌-1
             // thrash_block=涟漪格挡20；半血一次加速；战前 TimeWarp
             MonsterKind::TimeEater => {
-                let hp = if ascension >= 9 { 480 } else { 456 };
+                // 真游戏 this.setHp(单参) → 仍耗 1 次 monsterHpRng（nextInt(1)）
+                let hp = Self::set_hp_fixed(hp_rng, if ascension >= 9 { 480 } else { 456 });
                 let (reverb, slam) = if ascension >= 2 { (8, 32) } else { (7, 26) };
                 (
                     hp,
@@ -1582,7 +1618,8 @@ impl MonsterState {
             // 尖塔之盾：chomp=痛击(12/14 A3+) thrash=粉碎(34/38+自甲)
             // thrash_block=筑防 30；moveCount 由史长推导；A18 神器 2
             MonsterKind::SpireShield => {
-                let hp = if ascension >= 8 { 125 } else { 110 };
+                // 真游戏 this.setHp(单参) → 仍耗 1 次 monsterHpRng（nextInt(1)）
+                let hp = Self::set_hp_fixed(hp_rng, if ascension >= 8 { 125 } else { 110 });
                 if ascension >= 3 {
                     (
                         hp,
@@ -1614,7 +1651,8 @@ impl MonsterState {
             // 尖塔之矛：chomp=燃烧打击(5/6)×2+灼伤2 thrash=穿刺10
             // thrash_block=灼伤数2 bellow_str=穿刺段数(3/4)；A18 神器 2
             MonsterKind::SpireSpear => {
-                let hp = if ascension >= 8 { 180 } else { 160 };
+                // 真游戏 this.setHp(单参) → 仍耗 1 次 monsterHpRng（nextInt(1)）
+                let hp = Self::set_hp_fixed(hp_rng, if ascension >= 8 { 180 } else { 160 });
                 if ascension >= 3 {
                     (
                         hp,
@@ -1647,7 +1685,8 @@ impl MonsterState {
             // thrash_block=血射段数(12/15) bellow_str=削弱2；
             // moveCount/buffCount 由招式史推导；战前无敌300(200)+亡律1(2)
             MonsterKind::CorruptHeart => {
-                let hp = if ascension >= 9 { 800 } else { 750 };
+                // 真游戏 this.setHp(单参) → 仍耗 1 次 monsterHpRng（nextInt(1)）
+                let hp = Self::set_hp_fixed(hp_rng, if ascension >= 9 { 800 } else { 750 });
                 if ascension >= 4 {
                     (
                         hp,
@@ -1715,7 +1754,8 @@ impl MonsterState {
             // thrash_block=自挡，bellow_str=敏捷减益/荆棘计数，bellow_block=荆棘基数,
             // ritual_amt=虚弱量/段数
             MonsterKind::BanditPointy => {
-                let hp = if ascension >= 7 { 34 } else { 30 }; // setHp 定值（无掷）
+                // 真游戏 this.setHp(单参) → 仍耗 1 次 monsterHpRng（nextInt(1)）
+                let hp = Self::set_hp_fixed(hp_rng, if ascension >= 7 { 34 } else { 30 });
                 (
                     hp,
                     MonsterStats {
@@ -1814,6 +1854,7 @@ impl MonsterState {
             half_dead: false,
             guardian_open: kind == MonsterKind::Guardian,
             guardian_dmg_taken: 0,
+            hard_mode: false,
         }
     }
 

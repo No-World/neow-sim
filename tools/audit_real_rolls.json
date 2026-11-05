@@ -1,0 +1,240 @@
+{
+ "JawWorm": null,
+ "Cultist": {
+  "rolls": 2,
+  "detail": "super-random=0 setHp(\u5355\u503c)=0 setHp(\u533a\u95f4\u5206\u652f)=2"
+ },
+ "LouseNormal": {
+  "rolls": 4,
+  "detail": "super-random=2 setHp(\u5355\u503c)=0 setHp(\u533a\u95f4\u5206\u652f)=2"
+ },
+ "LouseDefensive": {
+  "rolls": 4,
+  "detail": "super-random=2 setHp(\u5355\u503c)=0 setHp(\u533a\u95f4\u5206\u652f)=2"
+ },
+ "FungiBeast": {
+  "rolls": 2,
+  "detail": "super-random=0 setHp(\u5355\u503c)=0 setHp(\u533a\u95f4\u5206\u652f)=2"
+ },
+ "SpikeSlimeS": {
+  "rolls": 2,
+  "detail": "super-random=0 setHp(\u5355\u503c)=0 setHp(\u533a\u95f4\u5206\u652f)=2"
+ },
+ "AcidSlimeS": {
+  "rolls": 2,
+  "detail": "super-random=0 setHp(\u5355\u503c)=0 setHp(\u533a\u95f4\u5206\u652f)=2"
+ },
+ "SpikeSlimeM": null,
+ "AcidSlimeM": null,
+ "SpikeSlimeL": null,
+ "AcidSlimeL": null,
+ "SlaverBlue": {
+  "rolls": 2,
+  "detail": "super-random=0 setHp(\u5355\u503c)=0 setHp(\u533a\u95f4\u5206\u652f)=2"
+ },
+ "SlaverRed": {
+  "rolls": 2,
+  "detail": "super-random=0 setHp(\u5355\u503c)=0 setHp(\u533a\u95f4\u5206\u652f)=2"
+ },
+ "GremlinNob": null,
+ "Lagavulin": {
+  "rolls": 2,
+  "detail": "super-random=0 setHp(\u5355\u503c)=0 setHp(\u533a\u95f4\u5206\u652f)=2"
+ },
+ "Sentry": {
+  "rolls": 2,
+  "detail": "super-random=0 setHp(\u5355\u503c)=0 setHp(\u533a\u95f4\u5206\u652f)=2"
+ },
+ "Guardian": {
+  "rolls": 3,
+  "detail": "super-random=0 setHp(\u5355\u503c)=3 setHp(\u533a\u95f4\u5206\u652f)=0"
+ },
+ "Hexaghost": {
+  "rolls": 2,
+  "detail": "super-random=0 setHp(\u5355\u503c)=2 setHp(\u533a\u95f4\u5206\u652f)=0"
+ },
+ "SlimeBoss": {
+  "rolls": 2,
+  "detail": "super-random=0 setHp(\u5355\u503c)=2 setHp(\u533a\u95f4\u5206\u652f)=0"
+ },
+ "GremlinWarrior": {
+  "rolls": 2,
+  "detail": "super-random=0 setHp(\u5355\u503c)=0 setHp(\u533a\u95f4\u5206\u652f)=2"
+ },
+ "GremlinThief": {
+  "rolls": 2,
+  "detail": "super-random=0 setHp(\u5355\u503c)=0 setHp(\u533a\u95f4\u5206\u652f)=2"
+ },
+ "GremlinFat": {
+  "rolls": 2,
+  "detail": "super-random=0 setHp(\u5355\u503c)=0 setHp(\u533a\u95f4\u5206\u652f)=2"
+ },
+ "GremlinTsundere": {
+  "rolls": 3,
+  "detail": "super-random=0 setHp(\u5355\u503c)=0 setHp(\u533a\u95f4\u5206\u652f)=3"
+ },
+ "GremlinWizard": {
+  "rolls": 2,
+  "detail": "super-random=0 setHp(\u5355\u503c)=0 setHp(\u533a\u95f4\u5206\u652f)=2"
+ },
+ "GremlinLeader": {
+  "rolls": 2,
+  "detail": "super-random=0 setHp(\u5355\u503c)=0 setHp(\u533a\u95f4\u5206\u652f)=2"
+ },
+ "Taskmaster": {
+  "rolls": 3,
+  "detail": "super-random=1 setHp(\u5355\u503c)=0 setHp(\u533a\u95f4\u5206\u652f)=2"
+ },
+ "BronzeOrb": {
+  "rolls": 3,
+  "detail": "super-random=1 setHp(\u5355\u503c)=0 setHp(\u533a\u95f4\u5206\u652f)=2"
+ },
+ "BronzeAutomaton": {
+  "rolls": 2,
+  "detail": "super-random=0 setHp(\u5355\u503c)=2 setHp(\u533a\u95f4\u5206\u652f)=0"
+ },
+ "TheCollector": {
+  "rolls": 2,
+  "detail": "super-random=0 setHp(\u5355\u503c)=2 setHp(\u533a\u95f4\u5206\u652f)=0"
+ },
+ "Champ": {
+  "rolls": 2,
+  "detail": "super-random=0 setHp(\u5355\u503c)=2 setHp(\u533a\u95f4\u5206\u652f)=0"
+ },
+ "Darkling": {
+  "rolls": 4,
+  "detail": "super-random=2 setHp(\u5355\u503c)=0 setHp(\u533a\u95f4\u5206\u652f)=2"
+ },
+ "Reptomancer": {
+  "rolls": 3,
+  "detail": "super-random=1 setHp(\u5355\u503c)=0 setHp(\u533a\u95f4\u5206\u652f)=2"
+ },
+ "SnakeDagger": {
+  "rolls": 1,
+  "detail": "super-random=1 setHp(\u5355\u503c)=0 setHp(\u533a\u95f4\u5206\u652f)=0"
+ },
+ "Transient": {
+  "rolls": 0,
+  "detail": "super-random=0 setHp(\u5355\u503c)=0 setHp(\u533a\u95f4\u5206\u652f)=0"
+ },
+ "OrbWalker": {
+  "rolls": 3,
+  "detail": "super-random=1 setHp(\u5355\u503c)=0 setHp(\u533a\u95f4\u5206\u652f)=2"
+ },
+ "SpireGrowth": {
+  "rolls": 2,
+  "detail": "super-random=0 setHp(\u5355\u503c)=2 setHp(\u533a\u95f4\u5206\u652f)=0"
+ },
+ "Maw": {
+  "rolls": 0,
+  "detail": "super-random=0 setHp(\u5355\u503c)=0 setHp(\u533a\u95f4\u5206\u652f)=0"
+ },
+ "Byrd": {
+  "rolls": 2,
+  "detail": "super-random=0 setHp(\u5355\u503c)=0 setHp(\u533a\u95f4\u5206\u652f)=2"
+ },
+ "Chosen": {
+  "rolls": 2,
+  "detail": "super-random=0 setHp(\u5355\u503c)=0 setHp(\u533a\u95f4\u5206\u652f)=2"
+ },
+ "ShelledParasite": {
+  "rolls": 2,
+  "detail": "super-random=0 setHp(\u5355\u503c)=0 setHp(\u533a\u95f4\u5206\u652f)=2"
+ },
+ "SphericGuardian": {
+  "rolls": 0,
+  "detail": "super-random=0 setHp(\u5355\u503c)=0 setHp(\u533a\u95f4\u5206\u652f)=0"
+ },
+ "SnakePlant": {
+  "rolls": 2,
+  "detail": "super-random=0 setHp(\u5355\u503c)=0 setHp(\u533a\u95f4\u5206\u652f)=2"
+ },
+ "Snecko": {
+  "rolls": 2,
+  "detail": "super-random=0 setHp(\u5355\u503c)=0 setHp(\u533a\u95f4\u5206\u652f)=2"
+ },
+ "Centurion": {
+  "rolls": 2,
+  "detail": "super-random=0 setHp(\u5355\u503c)=0 setHp(\u533a\u95f4\u5206\u652f)=2"
+ },
+ "Healer": {
+  "rolls": 2,
+  "detail": "super-random=0 setHp(\u5355\u503c)=0 setHp(\u533a\u95f4\u5206\u652f)=2"
+ },
+ "BookOfStabbing": {
+  "rolls": 2,
+  "detail": "super-random=0 setHp(\u5355\u503c)=0 setHp(\u533a\u95f4\u5206\u652f)=2"
+ },
+ "Looter": {
+  "rolls": 2,
+  "detail": "super-random=0 setHp(\u5355\u503c)=0 setHp(\u533a\u95f4\u5206\u652f)=2"
+ },
+ "Mugger": {
+  "rolls": 2,
+  "detail": "super-random=0 setHp(\u5355\u503c)=0 setHp(\u533a\u95f4\u5206\u652f)=2"
+ },
+ "BanditPointy": {
+  "rolls": 2,
+  "detail": "super-random=0 setHp(\u5355\u503c)=2 setHp(\u533a\u95f4\u5206\u652f)=0"
+ },
+ "BanditLeader": {
+  "rolls": 2,
+  "detail": "super-random=0 setHp(\u5355\u503c)=0 setHp(\u533a\u95f4\u5206\u652f)=2"
+ },
+ "BanditBear": {
+  "rolls": 2,
+  "detail": "super-random=0 setHp(\u5355\u503c)=0 setHp(\u533a\u95f4\u5206\u652f)=2"
+ },
+ "AwakenedOne": {
+  "rolls": 2,
+  "detail": "super-random=0 setHp(\u5355\u503c)=2 setHp(\u533a\u95f4\u5206\u652f)=0"
+ },
+ "Deca": {
+  "rolls": 2,
+  "detail": "super-random=0 setHp(\u5355\u503c)=2 setHp(\u533a\u95f4\u5206\u652f)=0"
+ },
+ "Donu": {
+  "rolls": 2,
+  "detail": "super-random=0 setHp(\u5355\u503c)=2 setHp(\u533a\u95f4\u5206\u652f)=0"
+ },
+ "Nemesis": {
+  "rolls": 2,
+  "detail": "super-random=0 setHp(\u5355\u503c)=2 setHp(\u533a\u95f4\u5206\u652f)=0"
+ },
+ "TimeEater": {
+  "rolls": 2,
+  "detail": "super-random=0 setHp(\u5355\u503c)=2 setHp(\u533a\u95f4\u5206\u652f)=0"
+ },
+ "WrithingMass": {
+  "rolls": 2,
+  "detail": "super-random=0 setHp(\u5355\u503c)=2 setHp(\u533a\u95f4\u5206\u652f)=0"
+ },
+ "CorruptHeart": {
+  "rolls": 2,
+  "detail": "super-random=0 setHp(\u5355\u503c)=2 setHp(\u533a\u95f4\u5206\u652f)=0"
+ },
+ "SpireShield": {
+  "rolls": 2,
+  "detail": "super-random=0 setHp(\u5355\u503c)=2 setHp(\u533a\u95f4\u5206\u652f)=0"
+ },
+ "SpireSpear": {
+  "rolls": 2,
+  "detail": "super-random=0 setHp(\u5355\u503c)=2 setHp(\u533a\u95f4\u5206\u652f)=0"
+ },
+ "Exploder": {
+  "rolls": 2,
+  "detail": "super-random=0 setHp(\u5355\u503c)=0 setHp(\u533a\u95f4\u5206\u652f)=2"
+ },
+ "Repulsor": {
+  "rolls": 2,
+  "detail": "super-random=0 setHp(\u5355\u503c)=0 setHp(\u533a\u95f4\u5206\u652f)=2"
+ },
+ "Spiker": {
+  "rolls": 2,
+  "detail": "super-random=0 setHp(\u5355\u503c)=0 setHp(\u533a\u95f4\u5206\u652f)=2"
+ },
+ "TorchHead": {
+  "rolls": 3,
+  "detail": "super-random=1 setHp(\u5355\u503c)=0 setHp(\u533a\u95f4\u5206\u652f)=2"
+ }
+}

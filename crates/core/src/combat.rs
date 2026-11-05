@@ -870,6 +870,19 @@ fn self_monster_prebattle(c: &mut Combat) {
                     false,
                 );
             }
+            // JawWorm.usePreBattleAction：hardMode（Jaw Worm Horde）→ Strength(bellowStr)
+            // + Block(bellowBlock)。普通大颚虫不触发。
+            MonsterKind::JawWorm if c.monsters[i].hard_mode => {
+                let (st, blk) = (c.monsters[i].bellow_str, c.monsters[i].bellow_block);
+                apply_power(
+                    &mut c.monsters[i].creature.powers,
+                    PowerKind::Strength,
+                    st,
+                    false,
+                    false,
+                );
+                c.monsters[i].creature.block += blk;
+            }
             // 荆棘形体：战前荆棘 3/4（A17 再 +3；usePreBattleAction）。
             // bellow_str 复用为增益计次（thornsCount，>5 后恒普攻，起 0）
             MonsterKind::Spiker => {
@@ -8325,7 +8338,8 @@ impl Combat {
 
     /// JawWorm.getMove 逐行复刻
     fn jaw_worm_get_move(&mut self, i: usize, num: i32) -> u8 {
-        if self.monsters[i].first_move {
+        // hardMode（Jaw Worm Horde）构造器已把 firstMove 置 false → 不吃首招捷径
+        if self.monsters[i].first_move && !self.monsters[i].hard_mode {
             return 1;
         }
         if num < 25 {

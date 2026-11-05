@@ -750,6 +750,57 @@ mod tests {
 
     /// 回归锁定（seed PMCWKZEF = 1585262650280，真游戏 long.jsonl 轨迹）：
     /// floor 7 精英 → Mercury Hourglass；floor 9 精英 → Pear。
+    /// 回归锁定：遭遇构造链（MonsterHelper 逐行镜像）。
+    /// 覆盖「候选全构造」（Exordium Wildlife/Thugs 未选中者也掷 HP）、
+    /// 「无放回抽取」（Gremlin Gang/Lots of Slimes/Shapes）、
+    /// 「hardMode 复数 + 战前叠力量」（Jaw Worm Horde）。
+    #[test]
+    fn encounter_construction_counts() {
+        let run_with = |name: &str| {
+            let mut r = RunState::new(1585262650280, 0);
+            let m0 = r.rng.misc.counter;
+            let h0 = r.rng.monster_hp.counter;
+            let s = r.resolve_encounter(name);
+            (
+                s.iter().map(|x| x.kind).collect::<Vec<_>>(),
+                r.rng.misc.counter - m0,
+                r.rng.monster_hp.counter - h0,
+            )
+        };
+        // 候选全构造：Wildlife = 强(2 构造) + 弱(虱 2 掷 + SpikeM + AcidM) = 6 掷
+        // + prebattle 前不计 CurlUp（那是 self_monster_prebattle 才掷）
+        let (k, misc, hp) = run_with("Exordium Wildlife");
+        assert_eq!(k, vec![MonsterKind::FungiBeast, MonsterKind::LouseNormal]);
+        assert_eq!(misc, 3, "Wildlife misc：强 1 + 弱 2");
+        assert_eq!(hp, 6, "Wildlife monsterHp：5 候选构造 + 未选中者也掷");
+        // Thugs = 弱(4 掷) + 强(Cultist+Slaver+Looter=3) = 7
+        let (k, misc, hp) = run_with("Exordium Thugs");
+        assert_eq!(k.len(), 2);
+        assert_eq!(misc, 4);
+        assert_eq!(hp, 7);
+        // 无放回抽取
+        let (_, misc, hp) = run_with("Gremlin Gang");
+        assert_eq!((misc, hp), (4, 4));
+        let (_, misc, hp) = run_with("Lots of Slimes");
+        assert_eq!((misc, hp), (5, 5));
+        let (_, misc, hp) = run_with("3 Shapes");
+        assert_eq!((misc, hp), (3, 3));
+        // Gremlin Leader：2 只随从小鬼 + 本体
+        let (k, misc, hp) = run_with("Gremlin Leader");
+        assert_eq!(k.len(), 3);
+        assert_eq!(k[2], MonsterKind::GremlinLeader);
+        assert_eq!((misc, hp), (2, 3));
+        // Jaw Worm Horde：3 只 hardMode
+        let (k, misc, hp) = run_with("Jaw Worm Horde");
+        assert_eq!(k, vec![MonsterKind::JawWorm; 3]);
+        assert_eq!((misc, hp), (0, 3));
+        // Chosen and Byrds：真游戏只有 2 只（Byrd, Chosen）
+        let (k, _, _) = run_with("Chosen and Byrds");
+        assert_eq!(k, vec![MonsterKind::Byrd, MonsterKind::Chosen]);
+    }
+
+    /// 回归锁定（seed PMCWKZEF = 1585262650280，真游戏 long.jsonl 轨迹）：
+    /// floor 7 精英 → Mercury Hourglass；floor 9 精英 → Pear。
     /// 曾因预洗池用声明序（≠ Java HashMap 迭代序）+ 精英 tier 阈值 85（应 82）双双分叉。
     #[test]
     fn elite_relic_order_pmcwkzef() {
@@ -1776,7 +1827,7 @@ impl RunState {
     /// ⚠️ 关键：怪物种类不是静态的。`2 Louse` 的每只 Louse 由 `miscRng.randomBoolean()`
     /// 决定 Normal/Defensive；`Small Slimes` 逐只掷；`Large Slime` 掷一次。
     /// 且 **先定种类再 spawn（掷 HP）**，顺序决定 monsterHpRng 的取值。
-    fn resolve_encounter(&mut self, name: &str) -> Vec<crate::state::MonsterState> {
+    pub fn resolve_encounter(&mut self, name: &str) -> Vec<crate::state::MonsterState> {
         use crate::state::MonsterState;
         use MonsterKind::*;
         let kinds: Vec<MonsterKind> = match name {
@@ -1941,14 +1992,55 @@ impl RunState {
             // TheCity / TheBeyond 常见组合（静态部分）
             "Chosen" => vec![Chosen],
             "3 Byrds" => vec![Byrd, Byrd, Byrd],
+            "4 Byrds" => vec![Byrd, Byrd, Byrd, Byrd],
+            "Sentry and Sphere" => vec![Sentry, SphericGuardian],
+            "Snecko and Mystics" => vec![Healer, Snecko, Healer],
+            "3 Cultists" => vec![Cultist, Cultist, Cultist],
+            "2 Thieves" => vec![Looter, Mugger],
+            "Slavers" => vec![SlaverBlue, Taskmaster, SlaverRed],
+            "Masked Bandits" => vec![BanditPointy, BanditLeader, BanditBear],
+            "Flame Bruiser 1 Orb" => vec![Reptomancer, SnakeDagger],
+            "Flame Bruiser 2 Orb" => vec![SnakeDagger, Reptomancer, SnakeDagger],
+            "Jaw Worm Horde" => {
+                // MonsterHelper：3× `new JawWorm(x, y, true)`（hardMode）
+                let mut v: Vec<_> = (0..3)
+                    .map(|_| MonsterState::spawn(JawWorm, self.ascension, &mut self.rng.monster_hp))
+                    .collect();
+                for m in &mut v {
+                    m.hard_mode = true;
+                }
+                return v;
+            }
+            "Shelled Parasite and Fungi" => vec![ShelledParasite, FungiBeast],
+            "Colosseum Nobs" => vec![Taskmaster, GremlinNob],
+            "Colosseum Slavers" => vec![SlaverBlue, SlaverRed],
             "Cultist and Chosen" => vec![Cultist, Chosen],
-            "Chosen and Byrds" => vec![Chosen, Byrd, Byrd],
+            "Chosen and Byrds" => vec![Byrd, Chosen], // MonsterHelper: {Byrd, Chosen} 两只
             "Shell Parasite" => vec![ShelledParasite],
             "Snecko" => vec![Snecko],
             "Snake Plant" => vec![SnakePlant],
             "Centurion and Healer" => vec![Centurion, Healer],
             "3 Darklings" => vec![Darkling, Darkling, Darkling],
             "Orb Walker" => vec![OrbWalker],
+            "Gremlin Leader" => {
+                // MonsterHelper："new GremlinLeader{spawnGremlin(POSX[0],POSY[0]),
+                //   spawnGremlin(POSX[1],POSY[1]), new GremlinLeader()}"
+                // spawnGremlin 各自 miscRng.random(0,7) 选 [Warrior×2, Thief×2,
+                // Fat×2, Tsundere, Wizard]（**无放回？否 —— 每只独立全池**），共 2 次。
+                let pool = [
+                    GremlinWarrior,
+                    GremlinWarrior,
+                    GremlinThief,
+                    GremlinThief,
+                    GremlinFat,
+                    GremlinFat,
+                    GremlinTsundere,
+                    GremlinWizard,
+                ];
+                let e0 = pool[self.rng.misc.random_start_end(0, pool.len() as i32 - 1) as usize];
+                let e1 = pool[self.rng.misc.random_start_end(0, pool.len() as i32 - 1) as usize];
+                vec![e0, e1, GremlinLeader]
+            }
             "3 Shapes" => {
                 // spawnShapes：逐槽从 [Repulsor×2, Exploder×2, Spiker×2] 无放回
                 let mut pool = vec![Repulsor, Repulsor, Exploder, Exploder, Spiker, Spiker];

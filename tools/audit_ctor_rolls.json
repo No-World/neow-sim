@@ -1,0 +1,421 @@
+{
+ "SlaverBlue": {
+  "hp_rolls": 0,
+  "setHp": [
+   "48, 52",
+   "46, 50"
+  ]
+ },
+ "Cultist": {
+  "hp_rolls": 0,
+  "setHp": [
+   "50, 56",
+   "48, 54"
+  ]
+ },
+ "JawWorm": {
+  "hp_rolls": 0,
+  "setHp": []
+ },
+ "Looter": {
+  "hp_rolls": 0,
+  "setHp": [
+   "46, 50",
+   "44, 48"
+  ]
+ },
+ "SlaverRed": {
+  "hp_rolls": 0,
+  "setHp": [
+   "48, 52",
+   "46, 50"
+  ]
+ },
+ "AcidSlime_L": {
+  "hp_rolls": 0,
+  "setHp": [
+   "68, 72",
+   "65, 69"
+  ]
+ },
+ "SpikeSlime_L": {
+  "hp_rolls": 0,
+  "setHp": [
+   "67, 73",
+   "64, 70"
+  ]
+ },
+ "FungiBeast": {
+  "hp_rolls": 0,
+  "setHp": [
+   "24, 28",
+   "22, 28"
+  ]
+ },
+ "GremlinNob": {
+  "hp_rolls": 0,
+  "setHp": []
+ },
+ "Lagavulin": {
+  "hp_rolls": 0,
+  "setHp": [
+   "112, 115",
+   "109, 111"
+  ]
+ },
+ "Sentry": {
+  "hp_rolls": 0,
+  "setHp": [
+   "39, 45",
+   "38, 42"
+  ]
+ },
+ "TheGuardian": {
+  "hp_rolls": 0,
+  "setHp": [
+   "250",
+   "250",
+   "240"
+  ]
+ },
+ "Hexaghost": {
+  "hp_rolls": 0,
+  "setHp": [
+   "264",
+   "250"
+  ]
+ },
+ "SlimeBoss": {
+  "hp_rolls": 0,
+  "setHp": [
+   "150",
+   "140"
+  ]
+ },
+ "Mugger": {
+  "hp_rolls": 0,
+  "setHp": [
+   "50, 54",
+   "48, 52"
+  ]
+ },
+ "Byrd": {
+  "hp_rolls": 0,
+  "setHp": [
+   "26, 33",
+   "25, 31"
+  ]
+ },
+ "Chosen": {
+  "hp_rolls": 0,
+  "setHp": []
+ },
+ "ShelledParasite": {
+  "hp_rolls": 0,
+  "setHp": [
+   "70, 75",
+   "68, 72"
+  ]
+ },
+ "SphericGuardian": {
+  "hp_rolls": 0,
+  "setHp": []
+ },
+ "SnakePlant": {
+  "hp_rolls": 0,
+  "setHp": [
+   "78, 82",
+   "75, 79"
+  ]
+ },
+ "Snecko": {
+  "hp_rolls": 0,
+  "setHp": []
+ },
+ "Centurion": {
+  "hp_rolls": 0,
+  "setHp": [
+   "78, 83",
+   "76, 80"
+  ]
+ },
+ "Healer": {
+  "hp_rolls": 0,
+  "setHp": [
+   "50, 58",
+   "48, 56"
+  ]
+ },
+ "BookOfStabbing": {
+  "hp_rolls": 0,
+  "setHp": [
+   "168, 172",
+   "160, 164"
+  ]
+ },
+ "GremlinLeader": {
+  "hp_rolls": 0,
+  "setHp": [
+   "145, 155",
+   "140, 148"
+  ]
+ },
+ "Taskmaster": {
+  "hp_rolls": 1,
+  "setHp": [
+   "57, 64",
+   "54, 60"
+  ]
+ },
+ "BanditPointy": {
+  "hp_rolls": 0,
+  "setHp": [
+   "34",
+   "30"
+  ]
+ },
+ "BanditLeader": {
+  "hp_rolls": 0,
+  "setHp": [
+   "37, 41",
+   "35, 39"
+  ]
+ },
+ "BanditBear": {
+  "hp_rolls": 0,
+  "setHp": [
+   "40, 44",
+   "38, 42"
+  ]
+ },
+ "BronzeAutomaton": {
+  "hp_rolls": 0,
+  "setHp": [
+   "320",
+   "300"
+  ]
+ },
+ "Champ": {
+  "hp_rolls": 0,
+  "setHp": [
+   "440",
+   "420"
+  ]
+ },
+ "TheCollector": {
+  "hp_rolls": 0,
+  "setHp": [
+   "300",
+   "282"
+  ]
+ },
+ "Reptomancer": {
+  "hp_rolls": 1,
+  "setHp": [
+   "190, 200",
+   "180, 190"
+  ]
+ },
+ "SnakeDagger": {
+  "hp_rolls": 1,
+  "setHp": []
+ },
+ "Transient": {
+  "hp_rolls": 0,
+  "setHp": []
+ },
+ "Darkling": {
+  "hp_rolls": 2,
+  "setHp": [
+   "50, 59",
+   "48, 56"
+  ]
+ },
+ "OrbWalker": {
+  "hp_rolls": 1,
+  "setHp": [
+   "92, 102",
+   "90, 96"
+  ]
+ },
+ "SpireGrowth": {
+  "hp_rolls": 0,
+  "setHp": [
+   "190",
+   "170"
+  ]
+ },
+ "Maw": {
+  "hp_rolls": 0,
+  "setHp": []
+ },
+ "LouseNormal": {
+  "hp_rolls": 2,
+  "setHp": [
+   "11, 16",
+   "10, 15"
+  ]
+ },
+ "LouseDefensive": {
+  "hp_rolls": 2,
+  "setHp": [
+   "12, 18",
+   "11, 17"
+  ]
+ },
+ "SpikeSlime_M": {
+  "hp_rolls": 0,
+  "setHp": [
+   "29, 34",
+   "28, 32"
+  ]
+ },
+ "AcidSlime_M": {
+  "hp_rolls": 0,
+  "setHp": [
+   "29, 34",
+   "28, 32"
+  ]
+ },
+ "SpikeSlime_S": {
+  "hp_rolls": 0,
+  "setHp": [
+   "11, 15",
+   "10, 14"
+  ]
+ },
+ "AcidSlime_S": {
+  "hp_rolls": 0,
+  "setHp": [
+   "9, 13",
+   "8, 12"
+  ]
+ },
+ "Exploder": {
+  "hp_rolls": 0,
+  "setHp": [
+   "30, 35",
+   "30, 30"
+  ]
+ },
+ "Repulsor": {
+  "hp_rolls": 0,
+  "setHp": [
+   "31, 38",
+   "29, 35"
+  ]
+ },
+ "Spiker": {
+  "hp_rolls": 0,
+  "setHp": [
+   "44, 60",
+   "42, 56"
+  ]
+ },
+ "GremlinWarrior": {
+  "hp_rolls": 0,
+  "setHp": [
+   "21, 25",
+   "20, 24"
+  ]
+ },
+ "GremlinThief": {
+  "hp_rolls": 0,
+  "setHp": [
+   "11, 15",
+   "10, 14"
+  ]
+ },
+ "GremlinFat": {
+  "hp_rolls": 0,
+  "setHp": [
+   "14, 18",
+   "13, 17"
+  ]
+ },
+ "GremlinTsundere": {
+  "hp_rolls": 0,
+  "setHp": [
+   "13, 17",
+   "13, 17",
+   "12, 15"
+  ]
+ },
+ "GremlinWizard": {
+  "hp_rolls": 0,
+  "setHp": [
+   "22, 26",
+   "21, 25"
+  ]
+ },
+ "AwakenedOne": {
+  "hp_rolls": 0,
+  "setHp": [
+   "320",
+   "300"
+  ]
+ },
+ "Deca": {
+  "hp_rolls": 0,
+  "setHp": [
+   "265",
+   "250"
+  ]
+ },
+ "Donu": {
+  "hp_rolls": 0,
+  "setHp": [
+   "265",
+   "250"
+  ]
+ },
+ "Nemesis": {
+  "hp_rolls": 0,
+  "setHp": [
+   "200",
+   "185"
+  ]
+ },
+ "TimeEater": {
+  "hp_rolls": 0,
+  "setHp": [
+   "480",
+   "456"
+  ]
+ },
+ "WrithingMass": {
+  "hp_rolls": 0,
+  "setHp": [
+   "175",
+   "160"
+  ]
+ },
+ "CorruptHeart": {
+  "hp_rolls": 0,
+  "setHp": [
+   "800",
+   "750"
+  ]
+ },
+ "SpireShield": {
+  "hp_rolls": 0,
+  "setHp": [
+   "125",
+   "110"
+  ]
+ },
+ "SpireSpear": {
+  "hp_rolls": 0,
+  "setHp": [
+   "180",
+   "160"
+  ]
+ },
+ "BronzeOrb": {
+  "hp_rolls": 1,
+  "setHp": [
+   "54, 60",
+   "52, 58"
+  ]
+ }
+}
