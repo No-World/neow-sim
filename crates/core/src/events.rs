@@ -598,12 +598,13 @@ impl RunState {
             .collect()
     }
 
-    /// 主牌组可升级卡（canUpgrade = 未升级）
+    /// 主牌组可升级卡（= CardGroup.getUpgradableCards：走 can_upgrade，
+    /// 排除已升级 / 诅咒 / 状态）
     pub fn deck_upgradable(&self) -> Vec<usize> {
         self.deck
             .iter()
             .enumerate()
-            .filter(|(_, c)| !c.upgraded)
+            .filter(|(_, c)| c.can_upgrade())
             .map(|(i, _)| i)
             .collect()
     }

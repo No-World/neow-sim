@@ -1911,8 +1911,9 @@ impl MonsterState {
                 _ => Intent::Debuff,       // Frail 1
             },
             MonsterKind::AcidSlimeM => match self.next_move {
-                1 | 2 => Intent::Attack,
-                _ => Intent::Debuff,
+                1 => Intent::AttackDebuff, // WOUND：攻击 + 塞 1 张粘液（ATTACK_DEBUFF）
+                2 => Intent::Attack,       // TACKLE
+                _ => Intent::Debuff,       // WEAK
             },
             MonsterKind::Looter => match self.next_move {
                 1 | 4 => Intent::Attack,
@@ -2209,8 +2210,8 @@ impl MonsterState {
                 _ => None,
             },
             MonsterKind::AcidSlimeM => match self.next_move {
-                1 => Some(self.dark_strike_dmg),
-                2 => Some(self.thrash_dmg),
+                1 => Some(self.chomp_dmg),    // WOUND：damage[0]（7/8）
+                2 => Some(self.thrash_block), // TACKLE：damage[1]（10/11）
                 _ => None,
             },
             MonsterKind::Looter => match self.next_move {

@@ -251,6 +251,9 @@ def main():
     args = ap.parse_args()
 
     rpc = Rpc()
+    r = rpc.call("config", cheat_draw_order=True)
+    if not r.get("ok"):
+        print("config cheat_draw_order failed:", r.get("error"), flush=True)
     if args.seed:
         r = rpc.call("new_run", character=args.char, ascension=args.asc, seed=args.seed)
         if not r.get("ok"):
@@ -282,7 +285,7 @@ def main():
                 print("game over", flush=True)
                 break
 
-            action = pick_action(obs, info)
+            action = pick_action(obs, info, r["result"].get("legal_actions"))
             if action is None:
                 print("no action; stopping", flush=True)
                 break

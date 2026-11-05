@@ -30,6 +30,8 @@ ACT_OK = {
     "shop_buy": {"ShopScreen"},
     "hand_select": {"Combat"},
     "boss": {"BossRelicChoice", "MapNode"},
+    # 选牌屏（涅奥升级 / 事件选牌 / 战斗内选牌）：引擎在对应 state 内自动结算
+    "grid_select": {"NeowChoice", "EventChoice", "RewardScreen", "Combat", "MapNode"},
 }
 
 
@@ -190,6 +192,25 @@ def neow_probe_pick(seed, asc, ch, want):
     return None
 
 
+def neow_pick_index(o, steps):
+    """按「效果匹配」选出引擎的 Neow 选项下标（比 opt 序号更稳）。"""
+    nxt = next((s for s in steps if (s.get("i") or 0) > (o.get("i") or 0)
+                and (s.get("state") or {}).get("screen") is not None), None)
+    st_raw = (nxt or {}).get("state") or {}
+    want = {
+        "max_hp": (st_raw.get("player") or {}).get("max_hp"),
+        "hp": (st_raw.get("player") or {}).get("hp"),
+        "gold": (st_raw.get("player") or {}).get("gold"),
+        "deck": st_raw.get("deck", []),
+        "relics": st_raw.get("relics", []),
+    }
+    seed = o["state"]["meta"]["seed"]
+    asc = o["state"]["meta"]["ascension"]
+    ch = o["state"]["meta"]["character"]
+    k = neow_probe_pick(seed, asc, ch, want)
+    return 0 if k is None else k
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("trace")
@@ -212,6 +233,8 @@ def main():
 
     diffs_all = []
     prev_screen_holder = {}
+    neow_picked = False
+    neow_done = False
     for o in steps[1:]:
         i = o["i"]
         if i > args.until:
@@ -223,29 +246,36 @@ def main():
         engine_screen_now = json.loads(env.state_json()).get("state")
         # trace 语义：state_i 是 action_i 执行之后的观测（post-action）
         # 先派发动作，再和 trace 的同 step 状态比较
+        # 涅奥收尾（grid_select 选牌 / event 确认 / map 首点）：引擎已结算则跳过
+        if neow_picked and not neow_done and engine_screen_now == "MapNode" and act["type"] != "map":
+            neow_done = True
+        if neow_picked and not neow_done:
+            neow_done = True
+        if neow_picked and act["type"] in ("grid_select",) and engine_screen_now == "MapNode":
+            continue
         # 地图确认对话框：bridge 在 map 屏发 event 动作（下一步才是真 map 动作）
         if act["type"] == "event" and engine_screen_now == "MapNode":
             print(f"[skip i={i}] map 确认对话框 (event@MapNode)")
             continue
-        if act["type"] == "event" and i == 1 and engine_screen_now in ("NeowChoice",):
-            # Neow（floor 0）：按效果匹配选项；want 用下一步（拾取后）的状态
-            nxt = next((s for s in steps[2:] if (s.get("state") or {}).get("screen") is not None), None)
-            st_raw = (nxt or {}).get("state") or {}
-            wkey = {
-                "max_hp": (st_raw.get("player") or {}).get("max_hp"),
-                "hp": (st_raw.get("player") or {}).get("hp"),
-                "gold": (st_raw.get("player") or {}).get("gold"),
-                "deck": st_raw.get("deck", []),
-                "relics": st_raw.get("relics", []),
-            }
-            k = neow_probe_pick(seed, asc, ch, wkey)
-            if k is not None:
-                env.step(5, k, -1)
+        # ── 涅奥阶段编排 ──────────────────────────────────────────────
+        # 真游戏：event(问候) → [grid_select 选牌 / event 确认 …] → map。
+        # 引擎：一次 choose_neow_pick 直接结算到 MapNode。
+        # 所以：首个 event 做「效果匹配」的 pick，其后到第一个 map 动作为止全部跳过。
+        if not neow_picked:
+            if act["type"] == "event" and engine_screen_now in ("NeowChoice", "MapNode"):
+                pick = neow_pick_index(o, steps)
+                env.step(5, pick, -1)
+                neow_picked = True
                 continue
-            print(f"[warn i={i}] Neow 无匹配选项，试直传 option_index")
-        if act["type"] == "event" and i == 2:
-            # Neow 第二个 event 动作（真游戏确认对话）——引擎一次拾取即完成，跳过
-            continue
+            # 引擎已在 MapNode 而真游戏还在涅奥对话里：跳过
+            if engine_screen_now == "MapNode" and act["type"] != "map":
+                continue
+        elif not neow_done:
+            if act["type"] == "map":
+                neow_done = True
+            else:
+                continue
+
         # 动作亲和守卫：动作类型与引擎当前屏匹配才派发
         pre = engine_screen_now
         ok = ACT_OK.get(act["type"])

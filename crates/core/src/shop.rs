@@ -179,9 +179,12 @@ impl Shop {
             } else {
                 "UNCOMMON" // SHOP → returnEndRandomRelicKey 空池回退
             };
-            // ⚠️ 偏差：tier 骰已消耗 merchantRng；具体遗物走 relicRng 已实现池
+            // 真游戏 ShopScreen.init → AbstractDungeon.returnRandomRelicEnd(tier)
+            //   → returnEndRandomRelicKey：从**已洗好的 tier 池末尾 remove**，
+            //   运行时 **0 次 relicRng 消耗**（洗牌在 initializeRelicList）。
+            // 曾每次掷 1 次 relicRng（实测 floor2 商店后 relic 8 vs 真 5，多 3 次）。
             let kind =
-                pick_relic(owned, implemented, &mut rng.relic).unwrap_or(RelicKind::SpiritPoop); // 池空兜底（不再消耗）
+                self_pop_end_relic(owned, implemented, tier).unwrap_or(RelicKind::SpiritPoop);
             let price = {
                 let base = relic_base_price(tier) as f32;
                 let j = jitter(&mut rng.merchant, 0.95, 1.05);
@@ -333,22 +336,29 @@ fn pick_from_pool(
     CardInst::new("Strike_R") // 兜底（防数据空洞）
 }
 
-/// 已实现池中取未持有遗物（relicRng.random(size-1)；⚠️ 偏差见模块注释）
-fn pick_relic(
+/// `returnEndRandomRelicKey(tier)`：从该 tier 的**预洗池末尾**取一只未持有的，
+/// 池空时按真游戏回退（COMMON→UNCOMMON→RARE→Circlet）。**不消耗任何 RNG**。
+fn self_pop_end_relic(
     owned: &[RelicKind],
-    implemented: &[RelicKind],
-    rng: &mut crate::rng::StsRandom,
+    _implemented: &[RelicKind],
+    tier: &str,
 ) -> Option<RelicKind> {
-    let pool: Vec<RelicKind> = implemented
-        .iter()
-        .copied()
-        .filter(|k| !owned.contains(k))
-        .collect();
-    if pool.is_empty() {
-        return None;
+    let mut t = tier;
+    loop {
+        let pool = crate::relic_data::relics_of_tier(t);
+        if let Some(k) = pool.iter().rev().copied().find(|k| !owned.contains(k)) {
+            return Some(k);
+        }
+        t = match t {
+            "COMMON" => "UNCOMMON",
+            "UNCOMMON" => "RARE",
+            "SHOP" => "SHOP", // SHOP 池空 → 真游戏回退 SHOP（无更高级）
+            _ => return None,
+        };
+        if t == "SHOP" {
+            return None;
+        }
     }
-    let roll = rng.random_range(pool.len() as i32 - 1).max(0) as usize;
-    Some(pool[roll.min(pool.len() - 1)])
 }
 
 // 商店购买动作（ShopScreen.purchaseCard / StoreRelic.purchaseRelic /

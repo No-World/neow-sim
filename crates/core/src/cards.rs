@@ -178,6 +178,12 @@ impl CardInst {
         if self.upgraded {
             return false;
         }
+        // 诅咒/状态不可升级（AbstractCard.canUpgrade 里 type == CURSE/STATUS → false）。
+        // 曾只判「有升级数值」，而 AscendersBane 等诅咒在生成数据里带了 upg 字段
+        // → 涅奥「升级一张牌」误把 AscendersBane 升级（实测 A20 轨迹首个分歧）。
+        if matches!(self.def.card_type, "CURSE" | "STATUS") {
+            return false;
+        }
         self.def.upg_damage.is_some()
             || self.def.upg_block.is_some()
             || self.def.upg_magic.is_some()
@@ -324,7 +330,11 @@ pub fn starter_deck(char_id: &str, ascension: i32) -> Vec<CardInst> {
         .starting_deck;
     let mut deck: Vec<CardInst> = ids.iter().map(|id| CardInst::new(id)).collect();
     if ascension >= 10 {
-        deck.push(CardInst::new("AscendersBane"));
+        // ⚠️ 真游戏 masterDeck 里 AscendersBane 在**最前**（洗牌输入序实测：
+        // 穷举 11 张排列反解 A20 轨迹首个洗牌结果，唯一匹配 = [AscendersBane,
+        // Strike×5, Defend×4, Bash]）。源码走的是 masterDeck.addToTop，但
+        // 进入战斗时的 drawPile 初始化等效「A 在前」——以实测为准。
+        deck.insert(0, CardInst::new("AscendersBane"));
     }
     deck
 }
