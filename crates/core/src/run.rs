@@ -261,8 +261,11 @@ fn common_ancestor(
     //   `if (node1.x < node2.y)` —— 比的是 node1.x 与 node2.**y**（不是 node2.x）。
     //   y 恒为同一行，所以 node1.x < node2.y 几乎恒成立（x < 行号），
     //   只有当 x 很大且 y 很小时才翻转。必须照抄，否则地图分叉、mapRng 消耗数不符。
-    let (mut l, mut r): ((i32, usize), (i32, usize)) =
-        if node1.0 < node2.1 as i32 { (node1, node2) } else { (node2, node1) };
+    let (mut l, mut r): ((i32, usize), (i32, usize)) = if node1.0 < node2.1 as i32 {
+        (node1, node2)
+    } else {
+        (node2, node1)
+    };
     let start_y = node1.1 as i32;
     let mut current_y = start_y;
     while current_y >= 0 && current_y >= start_y - max_depth as i32 {
@@ -965,7 +968,11 @@ pub fn act_exclusions(
 pub fn enc_roll(list: &[EncInfo], roll: f32) -> &'static str {
     let mut sorted: Vec<&EncInfo> = list.iter().collect();
     // Collections.sort 是稳定排序（TimSort）；等权项保持定义序
-    sorted.sort_by(|a, b| a.weight.partial_cmp(&b.weight).unwrap_or(std::cmp::Ordering::Equal));
+    sorted.sort_by(|a, b| {
+        a.weight
+            .partial_cmp(&b.weight)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
     let total: f32 = sorted.iter().map(|e| e.weight).sum();
     let mut cur = 0.0f32;
     for e in &sorted {
@@ -1469,7 +1476,9 @@ pub mod seed_helper {
 
     /// getString：u64 → base-34 编码
     pub fn encode(seed: u64) -> String {
-        if seed == 0 { return "0".to_string(); }
+        if seed == 0 {
+            return "0".to_string();
+        }
         let mut result = Vec::new();
         let mut s = seed;
         while s > 0 {
@@ -1685,14 +1694,26 @@ impl RunState {
         match name {
             "2 Louse" => {
                 // MonsterHelper.getLouse ×2：先掷两只的种类，再各自 spawn
-                let a = if self.rng.misc.random_boolean() { LouseNormal } else { LouseDefensive };
-                let b = if self.rng.misc.random_boolean() { LouseNormal } else { LouseDefensive };
+                let a = if self.rng.misc.random_boolean() {
+                    LouseNormal
+                } else {
+                    LouseDefensive
+                };
+                let b = if self.rng.misc.random_boolean() {
+                    LouseNormal
+                } else {
+                    LouseDefensive
+                };
                 vec![a, b]
             }
             "3 Louse" => {
                 let mut v = Vec::with_capacity(3);
                 for _ in 0..3 {
-                    v.push(if self.rng.misc.random_boolean() { LouseNormal } else { LouseDefensive });
+                    v.push(if self.rng.misc.random_boolean() {
+                        LouseNormal
+                    } else {
+                        LouseDefensive
+                    });
                 }
                 v
             }
@@ -1724,7 +1745,11 @@ impl RunState {
                 v
             }
             "Large Slime" => {
-                if self.rng.misc.random_boolean() { vec![AcidSlimeL] } else { vec![SpikeSlimeL] }
+                if self.rng.misc.random_boolean() {
+                    vec![AcidSlimeL]
+                } else {
+                    vec![SpikeSlimeL]
+                }
             }
             "Cultist" => vec![Cultist],
             "Jaw Worm" => vec![JawWorm],
@@ -1735,8 +1760,14 @@ impl RunState {
             "Gremlin Gang" => {
                 // bottomGremlinGang：4 只随机 gremlin（无放回）
                 let pool = vec![
-                    GremlinWarrior, GremlinWarrior, GremlinThief, GremlinThief,
-                    GremlinFat, GremlinFat, GremlinTsundere, GremlinWizard,
+                    GremlinWarrior,
+                    GremlinWarrior,
+                    GremlinThief,
+                    GremlinThief,
+                    GremlinFat,
+                    GremlinFat,
+                    GremlinTsundere,
+                    GremlinWizard,
                 ];
                 let mut p = pool;
                 let mut v = Vec::with_capacity(4);
@@ -1846,7 +1877,9 @@ impl RunState {
             return Vec::new();
         }
         (0..MAP_WIDTH)
-            .filter(|x| self.map.rows[0][*x].room.is_some() && !self.map.rows[0][*x].edges.is_empty())
+            .filter(|x| {
+                self.map.rows[0][*x].room.is_some() && !self.map.rows[0][*x].edges.is_empty()
+            })
             .collect()
     }
 
@@ -1912,7 +1945,11 @@ impl RunState {
                 };
                 let relics: Vec<_> = self.relics.clone();
                 // 战斗继承整局 RNG 流（真游戏里的全局流贯穿整局，不是每战重播种）
-                let boss_vocab = self.boss.first().map(|k| (*k as i32 as f32 + 1.0) / 80.0).unwrap_or(0.0);
+                let boss_vocab = self
+                    .boss
+                    .first()
+                    .map(|k| (*k as i32 as f32 + 1.0) / 80.0)
+                    .unwrap_or(0.0);
                 let mut cb = Combat::new_run_battle_with_rng(
                     self.rng.clone(),
                     self.ascension,
@@ -2199,7 +2236,7 @@ impl RunState {
                 damage_bonus: 0,
                 block_bonus: 0,
                 cost_delta: 0,
-                    upgrade_times: 0,
+                upgrade_times: 0,
             };
         }
     }
@@ -2533,10 +2570,13 @@ impl RunState {
             self.player.hp = c.player.creature.hp.max(0);
             self.player.max_hp += max_hp_gain;
             // 偷钱怪逃逸 → mugged（奖励屏不给卡牌奖励）
-            self.combat_mugged = c
-                .monsters
-                .iter()
-                .any(|m| m.escaped && matches!(m.kind, crate::state::MonsterKind::Looter | crate::state::MonsterKind::Mugger));
+            self.combat_mugged = c.monsters.iter().any(|m| {
+                m.escaped
+                    && matches!(
+                        m.kind,
+                        crate::state::MonsterKind::Looter | crate::state::MonsterKind::Mugger
+                    )
+            });
             // 药水栏同步（战斗内使用/丢弃）
             self.potions = c.player.potions.clone();
             // 主牌组永久新增（OrbWalker 灼伤 / 寄生前置）
@@ -2550,8 +2590,7 @@ impl RunState {
             // AbstractRoom.addStolenGoldToRewards）。必须排在普通奖励之前，
             // 与真游戏 combat_reward 列表顺序一致。
             if c.won && c.stolen_gold_rewards > 0 {
-                self.rewards
-                    .push(RewardItem::Gold(c.stolen_gold_rewards));
+                self.rewards.push(RewardItem::Gold(c.stolen_gold_rewards));
             }
             if c.won {
                 self.generate_rewards();
@@ -2577,8 +2616,7 @@ impl RunState {
                         cards.push(card);
                     }
                     // 作为 CardReward 奖励项（而不是直接塞进 deck）
-                    self.rewards
-                        .push(RewardItem::CardReward(cards));
+                    self.rewards.push(RewardItem::CardReward(cards));
                     self.act += 1;
                     // 新幕：mapRng 重新播种（不复用旧流），miscRng = seed + floorNum
                     self.rng.map = StsRandom::new(map_seed(self.seed, self.act));
@@ -2605,9 +2643,17 @@ impl RunState {
         let mut picks = Vec::new();
 
         // cat 0：6 个候选
-        picks.push(NeowPick { cat: 0, idx: self.neow_roll(6), drawback: None });
+        picks.push(NeowPick {
+            cat: 0,
+            idx: self.neow_roll(6),
+            drawback: None,
+        });
         // cat 1：5 个候选
-        picks.push(NeowPick { cat: 1, idx: self.neow_roll(5), drawback: None });
+        picks.push(NeowPick {
+            cat: 1,
+            idx: self.neow_roll(5),
+            drawback: None,
+        });
         // cat 2：先抽 drawback（4 选 1），再按剔除后长度抽 reward
         let dr = self.neow_roll(4) as u8;
         let drawback = match dr {
@@ -2621,14 +2667,22 @@ impl RunState {
         //            THREE_RARE_CARDS / TWO_FIFTY_GOLD / TRANSFORM_TWO_CARDS /
         //            TWENTY_PERCENT_HP_BONUS
         let cat2_len = match drawback {
-            NeowDrawback::Curse => 6,        // 去掉 REMOVE_TWO
-            NeowDrawback::NoGold => 6,       // 去掉 TWO_FIFTY_GOLD
-            NeowDrawback::HpLoss => 6,       // 去掉 TWENTY_PERCENT_HP_BONUS
+            NeowDrawback::Curse => 6,  // 去掉 REMOVE_TWO
+            NeowDrawback::NoGold => 6, // 去掉 TWO_FIFTY_GOLD
+            NeowDrawback::HpLoss => 6, // 去掉 TWENTY_PERCENT_HP_BONUS
             NeowDrawback::PercentDamage => 7,
         };
-        picks.push(NeowPick { cat: 2, idx: self.neow_roll(cat2_len), drawback: Some(drawback) });
+        picks.push(NeowPick {
+            cat: 2,
+            idx: self.neow_roll(cat2_len),
+            drawback: Some(drawback),
+        });
         // cat 3：只有 BOSS_RELIC 一项，仍要抽一次（rng.random(0,0) 也推进计数器）
-        picks.push(NeowPick { cat: 3, idx: self.neow_roll(1), drawback: None });
+        picks.push(NeowPick {
+            cat: 3,
+            idx: self.neow_roll(1),
+            drawback: None,
+        });
 
         self.neow_category = Some(0); // 保留旧字段（兼容）
         self.neow_picks = picks;
@@ -2745,7 +2799,9 @@ impl RunState {
 
     /// Neow 选择：idx = 0..3 对应 4 个 category 抽出的选项
     pub fn choose_neow_pick(&mut self, idx: usize) {
-        let Some(p) = self.neow_picks.get(idx).cloned() else { return };
+        let Some(p) = self.neow_picks.get(idx).cloned() else {
+            return;
+        };
         // 应用 drawback（cat2）
         if let Some(d) = p.drawback {
             match d {
@@ -2779,7 +2835,11 @@ impl RunState {
                     let c = self.pick_card("RARE", &[]);
                     self.deck.push(c);
                 }
-                2 => { if !self.deck.is_empty() { self.deck.remove(0); } }
+                2 => {
+                    if !self.deck.is_empty() {
+                        self.deck.remove(0);
+                    }
+                }
                 3 => {
                     if let Some(i) = self.deck_upgradable().first().copied() {
                         self.deck[i].upgraded = true;
@@ -2829,7 +2889,9 @@ impl RunState {
                     }
                     "REMOVE_TWO" => {
                         for _ in 0..2 {
-                            if !self.deck.is_empty() { self.deck.remove(0); }
+                            if !self.deck.is_empty() {
+                                self.deck.remove(0);
+                            }
                         }
                     }
                     "ONE_RARE_RELIC" => self.grant_random_relic_tier("RARE"),
@@ -3327,7 +3389,7 @@ fn bench_full_run() {
                         damage_bonus: 0,
                         block_bonus: 0,
                         cost_delta: 0,
-                            upgrade_times: 0,
+                        upgrade_times: 0,
                     });
                 }
             }
@@ -3624,7 +3686,8 @@ mod parity_golden_tests {
         assert_eq!(run.rng.card.counter, 0, "transform 必须走 neow_rng");
         assert_eq!(run.deck.len(), 10, "transform 是替换不是新增");
         assert_eq!(
-            run.deck[0].def.id, "Spot Weakness",
+            run.deck[0].def.id,
+            "Spot Weakness",
             "池序/下标与真游戏模型不一致：{:?}",
             run.deck.iter().map(|c| c.def.id).collect::<Vec<_>>()
         );

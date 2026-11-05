@@ -290,7 +290,7 @@ struct PileStats {
     mean_cost: f32,
     total_damage: f32,
     total_block: f32,
-    most_common: Option<(i32, usize)>,    // (card_vocab_id, count)
+    most_common: Option<(i32, usize)>, // (card_vocab_id, count)
     second_common: Option<(i32, usize)>,
 }
 
@@ -298,11 +298,18 @@ fn pile_stats(cards: &[CardInst]) -> PileStats {
     use std::collections::HashMap;
     let mut s = PileStats {
         count: cards.len(),
-        attack_count: 0, skill_count: 0, power_count: 0,
-        zero_cost_count: 0, exhaust_count: 0,
-        min_cost: 99, max_cost: 0, mean_cost: 0.0,
-        total_damage: 0.0, total_block: 0.0,
-        most_common: None, second_common: None,
+        attack_count: 0,
+        skill_count: 0,
+        power_count: 0,
+        zero_cost_count: 0,
+        exhaust_count: 0,
+        min_cost: 99,
+        max_cost: 0,
+        mean_cost: 0.0,
+        total_damage: 0.0,
+        total_block: 0.0,
+        most_common: None,
+        second_common: None,
     };
     let mut id_counts: HashMap<i32, usize> = HashMap::new();
     let mut cost_sum = 0i32;
@@ -313,14 +320,24 @@ fn pile_stats(cards: &[CardInst]) -> PileStats {
             _ => s.power_count += 1,
         }
         let cost = c.cost_pay().max(0);
-        if cost == 0 { s.zero_cost_count += 1; }
-        if cost < s.min_cost { s.min_cost = cost; }
-        if cost > s.max_cost { s.max_cost = cost; }
+        if cost == 0 {
+            s.zero_cost_count += 1;
+        }
+        if cost < s.min_cost {
+            s.min_cost = cost;
+        }
+        if cost > s.max_cost {
+            s.max_cost = cost;
+        }
         cost_sum += cost;
-        if c.def.flags.contains(&"exhaust") { s.exhaust_count += 1; }
+        if c.def.flags.contains(&"exhaust") {
+            s.exhaust_count += 1;
+        }
         s.total_damage += c.base_damage().unwrap_or(0) as f32;
         s.total_block += c.base_block().unwrap_or(0) as f32;
-        *id_counts.entry(crate::vocab::card_id(c.def.id)).or_insert(0) += 1;
+        *id_counts
+            .entry(crate::vocab::card_id(c.def.id))
+            .or_insert(0) += 1;
     }
     if !cards.is_empty() {
         s.mean_cost = cost_sum as f32 / cards.len() as f32 / 11.0;
@@ -330,8 +347,12 @@ fn pile_stats(cards: &[CardInst]) -> PileStats {
     // 最常见 / 次常见
     let mut sorted: Vec<(i32, usize)> = id_counts.into_iter().collect();
     sorted.sort_by(|a, b| b.1.cmp(&a.1));
-    if sorted.len() >= 1 { s.most_common = Some(sorted[0]); }
-    if sorted.len() >= 2 { s.second_common = Some(sorted[1]); }
+    if sorted.len() >= 1 {
+        s.most_common = Some(sorted[0]);
+    }
+    if sorted.len() >= 2 {
+        s.second_common = Some(sorted[1]);
+    }
     s
 }
 
@@ -684,7 +705,7 @@ pub fn encode_run(run: &RunState) -> EncodedObservation {
     gf[5] = stance / 3.0;
     gf[8] = run.act as f32 / 3.0; // act 归一化
     gf[9] = run.floor as f32 / 51.0; // floor 归一化
-    // gf[18] = 本幕 Boss（进入地图即可知）；gf[19] = Neow「前 3 战敌人 1HP」剩余
+                                     // gf[18] = 本幕 Boss（进入地图即可知）；gf[19] = Neow「前 3 战敌人 1HP」剩余
     gf[18] = boss_vocab_val(run);
     gf[19] = (run.neow_enemy_kill.min(3) as f32) / 3.0;
     // gf[20] = WingedGreaves 剩余飞行次数（决定「能否跳过这层去打别的」）
@@ -702,11 +723,32 @@ pub fn encode_run(run: &RunState) -> EncodedObservation {
         let mut f = [0.0; FEAT_DIM];
         f[0] = 2.0 / 3.0; // pile_type: deck
         match qi {
-            0 => { f[1] = deck_stats.count as f32 / 60.0; f[2] = deck_stats.attack_count as f32 / 60.0; f[3] = deck_stats.skill_count as f32 / 60.0; f[4] = deck_stats.power_count as f32 / 60.0; }
-            1 => { f[1] = deck_stats.min_cost as f32 / 11.0; f[2] = deck_stats.max_cost as f32 / 11.0; f[3] = deck_stats.mean_cost; f[4] = deck_stats.exhaust_count as f32 / 60.0; }
-            2 => { f[1] = sat(deck_stats.total_damage); f[2] = sat(deck_stats.total_block); }
-            3 => { if let Some((id, cnt)) = deck_stats.most_common { f[1] = cnt as f32 / 60.0; } }
-            _ => { if let Some((_, cnt)) = deck_stats.second_common { f[1] = cnt as f32 / 60.0; } }
+            0 => {
+                f[1] = deck_stats.count as f32 / 60.0;
+                f[2] = deck_stats.attack_count as f32 / 60.0;
+                f[3] = deck_stats.skill_count as f32 / 60.0;
+                f[4] = deck_stats.power_count as f32 / 60.0;
+            }
+            1 => {
+                f[1] = deck_stats.min_cost as f32 / 11.0;
+                f[2] = deck_stats.max_cost as f32 / 11.0;
+                f[3] = deck_stats.mean_cost;
+                f[4] = deck_stats.exhaust_count as f32 / 60.0;
+            }
+            2 => {
+                f[1] = sat(deck_stats.total_damage);
+                f[2] = sat(deck_stats.total_block);
+            }
+            3 => {
+                if let Some((id, cnt)) = deck_stats.most_common {
+                    f[1] = cnt as f32 / 60.0;
+                }
+            }
+            _ => {
+                if let Some((_, cnt)) = deck_stats.second_common {
+                    f[1] = cnt as f32 / 60.0;
+                }
+            }
         }
         w.push(token_type::PILE, [-1, -1, -1], f);
     }
@@ -789,7 +831,9 @@ pub fn encode_run(run: &RunState) -> EncodedObservation {
         let shop = run.shop.as_ref().unwrap();
         // 色卡 5 张
         for sc in shop.cards.iter().take(5) {
-            if sc.sold { continue; }
+            if sc.sold {
+                continue;
+            }
             let ids = [crate::vocab::card_id(sc.card.def.id), -1, -1];
             let mut f = [0.0; FEAT_DIM];
             f[0] = 0.0; // kind: card
@@ -798,7 +842,9 @@ pub fn encode_run(run: &RunState) -> EncodedObservation {
         }
         // 无色 2 张
         for sc in shop.colorless.iter().take(2) {
-            if sc.sold { continue; }
+            if sc.sold {
+                continue;
+            }
             let ids = [crate::vocab::card_id(sc.card.def.id), -1, -1];
             let mut f = [0.0; FEAT_DIM];
             f[0] = 1.0; // kind: colorless
@@ -807,7 +853,9 @@ pub fn encode_run(run: &RunState) -> EncodedObservation {
         }
         // 遗物 3 件
         for sr in shop.relics.iter().take(3) {
-            if sr.sold { continue; }
+            if sr.sold {
+                continue;
+            }
             let ids = [-1, sr.kind as i32, -1];
             let mut f = [0.0; FEAT_DIM];
             f[0] = 2.0; // kind: relic
@@ -816,7 +864,9 @@ pub fn encode_run(run: &RunState) -> EncodedObservation {
         }
         // 药水 3 瓶
         for sp in shop.potions.iter().take(3) {
-            if sp.sold { continue; }
+            if sp.sold {
+                continue;
+            }
             let ids = [-1, -1, sp.kind as i32];
             let mut f = [0.0; FEAT_DIM];
             f[0] = 3.0; // kind: potion
@@ -910,7 +960,10 @@ mod run_tests {
         let obs = encode_run(&run);
         assert!(obs.seq_len > 0 && obs.seq_len <= MAX_T);
         assert!(
-            obs.token_types.iter().take(obs.seq_len).any(|&t| t == token_type::SCREEN),
+            obs.token_types
+                .iter()
+                .take(obs.seq_len)
+                .any(|&t| t == token_type::SCREEN),
             "事件屏应有 SCREEN token"
         );
     }
@@ -919,10 +972,15 @@ mod run_tests {
     fn encode_reward_screen() {
         let mut run = crate::run::RunState::new(5, 0);
         run.rewards.push(crate::run::RewardItem::Gold(50));
-        run.rewards.push(crate::run::RewardItem::Relic(crate::relics::RelicKind::Lantern));
+        run.rewards.push(crate::run::RewardItem::Relic(
+            crate::relics::RelicKind::Lantern,
+        ));
         let obs = encode_run(&run);
         assert!(
-            obs.token_types.iter().take(obs.seq_len).any(|&t| t == token_type::SCREEN),
+            obs.token_types
+                .iter()
+                .take(obs.seq_len)
+                .any(|&t| t == token_type::SCREEN),
             "奖励屏应有 SCREEN token"
         );
     }
@@ -935,7 +993,10 @@ mod run_tests {
         run.enter_room();
         let obs = encode_run(&run);
         assert!(
-            obs.token_types.iter().take(obs.seq_len).any(|&t| t == token_type::SCREEN),
+            obs.token_types
+                .iter()
+                .take(obs.seq_len)
+                .any(|&t| t == token_type::SCREEN),
             "休息屏应有 SCREEN token"
         );
     }
@@ -947,7 +1008,10 @@ mod run_tests {
         // 地图屏：应有 SCREEN token（候选节点）
         assert!(obs.seq_len > 2, "地图屏至少有 CLS+GLOBAL+SCREEN");
         assert!(
-            obs.token_types.iter().take(obs.seq_len).any(|&t| t == token_type::SCREEN),
+            obs.token_types
+                .iter()
+                .take(obs.seq_len)
+                .any(|&t| t == token_type::SCREEN),
             "地图屏应有 SCREEN token（候选节点）"
         );
     }

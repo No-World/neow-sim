@@ -287,9 +287,15 @@ pub(crate) enum Q {
     },
     RollMove(usize),
     /// SetMoveAction：确定性设置 next_move（不掷 aiRng）
-    SetMonsterMove { target: usize, next: u8 },
+    SetMonsterMove {
+        target: usize,
+        next: u8,
+    },
     /// 设置怪物通用计数器（burn_upgraded 字段被多只怪复用）
-    SetMonsterCounter { target: usize, value: i32 },
+    SetMonsterCounter {
+        target: usize,
+        value: i32,
+    },
     // —— 药水系统 ——
     /// 纯伤害（THORNS 管线跳过双方 power：火焰/爆炸药水）
     DamagePure {
@@ -1068,9 +1074,7 @@ impl Combat {
     }
 
     pub(crate) fn alive(&self, i: usize) -> bool {
-        i < self.monsters.len()
-            && !self.monsters[i].creature.is_dead()
-            && !self.monsters[i].escaped
+        i < self.monsters.len() && !self.monsters[i].creature.is_dead() && !self.monsters[i].escaped
     }
 
     pub(crate) fn all_monsters_dead(&self) -> bool {
@@ -1625,7 +1629,9 @@ impl Combat {
     }
 
     fn play_card(&mut self, i: usize, target: Option<usize>) {
-        if i >= self.player.hand.len() { return; } // 防御性：手牌越界
+        if i >= self.player.hand.len() {
+            return;
+        } // 防御性：手牌越界
         let card = self.player.hand[i];
         let ti = target.unwrap_or(0);
         let x_cost = if card.cost_pay() == -1 {
@@ -1655,7 +1661,13 @@ impl Combat {
             let per = card
                 .def
                 .upg_magic
-                .map(|u| if card.upgraded { card.def.base_magic.unwrap_or(2) + u } else { card.def.base_magic.unwrap_or(2) })
+                .map(|u| {
+                    if card.upgraded {
+                        card.def.base_magic.unwrap_or(2) + u
+                    } else {
+                        card.def.base_magic.unwrap_or(2)
+                    }
+                })
                 .unwrap_or(card.def.base_magic.unwrap_or(2));
             if let Some(slot) = self.player.hand.get_mut(i) {
                 slot.damage_bonus += per * n;
@@ -1970,7 +1982,7 @@ impl Combat {
             damage_bonus: 0,
             block_bonus: 0,
             cost_delta: 0,
-                upgrade_times: 0,
+            upgrade_times: 0,
         }
     }
 
@@ -1988,7 +2000,9 @@ impl Combat {
         }
         match eff {
             Effect::Damage(Target::Enemy, e) => {
-                if ti >= self.monsters.len() { return; } // 防御性检查
+                if ti >= self.monsters.len() {
+                    return;
+                } // 防御性检查
                 let base = self.eval(e, card, x_cost);
                 let d = calc_player_card_damage(
                     base,
@@ -2365,7 +2379,11 @@ impl Combat {
         let last2_tackle = h.len() >= 2 && h[h.len() - 1] == 1 && h[h.len() - 2] == 1;
         let last2_frail = h.len() >= 2 && h[h.len() - 1] == 4 && h[h.len() - 2] == 4;
         let last_frail = h.last() == Some(&4);
-        let high = if self.ascension >= 17 { last_frail } else { last2_frail };
+        let high = if self.ascension >= 17 {
+            last_frail
+        } else {
+            last2_frail
+        };
         if num < 30 {
             if last2_tackle {
                 4
@@ -2394,35 +2412,59 @@ impl Combat {
         if self.ascension >= 17 {
             if num < 40 {
                 if last2_tackle {
-                    if self.rng.ai.random_boolean() { 2 } else { 4 }
+                    if self.rng.ai.random_boolean() {
+                        2
+                    } else {
+                        4
+                    }
                 } else {
                     1
                 }
             } else if num < 80 {
                 if last2_rake {
-                    if self.rng.ai.random_boolean_chance(0.5) { 1 } else { 4 }
+                    if self.rng.ai.random_boolean_chance(0.5) {
+                        1
+                    } else {
+                        4
+                    }
                 } else {
                     2
                 }
             } else if last_weak {
-                if self.rng.ai.random_boolean_chance(0.4) { 1 } else { 2 }
+                if self.rng.ai.random_boolean_chance(0.4) {
+                    1
+                } else {
+                    2
+                }
             } else {
                 4
             }
         } else if num < 30 {
             if last2_tackle {
-                if self.rng.ai.random_boolean() { 2 } else { 4 }
+                if self.rng.ai.random_boolean() {
+                    2
+                } else {
+                    4
+                }
             } else {
                 1
             }
         } else if num < 70 {
             if last_rake {
-                if self.rng.ai.random_boolean_chance(0.4) { 1 } else { 4 }
+                if self.rng.ai.random_boolean_chance(0.4) {
+                    1
+                } else {
+                    4
+                }
             } else {
                 2
             }
         } else if last2_weak {
-            if self.rng.ai.random_boolean_chance(0.4) { 1 } else { 2 }
+            if self.rng.ai.random_boolean_chance(0.4) {
+                1
+            } else {
+                2
+            }
         } else {
             4
         }
@@ -3232,7 +3274,10 @@ impl Combat {
                         base: m.chomp_dmg,
                     });
                     let slash = m.burn_upgraded + 1;
-                    q.push(Q::SetMonsterCounter { target: i, value: slash });
+                    q.push(Q::SetMonsterCounter {
+                        target: i,
+                        value: slash,
+                    });
                     if slash == 2 {
                         if self.rng.ai.random_boolean_chance(0.5) {
                             q.push(Q::SetMonsterMove { target: i, next: 2 });
@@ -7995,8 +8040,7 @@ impl Combat {
                 //    导致下一只怪（如 SpikeSlime_M）的 num 落到不同分支
                 //    （实测 intent 从 ATTACK_DEBUFF 变 DEBUFF、rng.ai 3 vs 2）。
                 let h = &self.monsters[i].move_history;
-                let last2_tackle =
-                    h.len() >= 2 && h[h.len() - 1] == 1 && h[h.len() - 2] == 1;
+                let last2_tackle = h.len() >= 2 && h[h.len() - 1] == 1 && h[h.len() - 2] == 1;
                 if self.ascension >= 17 {
                     if last2_tackle {
                         1
@@ -8633,7 +8677,7 @@ mod tests {
                 damage_bonus: 0,
                 block_bonus: 0,
                 cost_delta: 0,
-                    upgrade_times: 0,
+                upgrade_times: 0,
             }];
             for _ in 0..3 {
                 c.player.hand.push(CardInst::new("Strike_R"));
@@ -8847,7 +8891,7 @@ mod tests {
             damage_bonus: 0,
             block_bonus: 0,
             cost_delta: 0,
-                upgrade_times: 0,
+            upgrade_times: 0,
         }];
         c.step(&Action::PlayCard {
             index: 0,
@@ -9020,7 +9064,10 @@ mod tests {
         // 之后才获得 {curl} 点格挡。若写成「先加格挡再扣血」，格挡会吸收本次伤害。
         let hp_loss = hp0 - c.monsters[0].creature.hp;
         assert_eq!(hp_loss, 6, "蜷缩不吸收触发它的那次伤害（curl={curl}）");
-        assert_eq!(c.monsters[0].creature.block, curl, "伤害结算后获得 curl 格挡");
+        assert_eq!(
+            c.monsters[0].creature.block, curl,
+            "伤害结算后获得 curl 格挡"
+        );
         assert!(!c.monsters[0]
             .creature
             .powers
@@ -11704,8 +11751,11 @@ mod p3_parity_probe {
         c.step(&Action::EndTurn);
         let got: Vec<&str> = c.player.discard.iter().map(|x| x.def.id).collect();
         // 末尾手牌先弃 ⇒ Bash, Defend_R, Strike_R
-        assert_eq!(got, vec!["Bash", "Defend_R", "Strike_R"],
-                   "回合末弃牌应逆序（getTopCard 从末尾取）");
+        assert_eq!(
+            got,
+            vec!["Bash", "Defend_R", "Strike_R"],
+            "回合末弃牌应逆序（getTopCard 从末尾取）"
+        );
     }
 
     /// P3 探针：结束回合后怪物必须真的动手（否则 pyo3/RL 里敌人永不攻击）。

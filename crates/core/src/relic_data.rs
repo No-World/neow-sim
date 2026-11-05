@@ -1,6 +1,5 @@
 use crate::relics::RelicKind;
 
-
 // ── 遗物 tier 元数据 + 预洗池 ────────────────────────────────────────
 //
 // 真游戏 `AbstractDungeon.initializeRelicList()` 在开局把 5 个 tier 池各用
@@ -147,12 +146,20 @@ pub const RELIC_TIERS: &[(&str, crate::relics::RelicKind, &str)] = &[
     ("Dead Branch", RelicKind::DeadBranch, "RARE"),
     ("Question Card", RelicKind::QuestionCard, "UNCOMMON"),
     ("Singing Bowl", RelicKind::SingingBowl, "UNCOMMON"),
-    ("White Beast Statue", RelicKind::WhiteBeastStatue, "UNCOMMON"),
+    (
+        "White Beast Statue",
+        RelicKind::WhiteBeastStatue,
+        "UNCOMMON",
+    ),
     ("Bottled Flame", RelicKind::BottledFlame, "UNCOMMON"),
     ("Bottled Lightning", RelicKind::BottledLightning, "UNCOMMON"),
     ("Bottled Tornado", RelicKind::BottledTornado, "UNCOMMON"),
     ("Mummified Hand", RelicKind::MummifiedHand, "UNCOMMON"),
-    ("Discerning Monocle", RelicKind::DiscerningMonocle, "UNCOMMON"),
+    (
+        "Discerning Monocle",
+        RelicKind::DiscerningMonocle,
+        "UNCOMMON",
+    ),
     ("Matryoshka", RelicKind::Matryoshka, "UNCOMMON"),
     ("Chemical X", RelicKind::ChemicalX, "SHOP"),
     ("Frozen Eye", RelicKind::FrozenEye, "SHOP"),

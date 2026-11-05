@@ -491,14 +491,14 @@ impl MonsterState {
                 (
                     hp_rng.random_start_end(lo, hi),
                     MonsterStats {
-                    chomp_dmg: chomp,
-                    thrash_dmg: td,
-                    thrash_block: tb,
-                    bellow_str: bs,
-                    bellow_block: bb,
-                    dark_strike_dmg: 6,
-                    ritual_amt: 3,
-                },
+                        chomp_dmg: chomp,
+                        thrash_dmg: td,
+                        thrash_block: tb,
+                        bellow_str: bs,
+                        bellow_block: bb,
+                        dark_strike_dmg: 6,
+                        ritual_amt: 3,
+                    },
                 )
             }
             MonsterKind::Cultist => {
@@ -510,15 +510,18 @@ impl MonsterState {
                 } else {
                     3
                 };
-                (hp_rng.random_start_end(lo, hi), MonsterStats {
-                    chomp_dmg: 0,
-                    thrash_dmg: 0,
-                    thrash_block: 0,
-                    bellow_str: 0,
-                    bellow_block: 0,
-                    dark_strike_dmg: 6,
-                    ritual_amt: ritual,
-                })
+                (
+                    hp_rng.random_start_end(lo, hi),
+                    MonsterStats {
+                        chomp_dmg: 0,
+                        thrash_dmg: 0,
+                        thrash_block: 0,
+                        bellow_str: 0,
+                        bellow_block: 0,
+                        dark_strike_dmg: 6,
+                        ritual_amt: ritual,
+                    },
+                )
             }
             MonsterKind::LouseNormal => {
                 // Java 顺序：先 setHp(min,max) 再 biteDamage（都在 monsterHpRng 上）
@@ -534,20 +537,34 @@ impl MonsterState {
                 //   .4 bellow_block  .5 dark_strike_dmg  .6 ritual_amt
                 // Louse 的 bite 走 monster_turn 的 `dark_strike_dmg` 分支，
                 // 所以必须放 .5（原先放在 .0，导致咬击伤害恒为 0）。
-                (hp, MonsterStats { chomp_dmg: 0, thrash_dmg: 0, thrash_block: 0, bellow_str: 0, bellow_block: 0, dark_strike_dmg: bite, ritual_amt: 3 })
+                (
+                    hp,
+                    MonsterStats {
+                        chomp_dmg: 0,
+                        thrash_dmg: 0,
+                        thrash_block: 0,
+                        bellow_str: 0,
+                        bellow_block: 0,
+                        dark_strike_dmg: bite,
+                        ritual_amt: 3,
+                    },
+                )
             }
             MonsterKind::FungiBeast => {
                 let (lo, hi) = if ascension >= 7 { (24, 28) } else { (22, 28) };
                 let str_amt = if ascension >= 2 { 4 } else { 3 };
-                (hp_rng.random_start_end(lo, hi), MonsterStats {
-                    chomp_dmg: 6,
-                    thrash_dmg: str_amt,
-                    thrash_block: 0,
-                    bellow_str: 0,
-                    bellow_block: 0,
-                    dark_strike_dmg: 0,
-                    ritual_amt: 0,
-                })
+                (
+                    hp_rng.random_start_end(lo, hi),
+                    MonsterStats {
+                        chomp_dmg: 6,
+                        thrash_dmg: str_amt,
+                        thrash_block: 0,
+                        bellow_str: 0,
+                        bellow_block: 0,
+                        dark_strike_dmg: 0,
+                        ritual_amt: 0,
+                    },
+                )
             }
             MonsterKind::LouseDefensive => {
                 let (lo, hi) = if ascension >= 7 { (12, 18) } else { (11, 17) };
@@ -557,20 +574,34 @@ impl MonsterState {
                 } else {
                     hp_rng.random_start_end(5, 7)
                 };
-                (hp, MonsterStats { chomp_dmg: 0, thrash_dmg: 0, thrash_block: 0, bellow_str: 0, bellow_block: 0, dark_strike_dmg: bite, ritual_amt: 2 })
+                (
+                    hp,
+                    MonsterStats {
+                        chomp_dmg: 0,
+                        thrash_dmg: 0,
+                        thrash_block: 0,
+                        bellow_str: 0,
+                        bellow_block: 0,
+                        dark_strike_dmg: bite,
+                        ritual_amt: 2,
+                    },
+                )
             }
             MonsterKind::SpikeSlimeS => {
                 let (lo, hi) = if ascension >= 7 { (11, 15) } else { (10, 14) };
                 let dmg = if ascension >= 2 { 6 } else { 5 };
-                (hp_rng.random_start_end(lo, hi), MonsterStats {
-                    chomp_dmg: dmg,
-                    thrash_dmg: 0,
-                    thrash_block: 0,
-                    bellow_str: 0,
-                    bellow_block: 0,
-                    dark_strike_dmg: 0,
-                    ritual_amt: 0,
-                })
+                (
+                    hp_rng.random_start_end(lo, hi),
+                    MonsterStats {
+                        chomp_dmg: dmg,
+                        thrash_dmg: 0,
+                        thrash_block: 0,
+                        bellow_str: 0,
+                        bellow_block: 0,
+                        dark_strike_dmg: 0,
+                        ritual_amt: 0,
+                    },
+                )
             }
             MonsterKind::AcidSlimeS => {
                 // AcidSlime_S：setHp(8,12)/A7 (9,13)；TACKLE dmg A2+ 4 否则 3；
@@ -578,15 +609,18 @@ impl MonsterState {
                 // ⚠️ 伤害放 .5（dark_strike_dmg）——move_base_damage / take_turn 读这里。
                 let (lo, hi) = if ascension >= 7 { (9, 13) } else { (8, 12) };
                 let dmg = if ascension >= 2 { 4 } else { 3 };
-                (hp_rng.random_start_end(lo, hi), MonsterStats {
-                    chomp_dmg: 0,
-                    thrash_dmg: 0,
-                    thrash_block: 0,
-                    bellow_str: 0,
-                    bellow_block: 0,
-                    dark_strike_dmg: dmg,
-                    ritual_amt: 1,
-                })
+                (
+                    hp_rng.random_start_end(lo, hi),
+                    MonsterStats {
+                        chomp_dmg: 0,
+                        thrash_dmg: 0,
+                        thrash_block: 0,
+                        bellow_str: 0,
+                        bellow_block: 0,
+                        dark_strike_dmg: dmg,
+                        ritual_amt: 1,
+                    },
+                )
             }
             MonsterKind::SpikeSlimeM => {
                 // SpikeSlime_M：setHp(28,32)/A7 (29,34)；TACKLE dmg A2+ 10 否则 8。
@@ -594,29 +628,35 @@ impl MonsterState {
                 // 都读这个字段；放 .0 会让意图显示 0 伤害（同 Louse 踩过的坑）。
                 let (lo, hi) = if ascension >= 7 { (29, 34) } else { (28, 32) };
                 let dmg = if ascension >= 2 { 10 } else { 8 };
-                (hp_rng.random_start_end(lo, hi), MonsterStats {
-                    chomp_dmg: 0,
-                    thrash_dmg: 0,
-                    thrash_block: 0,
-                    bellow_str: 0,
-                    bellow_block: 0,
-                    dark_strike_dmg: dmg,
-                    ritual_amt: 1,
-                })
+                (
+                    hp_rng.random_start_end(lo, hi),
+                    MonsterStats {
+                        chomp_dmg: 0,
+                        thrash_dmg: 0,
+                        thrash_block: 0,
+                        bellow_str: 0,
+                        bellow_block: 0,
+                        dark_strike_dmg: dmg,
+                        ritual_amt: 1,
+                    },
+                )
             }
             MonsterKind::AcidSlimeM => {
                 let (lo, hi) = if ascension >= 7 { (29, 34) } else { (28, 32) };
                 let dmg = if ascension >= 2 { 8 } else { 7 };
                 let dmg2 = if ascension >= 2 { 11 } else { 10 };
-                (hp_rng.random_start_end(lo, hi), MonsterStats {
-                    chomp_dmg: dmg,
-                    thrash_dmg: 1,
-                    thrash_block: dmg2,
-                    bellow_str: 0,
-                    bellow_block: 0,
-                    dark_strike_dmg: 0,
-                    ritual_amt: 0,
-                })
+                (
+                    hp_rng.random_start_end(lo, hi),
+                    MonsterStats {
+                        chomp_dmg: dmg,
+                        thrash_dmg: 1,
+                        thrash_block: dmg2,
+                        bellow_str: 0,
+                        bellow_block: 0,
+                        dark_strike_dmg: 0,
+                        ritual_amt: 0,
+                    },
+                )
             }
             MonsterKind::Looter => {
                 // Looter：setHp(44,48)/A7 (46,50)
@@ -627,29 +667,35 @@ impl MonsterState {
                 let swipe = if ascension >= 2 { 11 } else { 10 };
                 let lunge = if ascension >= 2 { 14 } else { 12 };
                 let gold = if ascension >= 17 { 20 } else { 15 };
-                (hp_rng.random_start_end(lo, hi), MonsterStats {
-                    chomp_dmg: swipe,
-                    thrash_dmg: gold,
-                    thrash_block: lunge,
-                    bellow_str: 0,
-                    bellow_block: 0,
-                    dark_strike_dmg: 0,
-                    ritual_amt: 0,
-                })
+                (
+                    hp_rng.random_start_end(lo, hi),
+                    MonsterStats {
+                        chomp_dmg: swipe,
+                        thrash_dmg: gold,
+                        thrash_block: lunge,
+                        bellow_str: 0,
+                        bellow_block: 0,
+                        dark_strike_dmg: 0,
+                        ritual_amt: 0,
+                    },
+                )
             }
             MonsterKind::SlaverBlue => {
                 let (lo, hi) = if ascension >= 7 { (48, 52) } else { (46, 50) };
                 let stab = if ascension >= 2 { 13 } else { 12 };
                 let rake = if ascension >= 2 { 8 } else { 7 };
-                (hp_rng.random_start_end(lo, hi), MonsterStats {
-                    chomp_dmg: stab,
-                    thrash_dmg: 1,
-                    thrash_block: rake,
-                    bellow_str: 0,
-                    bellow_block: 0,
-                    dark_strike_dmg: 0,
-                    ritual_amt: 0,
-                })
+                (
+                    hp_rng.random_start_end(lo, hi),
+                    MonsterStats {
+                        chomp_dmg: stab,
+                        thrash_dmg: 1,
+                        thrash_block: rake,
+                        bellow_str: 0,
+                        bellow_block: 0,
+                        dark_strike_dmg: 0,
+                        ritual_amt: 0,
+                    },
+                )
             }
             MonsterKind::SlaverRed => {
                 let (lo, hi) = if ascension >= 7 { (48, 52) } else { (46, 50) };
@@ -658,14 +704,14 @@ impl MonsterState {
                 (
                     hp_rng.random_start_end(lo, hi),
                     MonsterStats {
-                    chomp_dmg: stab,
-                    thrash_dmg: 1,
-                    thrash_block: scrape,
-                    bellow_str: 0,
-                    bellow_block: 0,
-                    dark_strike_dmg: 0,
-                    ritual_amt: 0,
-                },
+                        chomp_dmg: stab,
+                        thrash_dmg: 1,
+                        thrash_block: scrape,
+                        bellow_str: 0,
+                        bellow_block: 0,
+                        dark_strike_dmg: 0,
+                        ritual_amt: 0,
+                    },
                 )
             }
             MonsterKind::GremlinNob => {
@@ -680,13 +726,16 @@ impl MonsterState {
                 let bash = if ascension >= 2 { 8 } else { 6 };
                 let rush = if ascension >= 2 { 16 } else { 14 };
                 let anger = if ascension >= 18 { 3 } else { 2 };
-                (hp_rng.random_start_end(lo, hi), MonsterStats {
-                    dark_strike_dmg: rush,   // move 1
-                    thrash_dmg: bash,        // move 2
-                    bellow_str: 2,           // 易伤层数
-                    ritual_amt: anger,       // Bellow 的 Anger 层数
-                    ..Default::default()
-                })
+                (
+                    hp_rng.random_start_end(lo, hi),
+                    MonsterStats {
+                        dark_strike_dmg: rush, // move 1
+                        thrash_dmg: bash,      // move 2
+                        bellow_str: 2,         // 易伤层数
+                        ritual_amt: anger,     // Bellow 的 Anger 层数
+                        ..Default::default()
+                    },
+                )
             }
             MonsterKind::Lagavulin => {
                 let (lo, hi) = if ascension >= 2 {
@@ -699,39 +748,64 @@ impl MonsterState {
                 (
                     hp_rng.random_start_end(lo, hi),
                     MonsterStats {
-                    chomp_dmg: dmg,
-                    thrash_dmg: debuff,
-                    thrash_block: 0,
-                    bellow_str: 8,
-                    bellow_block: 0,
-                    dark_strike_dmg: 0,
-                    ritual_amt: 0,
-                },
+                        chomp_dmg: dmg,
+                        thrash_dmg: debuff,
+                        thrash_block: 0,
+                        bellow_str: 8,
+                        bellow_block: 0,
+                        dark_strike_dmg: 0,
+                        ritual_amt: 0,
+                    },
                 )
             }
             MonsterKind::Sentry => {
                 let (lo, hi) = if ascension >= 2 { (39, 45) } else { (38, 42) };
                 let beam = if ascension >= 3 { 10 } else { 9 };
-                (hp_rng.random_start_end(lo, hi), MonsterStats {
-                    chomp_dmg: beam,
-                    thrash_dmg: 2,
-                    thrash_block: 0,
-                    bellow_str: 0,
-                    bellow_block: 0,
-                    dark_strike_dmg: 0,
-                    ritual_amt: 0,
-                })
+                (
+                    hp_rng.random_start_end(lo, hi),
+                    MonsterStats {
+                        chomp_dmg: beam,
+                        thrash_dmg: 2,
+                        thrash_block: 0,
+                        bellow_str: 0,
+                        bellow_block: 0,
+                        dark_strike_dmg: 0,
+                        ritual_amt: 0,
+                    },
+                )
             }
             MonsterKind::Guardian => {
                 let hp = if ascension >= 2 { 250 } else { 240 };
                 let bash = if ascension >= 2 { 36 } else { 32 };
                 let roll = if ascension >= 2 { 10 } else { 9 };
-                (hp, MonsterStats { chomp_dmg: bash, thrash_dmg: roll, thrash_block: 5, bellow_str: 8, bellow_block: 9, dark_strike_dmg: 2, ritual_amt: 4 })
+                (
+                    hp,
+                    MonsterStats {
+                        chomp_dmg: bash,
+                        thrash_dmg: roll,
+                        thrash_block: 5,
+                        bellow_str: 8,
+                        bellow_block: 9,
+                        dark_strike_dmg: 2,
+                        ritual_amt: 4,
+                    },
+                )
             }
             MonsterKind::SlimeBoss => {
                 let hp = if ascension >= 2 { 150 } else { 140 };
                 let slam = if ascension >= 2 { 38 } else { 35 };
-                (hp, MonsterStats { chomp_dmg: slam, thrash_dmg: 10, thrash_block: 3, bellow_str: 0, bellow_block: 0, dark_strike_dmg: 0, ritual_amt: 0 })
+                (
+                    hp,
+                    MonsterStats {
+                        chomp_dmg: slam,
+                        thrash_dmg: 10,
+                        thrash_block: 3,
+                        bellow_str: 0,
+                        bellow_block: 0,
+                        dark_strike_dmg: 0,
+                        ritual_amt: 0,
+                    },
+                )
             }
             // 六火亡魂：字段映射 —— chomp=火焰冲撞/撞，thrash=地狱火(每段)，
             // thrash_block=煽燃力量，bellow_str=灼烙灼伤数，bellow_block=分割者段伤
@@ -740,11 +814,44 @@ impl MonsterState {
                 // Boss 血量提升在 A9（构造器：>=9 → 264，否则 250）
                 let hp = if ascension >= 9 { 264 } else { 250 };
                 if ascension >= 19 {
-                    (hp, MonsterStats { chomp_dmg: 6, thrash_dmg: 3, thrash_block: 3, bellow_str: 2, bellow_block: 0, dark_strike_dmg: 6, ritual_amt: 0 })
+                    (
+                        hp,
+                        MonsterStats {
+                            chomp_dmg: 6,
+                            thrash_dmg: 3,
+                            thrash_block: 3,
+                            bellow_str: 2,
+                            bellow_block: 0,
+                            dark_strike_dmg: 6,
+                            ritual_amt: 0,
+                        },
+                    )
                 } else if ascension >= 4 {
-                    (hp, MonsterStats { chomp_dmg: 6, thrash_dmg: 3, thrash_block: 2, bellow_str: 1, bellow_block: 0, dark_strike_dmg: 6, ritual_amt: 0 })
+                    (
+                        hp,
+                        MonsterStats {
+                            chomp_dmg: 6,
+                            thrash_dmg: 3,
+                            thrash_block: 2,
+                            bellow_str: 1,
+                            bellow_block: 0,
+                            dark_strike_dmg: 6,
+                            ritual_amt: 0,
+                        },
+                    )
                 } else {
-                    (hp, MonsterStats { chomp_dmg: 5, thrash_dmg: 2, thrash_block: 2, bellow_str: 1, bellow_block: 0, dark_strike_dmg: 6, ritual_amt: 0 })
+                    (
+                        hp,
+                        MonsterStats {
+                            chomp_dmg: 5,
+                            thrash_dmg: 2,
+                            thrash_block: 2,
+                            bellow_str: 1,
+                            bellow_block: 0,
+                            dark_strike_dmg: 6,
+                            ritual_amt: 0,
+                        },
+                    )
                 }
             }
             // 球形守护者：HP 固定 20；开局壁垒+神器3+40格挡（战斗外初始化见 new_with）
@@ -767,14 +874,14 @@ impl MonsterState {
                 (
                     hp_rng.random_start_end(lo, hi),
                     MonsterStats {
-                    chomp_dmg: if ascension >= 2 { 21 } else { 18 },
-                    thrash_dmg: if ascension >= 2 { 12 } else { 10 },
-                    thrash_block: if ascension >= 2 { 6 } else { 5 },
-                    bellow_str: 3,
-                    bellow_block: 3,
-                    dark_strike_dmg: 2,
-                    ritual_amt: 1,
-                },
+                        chomp_dmg: if ascension >= 2 { 21 } else { 18 },
+                        thrash_dmg: if ascension >= 2 { 12 } else { 10 },
+                        thrash_block: if ascension >= 2 { 6 } else { 5 },
+                        bellow_str: 3,
+                        bellow_block: 3,
+                        dark_strike_dmg: 2,
+                        ritual_amt: 1,
+                    },
                 )
             }
             // 灼壳寄生虫：开局多层护甲14+14格挡；chomp=猛击(18/21)
@@ -784,14 +891,14 @@ impl MonsterState {
                 (
                     hp_rng.random_start_end(lo, hi),
                     MonsterStats {
-                    chomp_dmg: if ascension >= 2 { 21 } else { 18 },
-                    thrash_dmg: if ascension >= 2 { 7 } else { 6 },
-                    thrash_block: if ascension >= 2 { 12 } else { 10 },
-                    bellow_str: 2,
-                    bellow_block: 0,
-                    dark_strike_dmg: 0,
-                    ritual_amt: 0,
-                },
+                        chomp_dmg: if ascension >= 2 { 21 } else { 18 },
+                        thrash_dmg: if ascension >= 2 { 7 } else { 6 },
+                        thrash_block: if ascension >= 2 { 12 } else { 10 },
+                        bellow_str: 2,
+                        bellow_block: 0,
+                        dark_strike_dmg: 0,
+                        ritual_amt: 0,
+                    },
                 )
             }
             // 伯德鸟：chomp=啄(1) thrash=俯冲(12/14) thrash_block=头槌(3)
@@ -801,14 +908,14 @@ impl MonsterState {
                 (
                     hp_rng.random_start_end(lo, hi),
                     MonsterStats {
-                    chomp_dmg: 1,
-                    thrash_dmg: if ascension >= 2 { 14 } else { 12 },
-                    thrash_block: 3,
-                    bellow_str: if ascension >= 17 { 4 } else { 3 },
-                    bellow_block: if ascension >= 2 { 6 } else { 5 },
-                    dark_strike_dmg: 0,
-                    ritual_amt: 1,
-                },
+                        chomp_dmg: 1,
+                        thrash_dmg: if ascension >= 2 { 14 } else { 12 },
+                        thrash_block: 3,
+                        bellow_str: if ascension >= 17 { 4 } else { 3 },
+                        bellow_block: if ascension >= 2 { 6 } else { 5 },
+                        dark_strike_dmg: 0,
+                        ritual_amt: 1,
+                    },
                 )
             }
             // 劫匪：chomp=抢劫(10/11) thrash=重扫(16/18) thrash_block=烟雾(11)
@@ -818,14 +925,14 @@ impl MonsterState {
                 (
                     hp_rng.random_start_end(lo, hi),
                     MonsterStats {
-                    chomp_dmg: if ascension >= 2 { 11 } else { 10 },
-                    thrash_dmg: if ascension >= 2 { 18 } else { 16 },
-                    thrash_block: 11,
-                    bellow_str: if ascension >= 17 { 20 } else { 15 },
-                    bellow_block: 0,
-                    dark_strike_dmg: 0,
-                    ritual_amt: 0,
-                },
+                        chomp_dmg: if ascension >= 2 { 11 } else { 10 },
+                        thrash_dmg: if ascension >= 2 { 18 } else { 16 },
+                        thrash_block: 11,
+                        bellow_str: if ascension >= 17 { 20 } else { 15 },
+                        bellow_block: 0,
+                        dark_strike_dmg: 0,
+                        ritual_amt: 0,
+                    },
                 )
             }
             // 咬人蛇草：chomp=撕咬(7/8)×3 bellow_str=孢子脆弱(2) bellow_block=孢子虚弱(2)
@@ -834,14 +941,14 @@ impl MonsterState {
                 (
                     hp_rng.random_start_end(lo, hi),
                     MonsterStats {
-                    chomp_dmg: if ascension >= 2 { 8 } else { 7 },
-                    thrash_dmg: 3,
-                    thrash_block: 0,
-                    bellow_str: 2,
-                    bellow_block: 2,
-                    dark_strike_dmg: 0,
-                    ritual_amt: 0,
-                },
+                        chomp_dmg: if ascension >= 2 { 8 } else { 7 },
+                        thrash_dmg: 3,
+                        thrash_block: 0,
+                        bellow_str: 2,
+                        bellow_block: 2,
+                        dark_strike_dmg: 0,
+                        ritual_amt: 0,
+                    },
                 )
             }
             // 斯涅克：chomp=咬(15/18) thrash=尾击(8/10) bellow_str=易伤/虚弱(2)
@@ -854,14 +961,14 @@ impl MonsterState {
                 (
                     hp_rng.random_start_end(lo, hi),
                     MonsterStats {
-                    chomp_dmg: if ascension >= 2 { 18 } else { 15 },
-                    thrash_dmg: if ascension >= 2 { 10 } else { 8 },
-                    thrash_block: 0,
-                    bellow_str: 2,
-                    bellow_block: 0,
-                    dark_strike_dmg: 0,
-                    ritual_amt: 0,
-                },
+                        chomp_dmg: if ascension >= 2 { 18 } else { 15 },
+                        thrash_dmg: if ascension >= 2 { 10 } else { 8 },
+                        thrash_block: 0,
+                        bellow_str: 2,
+                        bellow_block: 0,
+                        dark_strike_dmg: 0,
+                        ritual_amt: 0,
+                    },
                 )
             }
             // 百夫长：chomp=斩击(12/14) thrash=狂怒(6/7)×3 bellow_str=段数(3)
@@ -871,14 +978,14 @@ impl MonsterState {
                 (
                     hp_rng.random_start_end(lo, hi),
                     MonsterStats {
-                    chomp_dmg: if ascension >= 2 { 14 } else { 12 },
-                    thrash_dmg: if ascension >= 2 { 7 } else { 6 },
-                    thrash_block: 3,
-                    bellow_str: 0,
-                    bellow_block: if ascension >= 17 { 20 } else { 15 },
-                    dark_strike_dmg: 0,
-                    ritual_amt: 0,
-                },
+                        chomp_dmg: if ascension >= 2 { 14 } else { 12 },
+                        thrash_dmg: if ascension >= 2 { 7 } else { 6 },
+                        thrash_block: 3,
+                        bellow_str: 0,
+                        bellow_block: if ascension >= 17 { 20 } else { 15 },
+                        dark_strike_dmg: 0,
+                        ritual_amt: 0,
+                    },
                 )
             }
             // 拜蛇教祭司：chomp=魔法(8/9) thrash=治疗(16) bellow_str=力量(2/3)
@@ -888,14 +995,14 @@ impl MonsterState {
                 (
                     hp_rng.random_start_end(lo, hi),
                     MonsterStats {
-                    chomp_dmg: if ascension >= 2 { 9 } else { 8 },
-                    thrash_dmg: 16,
-                    thrash_block: if ascension >= 17 { 3 } else { 2 },
-                    bellow_str: 2,
-                    bellow_block: 0,
-                    dark_strike_dmg: 0,
-                    ritual_amt: 0,
-                },
+                        chomp_dmg: if ascension >= 2 { 9 } else { 8 },
+                        thrash_dmg: 16,
+                        thrash_block: if ascension >= 17 { 3 } else { 2 },
+                        bellow_str: 2,
+                        bellow_block: 0,
+                        dark_strike_dmg: 0,
+                        ritual_amt: 0,
+                    },
                 )
             }
             // ════════ Act 2 精英/Boss 及召唤物 ════════
@@ -905,14 +1012,14 @@ impl MonsterState {
                 (
                     hp_rng.random_start_end(lo, hi),
                     MonsterStats {
-                    chomp_dmg: if ascension >= 2 { 5 } else { 4 },
-                    thrash_dmg: 0,
-                    thrash_block: 0,
-                    bellow_str: 0,
-                    bellow_block: 0,
-                    dark_strike_dmg: 0,
-                    ritual_amt: 0,
-                },
+                        chomp_dmg: if ascension >= 2 { 5 } else { 4 },
+                        thrash_dmg: 0,
+                        thrash_block: 0,
+                        bellow_str: 0,
+                        bellow_block: 0,
+                        dark_strike_dmg: 0,
+                        ritual_amt: 0,
+                    },
                 )
             }
             // 暴徒：chomp=穿刺(9/10)
@@ -921,14 +1028,14 @@ impl MonsterState {
                 (
                     hp_rng.random_start_end(lo, hi),
                     MonsterStats {
-                    chomp_dmg: if ascension >= 2 { 10 } else { 9 },
-                    thrash_dmg: 0,
-                    thrash_block: 0,
-                    bellow_str: 0,
-                    bellow_block: 0,
-                    dark_strike_dmg: 0,
-                    ritual_amt: 0,
-                },
+                        chomp_dmg: if ascension >= 2 { 10 } else { 9 },
+                        thrash_dmg: 0,
+                        thrash_block: 0,
+                        bellow_str: 0,
+                        bellow_block: 0,
+                        dark_strike_dmg: 0,
+                        ritual_amt: 0,
+                    },
                 )
             }
             // 胖鬼：chomp=钝击(4/5)+弱1(A17 再+脆1)：thrash=弱1 thrash_block=脆1
@@ -937,14 +1044,14 @@ impl MonsterState {
                 (
                     hp_rng.random_start_end(lo, hi),
                     MonsterStats {
-                    chomp_dmg: if ascension >= 2 { 5 } else { 4 },
-                    thrash_dmg: 1,
-                    thrash_block: 1,
-                    bellow_str: 0,
-                    bellow_block: 0,
-                    dark_strike_dmg: 0,
-                    ritual_amt: 0,
-                },
+                        chomp_dmg: if ascension >= 2 { 5 } else { 4 },
+                        thrash_dmg: 1,
+                        thrash_block: 1,
+                        bellow_str: 0,
+                        bellow_block: 0,
+                        dark_strike_dmg: 0,
+                        ritual_amt: 0,
+                    },
                 )
             }
             // 傲鬼：chomp=痛击(6/8) thrash=保护格挡(7/8/11 A17)
@@ -960,14 +1067,14 @@ impl MonsterState {
                 (
                     hp_rng.random_start_end(lo, hi),
                     MonsterStats {
-                    chomp_dmg: if ascension >= 2 { 8 } else { 6 },
-                    thrash_dmg: block,
-                    thrash_block: 0,
-                    bellow_str: 0,
-                    bellow_block: 0,
-                    dark_strike_dmg: 0,
-                    ritual_amt: 0,
-                },
+                        chomp_dmg: if ascension >= 2 { 8 } else { 6 },
+                        thrash_dmg: block,
+                        thrash_block: 0,
+                        bellow_str: 0,
+                        bellow_block: 0,
+                        dark_strike_dmg: 0,
+                        ritual_amt: 0,
+                    },
                 )
             }
             // 巫鬼：chomp=魔法(25/30)；counter=currentCharge 起 1
@@ -976,14 +1083,14 @@ impl MonsterState {
                 (
                     hp_rng.random_start_end(lo, hi),
                     MonsterStats {
-                    chomp_dmg: if ascension >= 2 { 30 } else { 25 },
-                    thrash_dmg: 0,
-                    thrash_block: 0,
-                    bellow_str: 0,
-                    bellow_block: 0,
-                    dark_strike_dmg: 0,
-                    ritual_amt: 0,
-                },
+                        chomp_dmg: if ascension >= 2 { 30 } else { 25 },
+                        thrash_dmg: 0,
+                        thrash_block: 0,
+                        bellow_str: 0,
+                        bellow_block: 0,
+                        dark_strike_dmg: 0,
+                        ritual_amt: 0,
+                    },
                 )
             }
             // 小鬼首领：chomp=刺击6×3(bellow_str=段数3) thrash=激励力量(3/4/5)
@@ -1004,14 +1111,14 @@ impl MonsterState {
                 (
                     hp_rng.random_start_end(lo, hi),
                     MonsterStats {
-                    chomp_dmg: 6,
-                    thrash_dmg: str_amt,
-                    thrash_block: block_amt,
-                    bellow_str: 3,
-                    bellow_block: 0,
-                    dark_strike_dmg: 0,
-                    ritual_amt: 0,
-                },
+                        chomp_dmg: 6,
+                        thrash_dmg: str_amt,
+                        thrash_block: block_amt,
+                        bellow_str: 3,
+                        bellow_block: 0,
+                        dark_strike_dmg: 0,
+                        ritual_amt: 0,
+                    },
                 )
             }
             // 连击之书：chomp=刺(6/7) thrash=重刺(21/24)；counter=stabCount 起 1
@@ -1022,15 +1129,18 @@ impl MonsterState {
                     (160, 164)
                 };
                 let (stab, big) = if ascension >= 3 { (7, 24) } else { (6, 21) };
-                (hp_rng.random_start_end(lo, hi), MonsterStats {
-                    chomp_dmg: stab,
-                    thrash_dmg: big,
-                    thrash_block: 0,
-                    bellow_str: 0,
-                    bellow_block: 0,
-                    dark_strike_dmg: 0,
-                    ritual_amt: 0,
-                })
+                (
+                    hp_rng.random_start_end(lo, hi),
+                    MonsterStats {
+                        chomp_dmg: stab,
+                        thrash_dmg: big,
+                        thrash_block: 0,
+                        bellow_str: 0,
+                        bellow_block: 0,
+                        dark_strike_dmg: 0,
+                        ritual_amt: 0,
+                    },
+                )
             }
             // 监工：chomp=鞭笞7 + thrash=伤口数(1/2 A3/3 A18)（A18 再自+1 力量）
             MonsterKind::Taskmaster => {
@@ -1042,28 +1152,34 @@ impl MonsterState {
                 } else {
                     1
                 };
-                (hp_rng.random_start_end(lo, hi), MonsterStats {
-                    chomp_dmg: 7,
-                    thrash_dmg: wounds,
-                    thrash_block: 0,
-                    bellow_str: 0,
-                    bellow_block: 0,
-                    dark_strike_dmg: 0,
-                    ritual_amt: 0,
-                })
+                (
+                    hp_rng.random_start_end(lo, hi),
+                    MonsterStats {
+                        chomp_dmg: 7,
+                        thrash_dmg: wounds,
+                        thrash_block: 0,
+                        bellow_str: 0,
+                        bellow_block: 0,
+                        dark_strike_dmg: 0,
+                        ritual_amt: 0,
+                    },
+                )
             }
             // 铜球：chomp=光束8 thrash=支援格挡12；STASIS 吸牌（死亡归还）
             MonsterKind::BronzeOrb => {
                 let (lo, hi) = if ascension >= 9 { (54, 60) } else { (52, 58) };
-                (hp_rng.random_start_end(lo, hi), MonsterStats {
-                    chomp_dmg: 8,
-                    thrash_dmg: 12,
-                    thrash_block: 0,
-                    bellow_str: 0,
-                    bellow_block: 0,
-                    dark_strike_dmg: 0,
-                    ritual_amt: 0,
-                })
+                (
+                    hp_rng.random_start_end(lo, hi),
+                    MonsterStats {
+                        chomp_dmg: 8,
+                        thrash_dmg: 12,
+                        thrash_block: 0,
+                        bellow_str: 0,
+                        bellow_block: 0,
+                        dark_strike_dmg: 0,
+                        ritual_amt: 0,
+                    },
+                )
             }
             // 铜制自动机：chomp=连枷(7/8)×2 thrash=超究光束(45/50) thrash_block=强化格挡(9/12)
             // bellow_str=强化力量(3/4)；counter=回合计；战前神器3
@@ -1075,20 +1191,34 @@ impl MonsterState {
                     (7, 45, 3)
                 };
                 let block_amt = if ascension >= 9 { 12 } else { 9 };
-                (hp, MonsterStats { chomp_dmg: flail, thrash_dmg: beam, thrash_block: block_amt, bellow_str: str_amt, bellow_block: 0, dark_strike_dmg: 0, ritual_amt: 0 })
+                (
+                    hp,
+                    MonsterStats {
+                        chomp_dmg: flail,
+                        thrash_dmg: beam,
+                        thrash_block: block_amt,
+                        bellow_str: str_amt,
+                        bellow_block: 0,
+                        dark_strike_dmg: 0,
+                        ritual_amt: 0,
+                    },
+                )
             }
             // 火把头：chomp=冲撞7（恒定，SetMove 驱动）
             MonsterKind::TorchHead => {
                 let (lo, hi) = if ascension >= 9 { (40, 45) } else { (38, 40) };
-                (hp_rng.random_start_end(lo, hi), MonsterStats {
-                    chomp_dmg: 7,
-                    thrash_dmg: 0,
-                    thrash_block: 0,
-                    bellow_str: 0,
-                    bellow_block: 0,
-                    dark_strike_dmg: 0,
-                    ritual_amt: 0,
-                })
+                (
+                    hp_rng.random_start_end(lo, hi),
+                    MonsterStats {
+                        chomp_dmg: 7,
+                        thrash_dmg: 0,
+                        thrash_block: 0,
+                        bellow_str: 0,
+                        bellow_block: 0,
+                        dark_strike_dmg: 0,
+                        ritual_amt: 0,
+                    },
+                )
             }
             // 收集者：chomp=火球(18/21) thrash=群力(3/4/5) thrash_block=自我格挡(15/18)
             // bellow_str=超大减益(3/5 A19)；turns=history.len()
@@ -1102,7 +1232,18 @@ impl MonsterState {
                     (18, 3, 3)
                 };
                 let block_amt = if ascension >= 9 { 18 } else { 15 };
-                (hp, MonsterStats { chomp_dmg: fb, thrash_dmg: str_amt, thrash_block: block_amt, bellow_str: mega, bellow_block: 0, dark_strike_dmg: 0, ritual_amt: 0 })
+                (
+                    hp,
+                    MonsterStats {
+                        chomp_dmg: fb,
+                        thrash_dmg: str_amt,
+                        thrash_block: block_amt,
+                        bellow_str: mega,
+                        bellow_block: 0,
+                        dark_strike_dmg: 0,
+                        ritual_amt: 0,
+                    },
+                )
             }
             // 冠军：chomp=重斩(16/18) thrash=处决10×2 thrash_block=扇击(12/14)
             // bellow_str=力量(2/3/4) bellow_block=锻造金属化(5/6/7) dark_strike=格挡(15/18/20)
@@ -1119,7 +1260,18 @@ impl MonsterState {
                 } else {
                     (2, 5, 15)
                 };
-                (hp, MonsterStats { chomp_dmg: slash, thrash_dmg: 10, thrash_block: slap, bellow_str: str_amt, bellow_block: forge, dark_strike_dmg: block_amt, ritual_amt: 0 })
+                (
+                    hp,
+                    MonsterStats {
+                        chomp_dmg: slash,
+                        thrash_dmg: 10,
+                        thrash_block: slap,
+                        bellow_str: str_amt,
+                        bellow_block: forge,
+                        dark_strike_dmg: block_amt,
+                        ritual_amt: 0,
+                    },
+                )
             }
             // ════════ Act 3（TheBeyond）普通遭遇 ══════════
             // 小暗灵：chomp=撕咬(8/9)×2 thrash=噬咬(random 7-11/9-13) thrash_block=硬化12
@@ -1134,14 +1286,14 @@ impl MonsterState {
                 (
                     hp_rng.random_start_end(lo, hi),
                     MonsterStats {
-                    chomp_dmg: if ascension >= 2 { 9 } else { 8 },
-                    thrash_dmg: nip,
-                    thrash_block: 12,
-                    bellow_str: 2,
-                    bellow_block: 0,
-                    dark_strike_dmg: 0,
-                    ritual_amt: 0,
-                },
+                        chomp_dmg: if ascension >= 2 { 9 } else { 8 },
+                        thrash_dmg: nip,
+                        thrash_block: 12,
+                        bellow_str: 2,
+                        bellow_block: 0,
+                        dark_strike_dmg: 0,
+                        ritual_amt: 0,
+                    },
                 )
             }
             // 排斥体：chomp=攻击(11/13) thrash=晕眩卡数2
@@ -1150,14 +1302,14 @@ impl MonsterState {
                 (
                     hp_rng.random_start_end(lo, hi),
                     MonsterStats {
-                    chomp_dmg: if ascension >= 2 { 13 } else { 11 },
-                    thrash_dmg: 2,
-                    thrash_block: 0,
-                    bellow_str: 0,
-                    bellow_block: 0,
-                    dark_strike_dmg: 0,
-                    ritual_amt: 0,
-                },
+                        chomp_dmg: if ascension >= 2 { 13 } else { 11 },
+                        thrash_dmg: 2,
+                        thrash_block: 0,
+                        bellow_str: 0,
+                        bellow_block: 0,
+                        dark_strike_dmg: 0,
+                        ritual_amt: 0,
+                    },
                 )
             }
             // 天球行者：chomp=激光(10/11) thrash=利爪(15/16)；战前力量 3(5 A17)
@@ -1166,21 +1318,32 @@ impl MonsterState {
                 (
                     hp_rng.random_start_end(lo, hi),
                     MonsterStats {
-                    chomp_dmg: if ascension >= 2 { 11 } else { 10 },
-                    thrash_dmg: if ascension >= 2 { 16 } else { 15 },
-                    thrash_block: 0,
-                    bellow_str: 0,
-                    bellow_block: 0,
-                    dark_strike_dmg: 0,
-                    ritual_amt: 0,
-                },
+                        chomp_dmg: if ascension >= 2 { 11 } else { 10 },
+                        thrash_dmg: if ascension >= 2 { 16 } else { 15 },
+                        thrash_block: 0,
+                        bellow_str: 0,
+                        bellow_block: 0,
+                        dark_strike_dmg: 0,
+                        ritual_amt: 0,
+                    },
                 )
             }
             // 尖塔生长体：chomp=快击(16/18) thrash=重击(22/25) thrash_block=紧缠(10)
             MonsterKind::SpireGrowth => {
                 let hp = if ascension >= 7 { 190 } else { 170 };
                 let (tackle, smash) = if ascension >= 2 { (18, 25) } else { (16, 22) };
-                (hp, MonsterStats { chomp_dmg: tackle, thrash_dmg: smash, thrash_block: 10, bellow_str: 0, bellow_block: 0, dark_strike_dmg: 0, ritual_amt: 0 })
+                (
+                    hp,
+                    MonsterStats {
+                        chomp_dmg: tackle,
+                        thrash_dmg: smash,
+                        thrash_block: 10,
+                        bellow_str: 0,
+                        bellow_block: 0,
+                        dark_strike_dmg: 0,
+                        ritual_amt: 0,
+                    },
+                )
             }
             // 转瞬即逝：chomp=起始死兆(30/40) thrash=每回合增量10；counter=count；
             // 战前 Fading 5(6 A17) + Shifting
@@ -1209,9 +1372,31 @@ impl MonsterState {
             MonsterKind::WrithingMass => {
                 let hp = if ascension >= 7 { 175 } else { 160 };
                 if ascension >= 2 {
-                    (hp, MonsterStats { chomp_dmg: 38, thrash_dmg: 9, thrash_block: 16, bellow_str: 12, bellow_block: 2, dark_strike_dmg: 0, ritual_amt: 0 })
+                    (
+                        hp,
+                        MonsterStats {
+                            chomp_dmg: 38,
+                            thrash_dmg: 9,
+                            thrash_block: 16,
+                            bellow_str: 12,
+                            bellow_block: 2,
+                            dark_strike_dmg: 0,
+                            ritual_amt: 0,
+                        },
+                    )
                 } else {
-                    (hp, MonsterStats { chomp_dmg: 32, thrash_dmg: 7, thrash_block: 15, bellow_str: 10, bellow_block: 2, dark_strike_dmg: 0, ritual_amt: 0 })
+                    (
+                        hp,
+                        MonsterStats {
+                            chomp_dmg: 32,
+                            thrash_dmg: 7,
+                            thrash_block: 15,
+                            bellow_str: 10,
+                            bellow_block: 2,
+                            dark_strike_dmg: 0,
+                            ritual_amt: 0,
+                        },
+                    )
                 }
             }
             // ════════ Act 3 精英/Boss 及召唤物 ══════════
@@ -1221,7 +1406,15 @@ impl MonsterState {
                 let hp = if ascension >= 8 { 520 } else { 500 };
                 (
                     hp,
-                    MonsterStats { chomp_dmg: 13, thrash_dmg: if ascension >= 3 { 40 } else { 30 }, thrash_block: 5, bellow_str: 0, bellow_block: 0, dark_strike_dmg: 0, ritual_amt: 0 },
+                    MonsterStats {
+                        chomp_dmg: 13,
+                        thrash_dmg: if ascension >= 3 { 40 } else { 30 },
+                        thrash_block: 5,
+                        bellow_str: 0,
+                        bellow_block: 0,
+                        dark_strike_dmg: 0,
+                        ritual_amt: 0,
+                    },
                 )
             }
             // 复仇者：chomp=镰刀45 thrash=三连火(6/7 A3)×3 thrash_block=灼伤(3/5 A18)；
@@ -1230,7 +1423,15 @@ impl MonsterState {
                 let hp = if ascension >= 8 { 200 } else { 185 };
                 (
                     hp,
-                    MonsterStats { chomp_dmg: 45, thrash_dmg: if ascension >= 3 { 7 } else { 6 }, thrash_block: if ascension >= 18 { 5 } else { 3 }, bellow_str: 0, bellow_block: 0, dark_strike_dmg: 0, ritual_amt: 0 },
+                    MonsterStats {
+                        chomp_dmg: 45,
+                        thrash_dmg: if ascension >= 3 { 7 } else { 6 },
+                        thrash_block: if ascension >= 18 { 5 } else { 3 },
+                        bellow_str: 0,
+                        bellow_block: 0,
+                        dark_strike_dmg: 0,
+                        ritual_amt: 0,
+                    },
                 )
             }
             // 爬虫法师：chomp=蛇击(13/16)×2+弱1 thrash=重咬(30/34)
@@ -1245,66 +1446,113 @@ impl MonsterState {
                     (
                         hp_rng.random_start_end(lo, hi),
                         MonsterStats {
-                    chomp_dmg: 16,
-                    thrash_dmg: 34,
-                    thrash_block: if ascension >= 18 { 2 } else { 1 },
-                    bellow_str: 1,
-                    bellow_block: 0,
-                    dark_strike_dmg: 0,
-                    ritual_amt: 0,
-                },
+                            chomp_dmg: 16,
+                            thrash_dmg: 34,
+                            thrash_block: if ascension >= 18 { 2 } else { 1 },
+                            bellow_str: 1,
+                            bellow_block: 0,
+                            dark_strike_dmg: 0,
+                            ritual_amt: 0,
+                        },
                     )
                 } else {
                     (
                         hp_rng.random_start_end(lo, hi),
                         MonsterStats {
-                    chomp_dmg: 13,
-                    thrash_dmg: 30,
-                    thrash_block: if ascension >= 18 { 2 } else { 1 },
-                    bellow_str: 1,
-                    bellow_block: 0,
-                    dark_strike_dmg: 0,
-                    ritual_amt: 0,
-                },
+                            chomp_dmg: 13,
+                            thrash_dmg: 30,
+                            thrash_block: if ascension >= 18 { 2 } else { 1 },
+                            bellow_str: 1,
+                            bellow_block: 0,
+                            dark_strike_dmg: 0,
+                            ritual_amt: 0,
+                        },
                     )
                 }
             }
             // 蛇匕：chomp=刺9 thrash=自爆25（打完自灭）
             MonsterKind::SnakeDagger => {
                 let (lo, hi) = (20, 25);
-                (hp_rng.random_start_end(lo, hi), MonsterStats {
-                    chomp_dmg: 9,
-                    thrash_dmg: 25,
-                    thrash_block: 0,
-                    bellow_str: 0,
-                    bellow_block: 0,
-                    dark_strike_dmg: 0,
-                    ritual_amt: 0,
-                })
+                (
+                    hp_rng.random_start_end(lo, hi),
+                    MonsterStats {
+                        chomp_dmg: 9,
+                        thrash_dmg: 25,
+                        thrash_block: 0,
+                        bellow_str: 0,
+                        bellow_block: 0,
+                        dark_strike_dmg: 0,
+                        ritual_amt: 0,
+                    },
+                )
             }
             // 觉醒者：双阶段(300/300, A9 320)；chomp=挥砍20 thrash=灵魂冲击6×4
             // thrash_block=黑暗回响40 bellow_str=污泥18 bellow_block=冲撞10
             // dark=冲击段数4 ritual=冲撞段数3；counter=阶段2标记
             MonsterKind::AwakenedOne => {
                 let hp = if ascension >= 9 { 320 } else { 300 };
-                (hp, MonsterStats { chomp_dmg: 20, thrash_dmg: 6, thrash_block: 40, bellow_str: 18, bellow_block: 10, dark_strike_dmg: 4, ritual_amt: 3 })
+                (
+                    hp,
+                    MonsterStats {
+                        chomp_dmg: 20,
+                        thrash_dmg: 6,
+                        thrash_block: 40,
+                        bellow_str: 18,
+                        bellow_block: 10,
+                        dark_strike_dmg: 4,
+                        ritual_amt: 3,
+                    },
+                )
             }
             // 多努：chomp=光束(10/12)×2 thrash=力量环3；起手力量环；神器2(3 A19)
             MonsterKind::Donu => {
                 let hp = if ascension >= 9 { 265 } else { 250 };
-                (hp, MonsterStats { chomp_dmg: if ascension >= 4 { 12 } else { 10 }, thrash_dmg: 3, thrash_block: 0, bellow_str: 0, bellow_block: 0, dark_strike_dmg: 0, ritual_amt: 0 })
+                (
+                    hp,
+                    MonsterStats {
+                        chomp_dmg: if ascension >= 4 { 12 } else { 10 },
+                        thrash_dmg: 3,
+                        thrash_block: 0,
+                        bellow_str: 0,
+                        bellow_block: 0,
+                        dark_strike_dmg: 0,
+                        ritual_amt: 0,
+                    },
+                )
             }
             // 德卡：chomp=光束(10/12)×2+晕2 thrash=护甲环3；起手光束；神器2(3 A19)
             MonsterKind::Deca => {
                 let hp = if ascension >= 9 { 265 } else { 250 };
-                (hp, MonsterStats { chomp_dmg: if ascension >= 4 { 12 } else { 10 }, thrash_dmg: 3, thrash_block: 2, bellow_str: 0, bellow_block: 0, dark_strike_dmg: 0, ritual_amt: 0 })
+                (
+                    hp,
+                    MonsterStats {
+                        chomp_dmg: if ascension >= 4 { 12 } else { 10 },
+                        thrash_dmg: 3,
+                        thrash_block: 2,
+                        bellow_str: 0,
+                        bellow_block: 0,
+                        dark_strike_dmg: 0,
+                        ritual_amt: 0,
+                    },
+                )
             }
             // 吞时者：chomp=回响(7/8)×3 thrash=头撞(26/32)+下回合抽牌-1
             // thrash_block=涟漪格挡20；半血一次加速；战前 TimeWarp
             MonsterKind::TimeEater => {
                 let hp = if ascension >= 9 { 480 } else { 456 };
                 let (reverb, slam) = if ascension >= 2 { (8, 32) } else { (7, 26) };
-                (hp, MonsterStats { chomp_dmg: reverb, thrash_dmg: slam, thrash_block: 20, bellow_str: 0, bellow_block: 0, dark_strike_dmg: 0, ritual_amt: 0 })
+                (
+                    hp,
+                    MonsterStats {
+                        chomp_dmg: reverb,
+                        thrash_dmg: slam,
+                        thrash_block: 20,
+                        bellow_str: 0,
+                        bellow_block: 0,
+                        dark_strike_dmg: 0,
+                        ritual_amt: 0,
+                    },
+                )
             }
             // ══════════ Act 4（终局）══════════
             // 尖塔之盾：chomp=痛击(12/14 A3+) thrash=粉碎(34/38+自甲)
@@ -1312,9 +1560,31 @@ impl MonsterState {
             MonsterKind::SpireShield => {
                 let hp = if ascension >= 8 { 125 } else { 110 };
                 if ascension >= 3 {
-                    (hp, MonsterStats { chomp_dmg: 14, thrash_dmg: 38, thrash_block: 30, bellow_str: 0, bellow_block: 0, dark_strike_dmg: 0, ritual_amt: 0 })
+                    (
+                        hp,
+                        MonsterStats {
+                            chomp_dmg: 14,
+                            thrash_dmg: 38,
+                            thrash_block: 30,
+                            bellow_str: 0,
+                            bellow_block: 0,
+                            dark_strike_dmg: 0,
+                            ritual_amt: 0,
+                        },
+                    )
                 } else {
-                    (hp, MonsterStats { chomp_dmg: 12, thrash_dmg: 34, thrash_block: 30, bellow_str: 0, bellow_block: 0, dark_strike_dmg: 0, ritual_amt: 0 })
+                    (
+                        hp,
+                        MonsterStats {
+                            chomp_dmg: 12,
+                            thrash_dmg: 34,
+                            thrash_block: 30,
+                            bellow_str: 0,
+                            bellow_block: 0,
+                            dark_strike_dmg: 0,
+                            ritual_amt: 0,
+                        },
+                    )
                 }
             }
             // 尖塔之矛：chomp=燃烧打击(5/6)×2+灼伤2 thrash=穿刺10
@@ -1322,9 +1592,31 @@ impl MonsterState {
             MonsterKind::SpireSpear => {
                 let hp = if ascension >= 8 { 180 } else { 160 };
                 if ascension >= 3 {
-                    (hp, MonsterStats { chomp_dmg: 6, thrash_dmg: 10, thrash_block: 2, bellow_str: 4, bellow_block: 0, dark_strike_dmg: 0, ritual_amt: 0 })
+                    (
+                        hp,
+                        MonsterStats {
+                            chomp_dmg: 6,
+                            thrash_dmg: 10,
+                            thrash_block: 2,
+                            bellow_str: 4,
+                            bellow_block: 0,
+                            dark_strike_dmg: 0,
+                            ritual_amt: 0,
+                        },
+                    )
                 } else {
-                    (hp, MonsterStats { chomp_dmg: 5, thrash_dmg: 10, thrash_block: 2, bellow_str: 3, bellow_block: 0, dark_strike_dmg: 0, ritual_amt: 0 })
+                    (
+                        hp,
+                        MonsterStats {
+                            chomp_dmg: 5,
+                            thrash_dmg: 10,
+                            thrash_block: 2,
+                            bellow_str: 3,
+                            bellow_block: 0,
+                            dark_strike_dmg: 0,
+                            ritual_amt: 0,
+                        },
+                    )
                 }
             }
             // 腐朽之心：chomp=回响(40/45 A4+) thrash=血射每段2
@@ -1333,9 +1625,31 @@ impl MonsterState {
             MonsterKind::CorruptHeart => {
                 let hp = if ascension >= 9 { 800 } else { 750 };
                 if ascension >= 4 {
-                    (hp, MonsterStats { chomp_dmg: 45, thrash_dmg: 2, thrash_block: 15, bellow_str: 2, bellow_block: 0, dark_strike_dmg: 0, ritual_amt: 0 })
+                    (
+                        hp,
+                        MonsterStats {
+                            chomp_dmg: 45,
+                            thrash_dmg: 2,
+                            thrash_block: 15,
+                            bellow_str: 2,
+                            bellow_block: 0,
+                            dark_strike_dmg: 0,
+                            ritual_amt: 0,
+                        },
+                    )
                 } else {
-                    (hp, MonsterStats { chomp_dmg: 40, thrash_dmg: 2, thrash_block: 12, bellow_str: 2, bellow_block: 0, dark_strike_dmg: 0, ritual_amt: 0 })
+                    (
+                        hp,
+                        MonsterStats {
+                            chomp_dmg: 40,
+                            thrash_dmg: 2,
+                            thrash_block: 12,
+                            bellow_str: 2,
+                            bellow_block: 0,
+                            dark_strike_dmg: 0,
+                            ritual_amt: 0,
+                        },
+                    )
                 }
             }
             // 大酸液史莱姆：chomp=腐蚀冲撞(11/12)+粘液2 thrash=普通冲撞(16/18)
@@ -1345,14 +1659,14 @@ impl MonsterState {
                 (
                     hp_rng.random_start_end(lo, hi),
                     MonsterStats {
-                    chomp_dmg: if ascension >= 2 { 12 } else { 11 },
-                    thrash_dmg: if ascension >= 2 { 18 } else { 16 },
-                    thrash_block: 2,
-                    bellow_str: 2,
-                    bellow_block: 2,
-                    dark_strike_dmg: 0,
-                    ritual_amt: 0,
-                },
+                        chomp_dmg: if ascension >= 2 { 12 } else { 11 },
+                        thrash_dmg: if ascension >= 2 { 18 } else { 16 },
+                        thrash_block: 2,
+                        bellow_str: 2,
+                        bellow_block: 2,
+                        dark_strike_dmg: 0,
+                        ritual_amt: 0,
+                    },
                 )
             }
             // 大尖刺史莱姆：chomp=火焰冲撞(16/18)+粘液2 bellow_str=脆舔(2/3 A17)
@@ -1362,14 +1676,14 @@ impl MonsterState {
                 (
                     hp_rng.random_start_end(lo, hi),
                     MonsterStats {
-                    chomp_dmg: if ascension >= 2 { 18 } else { 16 },
-                    thrash_dmg: 0,
-                    thrash_block: if ascension >= 17 { 3 } else { 2 },
-                    bellow_str: 2,
-                    bellow_block: 0,
-                    dark_strike_dmg: 0,
-                    ritual_amt: 0,
-                },
+                        chomp_dmg: if ascension >= 2 { 18 } else { 16 },
+                        thrash_dmg: 0,
+                        thrash_block: if ascension >= 17 { 3 } else { 2 },
+                        bellow_str: 2,
+                        bellow_block: 0,
+                        dark_strike_dmg: 0,
+                        ritual_amt: 0,
+                    },
                 )
             }
             // ── 红面罩三人组（BanditPointy/Leader/Bear.java 逐行）──

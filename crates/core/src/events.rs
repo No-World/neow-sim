@@ -398,8 +398,6 @@ impl RunState {
         Some(kind)
     }
 
-
-
     /// getShrine：神龛 + 条件过滤后的一次性事件，uniform 抽取后两池移除
     fn pick_shrine(&mut self) -> Option<EventKind> {
         use EventKind as E;
@@ -2169,7 +2167,7 @@ impl RunState {
             damage_bonus: 0,
             block_bonus: 0,
             cost_delta: 0,
-                upgrade_times: 0,
+            upgrade_times: 0,
         }
     }
 
@@ -2269,7 +2267,7 @@ impl RunState {
             damage_bonus: 0,
             block_bonus: 0,
             cost_delta: 0,
-                upgrade_times: 0,
+            upgrade_times: 0,
         }
     }
 
@@ -2303,7 +2301,7 @@ impl RunState {
             damage_bonus: 0,
             block_bonus: 0,
             cost_delta: 0,
-                upgrade_times: 0,
+            upgrade_times: 0,
         }
     }
 
@@ -2615,7 +2613,7 @@ mod tests {
             damage_bonus: 0,
             block_bonus: 0,
             cost_delta: 0,
-                upgrade_times: 0,
+            upgrade_times: 0,
         });
         run.player.hp = 10;
         run.choose_event_option(0);

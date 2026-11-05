@@ -43,15 +43,15 @@ pub mod action_type {
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 enum GameState {
-    NeowChoice,   // 开局 Neow 事件（floor 0）
-    MapNode,      // 选下一个地图节点
-    Combat,       // 战斗中（出牌/结束回合）
-    EventChoice,  // 事件选项
-    RewardScreen, // 奖励屏
-    RestChoice,   // 休息选项
-    ShopScreen,   // 商店（简化：跳过）
+    NeowChoice,      // 开局 Neow 事件（floor 0）
+    MapNode,         // 选下一个地图节点
+    Combat,          // 战斗中（出牌/结束回合）
+    EventChoice,     // 事件选项
+    RewardScreen,    // 奖励屏
+    RestChoice,      // 休息选项
+    ShopScreen,      // 商店（简化：跳过）
     BossRelicChoice, // Boss 遗物 3 选 1（可跳过）
-    Done,         // 游戏结束
+    Done,            // 游戏结束
 }
 
 // ── 观测包装 ─────────────────────────────────────
@@ -283,24 +283,35 @@ impl GymEnv {
         let mut o = String::from("{\"meta\":{");
         o.push_str(&format!(
             "\"pos\":[{},{}],\"hp\":{},\"max_hp\":{},\"gold\":{},\"act\":{},\"floor\":{}",
-            self.run.pos.0, self.run.pos.1,
-            p.hp, p.max_hp, p.gold, self.run.act, self.run.floor
+            self.run.pos.0, self.run.pos.1, p.hp, p.max_hp, p.gold, self.run.act, self.run.floor
         ));
         // RNG 计数器（对拍定位分叉的关键）
         o.push_str(",\"rng\":{");
         // 战斗中真实推进的是 combat 内的 RNG 副本（结束后才回写 run.rng）
-        let r = if let Some(c) = &self.run.combat { &c.rng } else { &self.run.rng };
+        let r = if let Some(c) = &self.run.combat {
+            &c.rng
+        } else {
+            &self.run.rng
+        };
         let streams: [(&str, u32); 13] = [
-            ("monster", r.monster.counter), ("map", r.map.counter),
-            ("event", r.event.counter), ("merchant", r.merchant.counter),
-            ("card", r.card.counter), ("treasure", r.treasure.counter),
-            ("relic", r.relic.counter), ("potion", r.potion.counter),
-            ("monster_hp", r.monster_hp.counter), ("ai", r.ai.counter),
-            ("shuffle", r.shuffle.counter), ("card_random", r.card_random.counter),
+            ("monster", r.monster.counter),
+            ("map", r.map.counter),
+            ("event", r.event.counter),
+            ("merchant", r.merchant.counter),
+            ("card", r.card.counter),
+            ("treasure", r.treasure.counter),
+            ("relic", r.relic.counter),
+            ("potion", r.potion.counter),
+            ("monster_hp", r.monster_hp.counter),
+            ("ai", r.ai.counter),
+            ("shuffle", r.shuffle.counter),
+            ("card_random", r.card_random.counter),
             ("misc", r.misc.counter),
         ];
         for (i, (name, v)) in streams.iter().enumerate() {
-            if i > 0 { o.push(','); }
+            if i > 0 {
+                o.push(',');
+            }
             o.push_str(&format!("\"{}\":{}", name, v));
         }
         o.push_str("}},\"state\":\"");
@@ -312,12 +323,21 @@ impl GymEnv {
         if let Some(c) = &self.run.combat {
             o.push_str(&format!(
                 "\"hp\":{},\"max_hp\":{},\"block\":{},\"energy\":{},\"gold\":{},\"powers\":[",
-                c.player.creature.hp, c.player.creature.max_hp,
-                c.player.creature.block, c.player.energy, c.gold
+                c.player.creature.hp,
+                c.player.creature.max_hp,
+                c.player.creature.block,
+                c.player.energy,
+                c.gold
             ));
             for (i, pw) in c.player.creature.powers.iter().enumerate() {
-                if i > 0 { o.push(','); }
-                o.push_str(&format!("{{\"id\":\"{}\",\"amount\":{}}}", pw.id(), pw.amount));
+                if i > 0 {
+                    o.push(',');
+                }
+                o.push_str(&format!(
+                    "{{\"id\":\"{}\",\"amount\":{}}}",
+                    pw.id(),
+                    pw.amount
+                ));
             }
             o.push_str(&format!("],\"stance\":\"{:?}\"}}", c.player.stance));
             o.push_str(&format!(",\"turn\":{}", c.turn));
@@ -325,10 +345,14 @@ impl GymEnv {
             // 手牌（显示序）
             o.push_str(",\"hand\":[");
             for (i, cd) in c.player.hand.iter().enumerate() {
-                if i > 0 { o.push(','); }
+                if i > 0 {
+                    o.push(',');
+                }
                 o.push_str(&format!(
                     "{{\"id\":\"{}\",\"upgraded\":{},\"cost_for_turn\":{}}}",
-                    cd.def.id, cd.upgraded, cd.cost_pay()
+                    cd.def.id,
+                    cd.upgraded,
+                    cd.cost_pay()
                 ));
             }
             o.push(']');
@@ -337,8 +361,12 @@ impl GymEnv {
             o.push_str(",\"monsters\":[");
             let mut first = true;
             for (mi, m) in c.monsters.iter().enumerate() {
-                if m.creature.hp <= 0 { continue; }
-                if !first { o.push(','); }
+                if m.creature.hp <= 0 {
+                    continue;
+                }
+                if !first {
+                    o.push(',');
+                }
                 first = false;
                 // 意图伤害必须用**结算后**的值（含力量/虚弱等乘区）。
                 // move_base_damage() 是基值，少算力量 —— 曾导致 intent 10 vs 7。
@@ -350,8 +378,14 @@ impl GymEnv {
                     idmg.map(|d| d.to_string()).unwrap_or_else(|| "null".into())
                 ));
                 for (j, pw) in m.creature.powers.iter().enumerate() {
-                    if j > 0 { o.push(','); }
-                    o.push_str(&format!("{{\"id\":\"{}\",\"amount\":{}}}", pw.id(), pw.amount));
+                    if j > 0 {
+                        o.push(',');
+                    }
+                    o.push_str(&format!(
+                        "{{\"id\":\"{}\",\"amount\":{}}}",
+                        pw.id(),
+                        pw.amount
+                    ));
                 }
                 o.push_str("]}");
             }
@@ -359,26 +393,38 @@ impl GymEnv {
 
             o.push_str(&format!(
                 ",\"draw_pile_n\":{},\"discard_pile_n\":{},\"exhaust_pile_n\":{}",
-                c.player.draw.len(), c.player.discard.len(), c.player.exhaust.len()
+                c.player.draw.len(),
+                c.player.discard.len(),
+                c.player.exhaust.len()
             ));
             // 抽牌堆真实顺序（Vec 尾 = 堆顶 = 下一张抽到）
             o.push_str(",\"draw_order\":[");
             for (i, cd) in c.player.draw.iter().enumerate() {
-                if i > 0 { o.push(','); }
+                if i > 0 {
+                    o.push(',');
+                }
                 o.push_str(&format!("\"{}\"", cd.def.id));
             }
             o.push(']');
             o.push_str(",\"discard_order\":[");
             for (i, cd) in c.player.discard.iter().enumerate() {
-                if i > 0 { o.push(','); }
+                if i > 0 {
+                    o.push(',');
+                }
                 o.push_str(&format!("\"{}\"", cd.def.id));
             }
             o.push(']');
 
             o.push_str(",\"relics\":[");
             for (i, rl) in c.player_relics.iter().enumerate() {
-                if i > 0 { o.push(','); }
-                o.push_str(&format!("{{\"id\":\"{}\",\"counter\":{}}}", rl.kind.id(), rl.counter));
+                if i > 0 {
+                    o.push(',');
+                }
+                o.push_str(&format!(
+                    "{{\"id\":\"{}\",\"counter\":{}}}",
+                    rl.kind.id(),
+                    rl.counter
+                ));
             }
             o.push(']');
         } else {
@@ -388,23 +434,36 @@ impl GymEnv {
             ));
             o.push_str(",\"relics\":[");
             for (i, rl) in self.run.relics.iter().enumerate() {
-                if i > 0 { o.push(','); }
-                o.push_str(&format!("{{\"id\":\"{}\",\"counter\":{}}}", rl.kind.id(), rl.counter));
+                if i > 0 {
+                    o.push(',');
+                }
+                o.push_str(&format!(
+                    "{{\"id\":\"{}\",\"counter\":{}}}",
+                    rl.kind.id(),
+                    rl.counter
+                ));
             }
             o.push(']');
-            o.push('}');   // 闭合非战斗分支的 player 对象
+            o.push('}'); // 闭合非战斗分支的 player 对象
         }
         // 主牌组（顶层字段，对拍用）
         o.push_str(",\"deck\":[");
         for (i, cd) in self.run.deck.iter().enumerate() {
-            if i > 0 { o.push(','); }
-            o.push_str(&format!("{{\"id\":\"{}\",\"upgraded\":{}}}", cd.def.id, cd.upgraded));
+            if i > 0 {
+                o.push(',');
+            }
+            o.push_str(&format!(
+                "{{\"id\":\"{}\",\"upgraded\":{}}}",
+                cd.def.id, cd.upgraded
+            ));
         }
         o.push(']');
         // 奖励项类型序列（对拍用）
         o.push_str(",\"reward_kinds\":[");
         for (i, r) in self.run.rewards.iter().enumerate() {
-            if i > 0 { o.push(','); }
+            if i > 0 {
+                o.push(',');
+            }
             let t = match r {
                 RewardItem::Gold(_) => "GOLD",
                 RewardItem::Card(_) => "CARD",
@@ -415,7 +474,7 @@ impl GymEnv {
             o.push_str(&format!("\"{}\"", t));
         }
         o.push(']');
-        o.push('}');       // 闭合顶层
+        o.push('}'); // 闭合顶层
         o
     }
 }
@@ -555,7 +614,10 @@ impl GymEnv {
                 } else {
                     // 正常选项
                     let opts = self.run.event_options();
-                    let pick = if entity >= 0 && (entity as usize) < opts.len() && !opts[entity as usize].disabled {
+                    let pick = if entity >= 0
+                        && (entity as usize) < opts.len()
+                        && !opts[entity as usize].disabled
+                    {
                         entity as usize
                     } else {
                         // 选最后一个（通常是离开）
@@ -879,7 +941,9 @@ impl GymEnv {
             // entity = 下标（前 edges.len() 个是普通边，之后是飞行目标），
             // target = 目标列。
             let cols = self.run.next_columns();
-            let n_edges = self.run.map.rows[self.run.pos.0][self.run.pos.1].edges.len();
+            let n_edges = self.run.map.rows[self.run.pos.0][self.run.pos.1]
+                .edges
+                .len();
             for (i, dst_x) in cols.iter().enumerate() {
                 let is_flight = i >= n_edges;
                 flat.push(FlatAction {
