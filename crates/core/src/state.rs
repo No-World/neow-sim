@@ -827,15 +827,19 @@ impl MonsterState {
                 )
             }
             MonsterKind::SlimeBoss => {
-                // 真游戏 this.setHp(单参) → 仍耗 1 次 monsterHpRng（nextInt(1)）
-                let hp = Self::set_hp_fixed(hp_rng, if ascension >= 2 { 150 } else { 140 });
-                let slam = if ascension >= 2 { 38 } else { 35 };
+                // SlimeBoss：HP 提升在 **A9**（150/140，曾误用 A2）；
+                // Slam 提升与 tackle 在 **A4**（38/35、10/9，曾误用 A2）；
+                // Goop 的粘液张数 A19+ = 5，否则 3（曾误写成 10）。
+                // 槽位：chomp=slam（move 1 用）、thrash_dmg=goop 张数
+                let hp = Self::set_hp_fixed(hp_rng, if ascension >= 9 { 150 } else { 140 });
+                let slam = if ascension >= 4 { 38 } else { 35 };
+                let goop = if ascension >= 19 { 5 } else { 3 };
                 (
                     hp,
                     MonsterStats {
                         chomp_dmg: slam,
-                        thrash_dmg: 10,
-                        thrash_block: 3,
+                        thrash_dmg: goop,
+                        thrash_block: 0,
                         bellow_str: 0,
                         bellow_block: 0,
                         dark_strike_dmg: 0,

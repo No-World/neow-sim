@@ -413,6 +413,11 @@ pub(crate) enum Q {
         acid: bool,
         hp: i32,
     },
+    /// SlimeBoss 分裂：SuicideAction(false) + SpikeSlime_L（左）+ AcidSlime_L（右），
+    /// 两只继承分裂时的当前 HP（4 参构造器，**不掷** monsterHp）
+    SlimeBossSplit {
+        src: usize,
+    },
     /// Guardian Twin Slam 开头：ChangeState(OFFENSIVE)——重挂 Mode Shift 计数、
     /// 清格挡、dmgTaken 归零、isOpen=true（Sharp Hide 的移除一并处理）
     GuardianOffensive {
@@ -1898,6 +1903,18 @@ impl Combat {
                 }
             }
             if warp_triggered {
+                // TimeWarpPower：12 张 → 立即结束玩家回合 + **全体怪物 +2 力量**
+                for mi in 0..self.monsters.len() {
+                    if self.alive(mi) {
+                        apply_power(
+                            &mut self.monsters[mi].creature.powers,
+                            PowerKind::Strength,
+                            2,
+                            false,
+                            false,
+                        );
+                    }
+                }
                 self.force_end_turn_after_queue = true;
             }
         }
@@ -2948,6 +2965,9 @@ impl Combat {
                     // Guardian：确定性招式链，所有 takeTurn case 均**无 RollMoveAction**
                     //（实测 floor16 ai 5 vs 真 1：init rollMove 后不再掷）
                     MonsterKind::Guardian => true,
+                    // SlimeBoss：takeTurn 全部 setMove 驱动（含 case 3 分裂后 setMove(3)），
+                    // **无 RollMoveAction**；getMove 仅 init 时跑一次
+                    MonsterKind::SlimeBoss => true,
                     // SetMove 驱动（takeTurn 无 RollMoveAction）：劫匪 + 五小鬼 + 火把头
                     // Looter：takeTurn 内全部用 SetMoveAction（无 RollMoveAction）
                     MonsterKind::AcidSlimeS
@@ -3210,6 +3230,7 @@ impl Combat {
     /// 怪物 takeTurn 入队（演出类动作省略，见 parity-spec 豁免表）
     fn monster_turn(&mut self, i: usize) -> Vec<Q> {
         let m = &self.monsters[i];
+        let m_move = m.next_move;
         let mut q = Vec::new();
         match m.kind {
             MonsterKind::JawWorm => match m.next_move {
@@ -3593,11 +3614,16 @@ impl Combat {
                     // Prepare: 什么都不做
                 }
                 1 => {
-                    // Slam: 35伤
+                    // Slam（A4+ 38 / 否则 35）
                     q.push(Q::MonsterDamage {
                         src: i,
-                        base: m.dark_strike_dmg,
+                        base: m.chomp_dmg,
                     });
+                }
+                3 => {
+                    // Split：SuicideAction(false) + Spawn SpikeSlime_L(-385) + AcidSlime_L(120)
+                    // 两只继承**分裂时的当前 HP**（4 参构造器，不掷 monsterHp）
+                    q.push(Q::SlimeBossSplit { src: i });
                 }
                 _ => {}
             },
@@ -4556,11 +4582,6 @@ impl Combat {
                     m.chomp_dmg,
                 );
                 let cur_move = m.next_move;
-                let regen = if self.ascension >= 19 { 15 } else { 10 };
-                {
-                    let cr = &mut self.monsters[i].creature;
-                    cr.hp = (cr.hp + regen).min(cr.max_hp);
-                }
                 match cur_move {
                     1 => q.push(Q::MonsterDamage {
                         src: i,
@@ -4626,9 +4647,14 @@ impl Combat {
                 }
                 2 => {
                     if m.kind == MonsterKind::Donu {
+                        // Donu.CIRCLE：全体 +3 力量
                         q.push(Q::StrAllMonsters(m.thrash_dmg));
                     } else {
-                        q.push(Q::PlatedAllMonsters(m.thrash_dmg));
+                        // Deca.CIRCLE：全体 +16 格挡（无条件）；A19+ 额外全体 +3 护甲
+                        q.push(Q::BlockAllMonsters(16));
+                        if self.ascension >= 19 {
+                            q.push(Q::PlatedAllMonsters(m.thrash_dmg));
+                        }
                     }
                 }
                 _ => {}
@@ -4785,11 +4811,10 @@ impl Combat {
                 }
                 4 => {
                     // 力量 +2（若力量为负先抵消）；buffCount 由招式史推导
-                    let buff_count = self.monsters[i]
-                        .move_history
-                        .iter()
-                        .filter(|&&x| x == 4)
-                        .count() as i32;
+                    // buffCount：独立的执行计数（Buff 每执行一次 +1），
+                    // 用 burn_upgraded 承载（该 kind 未他用）。
+                    // 曾用「招式史里 4 的个数推导」→ 差一（history 已含当前 4）
+                    let buff_count = self.monsters[i].burn_upgraded;
                     let str_now = self.monsters[i]
                         .creature
                         .powers
@@ -4824,6 +4849,7 @@ impl Combat {
                             kind: PowerKind::Strength,
                             amount: 10,
                         }),
+                        // 以下分支在 match 之后统一 ++buffCount
                         _ => q.push(Q::ApplyPowerToMonster {
                             target: i,
                             kind: PowerKind::Strength,
@@ -4974,6 +5000,14 @@ impl Combat {
                 _ => {}
             },
         }
+        // Collector：takeTurn 末尾 ++turnsTaken（驱动 3 回合后的 MEGA）；
+        // CorruptHeart：BUFF(4) 末尾 ++buffCount。两者都用 burn_upgraded 承载
+        if self.monsters[i].kind == MonsterKind::TheCollector {
+            self.monsters[i].burn_upgraded += 1;
+        }
+        if self.monsters[i].kind == MonsterKind::CorruptHeart && m_move == 4 {
+            self.monsters[i].burn_upgraded += 1;
+        }
         q
     }
 
@@ -5002,6 +5036,22 @@ impl Combat {
                 }
             }
             self.monsters[i].creature.powers = keep;
+            // RegenerateMonsterPower.atEndOfTurn：非 halfDead/死亡时治疗 amount
+            //（觉醒者；曾错放在其 takeTurn 开头且不判 halfDead → 半死期也回血、且时序偏一轮）
+            if !self.monsters[i].half_dead {
+                if let Some(amt) = self.monsters[i]
+                    .creature
+                    .powers
+                    .iter()
+                    .find(|p| p.kind == PowerKind::RegenerateMonster)
+                    .map(|p| p.amount)
+                {
+                    if amt > 0 {
+                        let cr = &mut self.monsters[i].creature;
+                        cr.hp = (cr.hp + amt).min(cr.max_hp);
+                    }
+                }
+            }
             if poison_tick > 0 {
                 self.monsters[i].creature.hp -= poison_tick;
                 if self.monsters[i].creature.is_dead() {
@@ -6311,14 +6361,11 @@ impl Combat {
                         false,
                     );
                 }
-                let init_move: u8 = match kind {
-                    MonsterKind::GremlinWizard => 2, // 充能
-                    MonsterKind::GremlinFat => 2,
-                    _ => 1,
-                };
-                m.next_move = init_move;
-                m.move_history.push(init_move);
+                // SpawnMonsterAction.update() → m.init() → rollMove()
+                // ⇒ **每个被召唤物消耗 1 次 aiRng**（此前硬编码首招、不掷 → 流错位）
+                let idx = self.monsters.len();
                 self.monsters.push(m);
+                self.roll_move(idx);
             }
             Q::SummonGremlin => {
                 // SummonGremlinAction：aiRng 八池（战/贼×2 胖×2 傲 巫）；
@@ -6356,20 +6403,18 @@ impl Combat {
                             false,
                         );
                     }
-                    let init_move: u8 = if kind == MonsterKind::GremlinWizard {
-                        2
-                    } else {
-                        1
-                    };
-                    nm.next_move = init_move;
-                    nm.move_history.push(init_move);
+                    // SummonGremlinAction.update() → m.init() → rollMove()
+                    // ⇒ 每次召唤额外消耗 1 次 aiRng（池选 1 + init 1 = 2）
                     if let Some(&dead_slot) = minions
                         .iter()
                         .find(|&&j| self.monsters[j].creature.is_dead() || self.monsters[j].escaped)
                     {
-                        self.monsters[dead_slot] = nm; // 占用死亡位
+                        self.monsters[dead_slot] = nm; // 占用空位（identifySlot）
+                        self.roll_move(dead_slot);
                     } else if minions.len() < 3 {
+                        let idx = self.monsters.len();
                         self.monsters.push(nm);
+                        self.roll_move(idx);
                     }
                 }
             }
@@ -6461,14 +6506,15 @@ impl Combat {
                     if self.monsters[mi].kind == MonsterKind::TorchHead
                         && (self.monsters[mi].creature.is_dead() || self.monsters[mi].escaped)
                     {
-                        let mut nm = MonsterState::spawn(
+                        let nm = MonsterState::spawn(
                             MonsterKind::TorchHead,
                             asc,
                             &mut self.rng.monster_hp,
                         );
-                        nm.next_move = 1;
-                        nm.move_history.push(1);
+                        // SpawnMonsterAction → init() → rollMove()：消耗 1 次 aiRng
+                        //（TorchHead.getMove 恒 1，但掷数必须精确）
                         self.monsters[mi] = nm;
+                        self.roll_move(mi);
                     }
                 }
             }
@@ -6542,6 +6588,29 @@ impl Combat {
                 // SpawnMonsterAction → Monster.init() → rollMove（各 1 次 aiRng）
                 self.roll_move(l_idx);
                 self.roll_move(l_idx + 2);
+                if self.all_monsters_dead() {
+                    self.over = true;
+                    self.won = true;
+                }
+            }
+            Q::SlimeBossSplit { src } => {
+                let hp = self.monsters[src].creature.hp;
+                self.monsters[src].creature.hp = 0;
+                self.monsters[src].creature.block = 0;
+                let asc = self.ascension;
+                let mut scratch = crate::rng::StsRandom::new(0);
+                let mut spike = MonsterState::spawn(MonsterKind::SpikeSlimeL, asc, &mut scratch);
+                let mut acid = MonsterState::spawn(MonsterKind::AcidSlimeL, asc, &mut scratch);
+                for m in [&mut spike, &mut acid] {
+                    m.creature.max_hp = hp;
+                    m.creature.hp = hp;
+                }
+                // 按 x 位序：[Spike L(-385), SlimeBoss(0, 尸), Acid L(120)]
+                self.monsters.insert(src, spike);
+                self.monsters.insert(src + 2, acid);
+                // SpawnMonsterAction → Monster.init() → rollMove（各 1 次 aiRng）
+                self.roll_move(src);
+                self.roll_move(src + 2);
                 if self.all_monsters_dead() {
                     self.over = true;
                     self.won = true;
@@ -6949,12 +7018,27 @@ impl Combat {
             self.monsters[target].next_move = 3;
             self.monsters[target].move_history.push(3);
         }
+        // SlimeBoss.damage：hp ≤ max/2 且 next_move != 3 → 定招 SPLIT(3)
+        //（无 splitTriggered 门控——分裂执行后 takeTurn 又 setMove(3)，恒为 3）
+        if self.monsters[target].creature.hp > 0
+            && self.monsters[target].creature.hp * 2 <= self.monsters[target].creature.max_hp
+            && self.monsters[target].next_move != 3
+            && self.monsters[target].kind == MonsterKind::SlimeBoss
+        {
+            self.monsters[target].next_move = 3;
+            self.monsters[target].move_history.push(3);
+        }
         // AwakenedOne：阶段 1 死亡 → 半死转阶段（阶段 2 死亡 = 真死）
         if self.monsters[target].creature.hp <= 0
             && !self.monsters[target].half_dead
             && self.monsters[target].kind == MonsterKind::AwakenedOne
             && self.monsters[target].burn_upgraded == 0
         {
+            // AwakenedOne.damage()：阶段切换时移除全部 DEBUFF（保留 Curiosity 等增益）
+            self.monsters[target]
+                .creature
+                .powers
+                .retain(|p| !p.kind.is_debuff());
             self.monsters[target].half_dead = true;
             self.monsters[target].next_move = 3;
             self.monsters[target].move_history.push(3);
@@ -7587,18 +7671,19 @@ impl Combat {
     /// 有死亡火把头且 num<=25 → 复活；否则火球/群力交替
     fn collector_get_move(&mut self, i: usize, num: i32) -> u8 {
         if self.monsters[i].move_history.is_empty() {
-            return 1; // SPAWN
+            return 1; // SPAWN（initialSpawn）
         }
         let ult_used = self.monsters[i].move_history.contains(&4);
-        let turns = self.monsters[i].move_history.len() as i32 + 1;
+        // turnsTaken：takeTurn 末尾 ++（不是 move_history 长度！）
+        // 曾在第 3 次 getMove 就触发 MEGA（早一回合）
+        let turns = self.monsters[i].burn_upgraded;
         if turns >= 3 && !ult_used {
             return 4; // MEGA_DEBUFF
         }
-        let minion_dead = self
-            .monsters
-            .iter()
-            .enumerate()
-            .any(|(j, m)| j != i && (m.creature.is_dead() || m.escaped));
+        // isMinionDead()：只看两只火把头槽（不是「任意怪死亡」）
+        let minion_dead = self.monsters.iter().enumerate().any(|(j, m)| {
+            j != i && m.kind == MonsterKind::TorchHead && (m.creature.is_dead() || m.escaped)
+        });
         let m = &self.monsters[i];
         let last = m.move_history.last().copied();
         let last2 = if m.move_history.len() >= 2 {
@@ -10470,10 +10555,17 @@ mod tests {
         assert_eq!(c.monsters[0].next_move, 1, "首招召唤");
         c.step(&Action::EndTurn);
         assert_eq!(c.monsters.len(), 3, "两只火把头");
-        // 第 3 回合（history.len()==2）→ 超大减益
-        c.monsters[0].next_move = 2; // T2 火球
+        // 真游戏：takeTurn 末尾 ++turnsTaken；getMove 判定 turnsTaken>=3 → MEGA。
+        // 即 **第 4 次 getMove**（3 次 takeTurn 之后）才出 4；曾用 move_history.len()
+        // 导致第 3 次决策就 MEGA（早一回合）。
+        assert_eq!(c.monsters[0].burn_upgraded, 1, "turnsTaken=1");
+        assert_ne!(c.monsters[0].next_move, 4, "turnsTaken=1 不出 MEGA");
         c.step(&Action::EndTurn);
-        assert_eq!(c.monsters[0].next_move, 4, "第 3 回合超大减益");
+        assert_eq!(c.monsters[0].burn_upgraded, 2, "turnsTaken=2");
+        assert_ne!(c.monsters[0].next_move, 4, "turnsTaken=2 不出 MEGA");
+        c.step(&Action::EndTurn);
+        assert_eq!(c.monsters[0].burn_upgraded, 3, "turnsTaken=3");
+        assert_eq!(c.monsters[0].next_move, 4, "turnsTaken>=3 → MEGA");
         c.step(&Action::EndTurn);
         for k in [PowerKind::Weak, PowerKind::Vulnerable, PowerKind::Frail] {
             assert!(c.player.creature.powers.iter().any(|p| p.kind == k));
@@ -11064,13 +11156,20 @@ mod tests {
             m_amount(&c, 0, PowerKind::Artifact).is_some(),
             "首次轮转神器"
         );
-        // 第 2 次 = 亡律 +1
+        // 第 2 次 = 亡律 +1（A19 初始 2 → 叠加后 3；ApplyPowerAction 累加）
         c.monsters[0].next_move = 4;
         c.step(&Action::EndTurn);
         assert_eq!(
             m_amount(&c, 0, PowerKind::BeatOfDeath),
-            Some(2),
-            "二次亡律+1"
+            Some(3),
+            "二次亡律 +1（2 → 3）"
+        );
+        // 第 3 次 = 苦痛之刺；第 4 次 = 力量 +10
+        c.monsters[0].next_move = 4;
+        c.step(&Action::EndTurn);
+        assert!(
+            m_amount(&c, 0, PowerKind::PainfulStabs).is_some(),
+            "三次苦痛之刺"
         );
     }
 
