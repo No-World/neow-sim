@@ -270,13 +270,19 @@ pub fn act_event_pool(act: u8) -> Vec<EventKind> {
 /// 神龛池（initializeShrineList；Match and Keep! 小游戏未实现）
 pub fn shrine_pool() -> Vec<EventKind> {
     use EventKind as E;
+    // ⚠️ 顺序必须与真游戏 `Exordium.initializeShrineList()` 的 add 顺序**逐项一致**：
+    //   shrineList.add("Match and Keep!"); → Golden Shrine → Transmorgrifier
+    //   → Purifier → Upgrade Shrine → Wheel of Change
+    // 池顺序决定 `tmp.get(rng.random(size-1))` 取到哪个事件。曾把 MatchAndKeep
+    // 放在末尾 → 同一索引取到不同事件（实测 A10 floor7：真游戏 Match and Keep!，
+    // 引擎 WeMeetAgain/GoldShrine）。
     vec![
+        E::MatchAndKeep,
         E::GoldShrine,
         E::Transmogrifier,
         E::PurificationShrine,
         E::UpgradeShrine,
         E::WheelOfChange,
-        E::MatchAndKeep,
     ]
 }
 
@@ -285,20 +291,26 @@ pub fn shrine_pool() -> Vec<EventKind> {
 pub fn special_pool() -> Vec<EventKind> {
     use EventKind as E;
     vec![
+        // ⚠️ 顺序必须与真游戏 `AbstractDungeon.initializeSpecialOneTimeEventList()`
+        // 的 add 顺序**逐项一致**（14 项）。这个池在 getShrine 里是**追加**到
+        // shrineList 之后的，顺序决定 rng 索引映射到哪个事件。
+        // 曾用「按字母/按接入批次」的顺序 → 同一索引取到不同事件
+        // （实测 A10 floor7：真游戏 Match and Keep!，引擎 WeMeetAgain）。
         E::AccursedBlacksmith,
         E::Bonfire,
-        E::FaceTrader,
-        E::FountainOfCurseRemoval,
-        E::Lab,
-        E::WeMeetAgain,
-        E::WomanInBlue,
         E::Designer,
         E::Duplicator,
+        E::FaceTrader,
+        E::FountainOfCurseRemoval,
         E::KnowingSkull,
+        E::Lab,
         E::Nloth,
-        E::TheJoust,
+        // NoteForYourself 在真游戏是条件加入（A15+ 排除；本实现恒加入，见条件表）
         E::NoteForYourself,
         E::SecretPortal,
+        E::TheJoust,
+        E::WeMeetAgain,
+        E::WomanInBlue,
     ]
 }
 
@@ -367,6 +379,28 @@ impl RunState {
     }
 
     /// getEvent：条件过滤 + uniform 抽取 + 池移除
+    #[cfg(test)]
+    pub fn shrine_tmp_for_test(&mut self) -> Vec<EventKind> {
+        self.last_shrine_tmp = None;
+        let _ = self.pick_shrine();
+        self.last_shrine_tmp.clone().unwrap_or_default()
+    }
+
+    #[cfg(test)]
+    pub fn pick_event_for_test(&mut self) -> Option<EventKind> {
+        self.open_event_for_test()
+    }
+
+    #[cfg(test)]
+    fn open_event_for_test(&mut self) -> Option<EventKind> {
+        let shrine_first = self.rng.event.random_float() < 0.25;
+        if shrine_first {
+            self.pick_shrine()
+        } else {
+            self.pick_event().or_else(|| self.pick_shrine())
+        }
+    }
+
     fn pick_event(&mut self) -> Option<EventKind> {
         use EventKind as E;
         let floor_ok = self.floor > 6;
@@ -414,7 +448,13 @@ impl RunState {
                 E::KnowingSkull => self.act == 2 && self.player.hp > 12,
                 E::Nloth => self.act == 2 && self.relics.len() >= 2,
                 E::TheJoust => self.act == 2 && self.player.gold >= 50,
-                E::NoteForYourself => true,       // 简化：不限存档门槛
+                // Java isNoteForYourselfAvailable：
+                //   A15+ → 排除；A0 → 加入；
+                //   A < 玩家最高解锁进阶 → 加入；否则排除。
+                // 玩家档案是 A20 全解锁（NeowBridge 沙盒），故 A10 下 **排除**。
+                // 曾无条件加入 → shrine tmp 比真游戏多 1 项 → rng 索引错位
+                // （实测 A10 floor7：真游戏 Match and Keep!，引擎 AccursedBlacksmith）。
+                E::NoteForYourself => self.ascension < 15 && self.ascension == 0,
                 E::SecretPortal => self.act == 3, // 简化：不限游玩时长
                 _ => true,
             };
@@ -424,6 +464,10 @@ impl RunState {
         }
         if tmp.is_empty() {
             return None;
+        }
+        #[cfg(test)]
+        {
+            self.last_shrine_tmp = Some(tmp.clone());
         }
         let idx =
             (self.rng.event.random_range(tmp.len() as i32 - 1).max(0) as usize).min(tmp.len() - 1);
@@ -3113,6 +3157,42 @@ mod dead_adventurer_probe {
             "[DA] 首次 Search 判定 = {v}（chance={}）→ {}",
             ev.chance,
             if v < ev.chance { "遇怪" } else { "奖励" }
+        );
+    }
+}
+
+#[cfg(test)]
+mod shrine_order_probe {
+    /// 已由 `shrine_pool_order::shrine_tmp_matches_real_game` 锁定池顺序；
+    /// 这里只验证「第 5 次事件走 shrine 分支」这一事实（float 判定）。
+    #[test]
+    fn floor7_event5_goes_to_shrine() {
+        let mut r = crate::rng::StsRandom::new(1849839045330);
+        r.set_counter(4);
+        let v = r.random_float();
+        eprintln!("[shrine] counter4 float={v:.6}");
+        assert!(v < 0.25, "floor7 第 5 次事件应走 shrine 分支");
+    }
+}
+
+#[cfg(test)]
+mod shrine_pool_order {
+    use super::*;
+    #[test]
+    fn shrine_tmp_matches_real_game() {
+        let mut run = RunState::new(1849839045330, 10);
+        run.deck.push(crate::cards::CardInst::new("Regret"));
+        run.player.gold = 118;
+        run.act = 1;
+        run.floor = 7;
+        let tmp = run.shrine_tmp_for_test();
+        // 真游戏 A10/Exordium/有诅咒/gold>=50 下的 tmp 应为 13 项，
+        // 且第 1 项必须是 Match and Keep!（shrineList 的 add 顺序首项）
+        assert_eq!(tmp.len(), 13, "shrine tmp 项数（真游戏 13）");
+        assert_eq!(tmp[0], EventKind::MatchAndKeep, "shrine 池首项");
+        assert!(
+            !tmp.contains(&EventKind::NoteForYourself),
+            "A10 下 NoteForYourself 应被排除（A15+ 或非最高进阶）"
         );
     }
 }

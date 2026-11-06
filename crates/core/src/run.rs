@@ -1573,6 +1573,9 @@ pub struct RunState {
     pub event: Option<crate::events::EventState>,
     /// 幕内事件池（不重复；每次进幕重填）
     pub event_pool: Vec<crate::events::EventKind>,
+    /// 测试用：最近一次 pick_shrine 的候选列表（锁定池顺序）
+    #[cfg(test)]
+    pub last_shrine_tmp: Option<Vec<crate::events::EventKind>>,
     pub shrine_pool: Vec<crate::events::EventKind>,
     pub special_pool: Vec<crate::events::EventKind>,
     /// 事件战斗标记（胜利后事件收尾；奖励由事件预置，卡牌/药水照掷）
@@ -1688,6 +1691,8 @@ impl RunState {
             purge_cost: 75,
             event: None,
             event_pool: Vec::new(),
+            #[cfg(test)]
+            last_shrine_tmp: None,
             shrine_pool: Vec::new(),
             special_pool: Vec::new(),
             event_combat: false,
