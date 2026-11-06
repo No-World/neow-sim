@@ -19,7 +19,7 @@
 //!   一次性事件、SecretPortal 时长门槛），本批从池中过滤——事件房间出现频率
 //!   略高于原版（可选池变小）
 //! - DeadAdventurer 奖励袋洗牌：源码 `Collections.shuffle(new
-//!   Random(miscRng.randomLong()))`（JavaRandom 种子化），引擎以 miscRng
+//!   Random(miscRng.randomLong()))`（JavaRandom 种子化，已对齐），引擎以 miscRng
 //!   Fisher-Yates 等价替代（概率分布一致，消耗序列不同）
 //! - Mushrooms 战斗（The Mushroom Lair）：Mushroomer 行为层未实现，选项按
 //!   「直接获得战利」结算（金币 + Odd Mushroom 遗物，无卡牌奖励/无战斗风险）
@@ -2246,20 +2246,24 @@ impl RunState {
         }
     }
 
-    /// ShiningLight：升级 2 张随机可升级卡（⚠️ 偏差：miscRng 无放回抽取替代
-    /// JavaRandom 种子洗牌）
+    /// ShiningLight：升级 2 张随机可升级卡。
+    ///
+    /// 源码 `upgradeCards()`（`events/exordium/ShiningLight.java`）：
+    /// ```java
+    /// ArrayList<AbstractCard> upgradableCards = ...; // 按 masterDeck 顺序
+    /// Collections.shuffle(upgradableCards, new Random(miscRng.randomLong()));
+    /// // 取前 2 张 upgrade（只有 1 张时升 1 张）
+    /// ```
+    /// → 消耗 **1 次 miscRng.randomLong()** 作为洗牌种子，然后 JavaRandom 洗牌。
+    /// （此前用 miscRng 无放回抽取，RNG 消耗与结果都不对）
     fn upgrade_two_random(&mut self) {
         let mut idxs = self.deck_upgradable();
-        let mut picks = Vec::new();
-        for _ in 0..2 {
-            if idxs.is_empty() {
-                break;
-            }
-            let j = (self.rng.misc.random_range(idxs.len() as i32 - 1).max(0) as usize)
-                .min(idxs.len() - 1);
-            picks.push(idxs.remove(j));
+        if idxs.is_empty() {
+            return;
         }
-        for i in picks {
+        crate::rng::card_group_shuffle(&mut idxs, &mut self.rng.misc);
+        let n = if idxs.len() == 1 { 1 } else { 2 };
+        for i in idxs.into_iter().take(n) {
             self.deck[i].upgraded = true;
         }
     }
@@ -3228,10 +3232,16 @@ mod floor7_event_probe {
     use super::*;
 
     /// 真游戏实测（bridge 原生录制 A10 seed 2TG2WYWJ0Q041）：F7 抽到 `WeMeetAgain`
-    /// （选项 give potion / give gold / give card / attack）。
+    /// （选项 give potion / give gold / give card / attack），引擎现与之一致。
     ///
-    /// 注意：存档 `event_choices` 里记的是 `Match and Keep!` —— 那是**玩家另一次
-    /// 对局**（同种子不同决策导致 eventRng 推进不同），不是本次复现的目标。
+    /// ⚠️ 已知差异（已登记 docs/parity-spec.md §1.6）：
+    /// 存档 `1737563900.run` 的 `event_choices` 记的是 `Match and Keep!`。
+    /// 该存档的 `path_taken` 与本次复现**完全相同**
+    /// （F1=M, F2..F5=?, F6=R, F7=?），且 F2..F7 都是事件 → eventRng 序列必然相同
+    /// → F7 抽取用 counter=5 → 数学上必然得 WeMeetAgain。
+    /// 即：**存档记录值与「同种子同路径的复现」不一致**，成因待查
+    /// （需要真游戏逐帧 RNG 日志；bridge 的 diag 只能事后读值）。
+    /// 当前以「可复现的实测」为准。
     #[test]
     fn floor7_picks_match_and_keep() {
         // 真游戏实测（bridge 原生录制，A10 seed 2TG2WYWJ0Q041 = -8940560272898235850）：
