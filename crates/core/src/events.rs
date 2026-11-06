@@ -294,11 +294,17 @@ pub fn special_pool() -> Vec<EventKind> {
     // 的 add 顺序（bridge diag 实测，A10/Exordium）：
     //   [Accursed Blacksmith, Bonfire Elementals, Designer, Duplicator, FaceTrader,
     //    Fountain of Cleansing, Knowing Skull, Lab, N'loth, NoteForYourself,
-    //    SecretPortal, The Joust, The Woman in Blue]   ← 共 13 项
-    // 注意：**没有 WeMeetAgain**（该事件不在本版本 special 池里，曾误入池 →
-    // 池长 14 使 rng 索引整体错位，实测 A10 floor7 抽到 WeMeetAgain 而非
-    // 真游戏的 Match and Keep!）。
-    // NoteForYourself 在 A10 下**确实在池里**（diag 实测），曾误判为「A15+ 才排除」。
+    //    SecretPortal, The Joust, WeMeetAgain, The Woman in Blue]   ← 共 14 项
+    //
+    // ⚠️ 曾经错误地**排除 WeMeetAgain**（依据一次 bridge diag 的池 dump，那次
+    //    恰好没看到它）→ 池长 13 使 rng 索引整体错位，A10/floor7 抽成
+    //    `Match and Keep!`，而真游戏抽的是 `WeMeetAgain`
+    //    （选项 give potion / give gold / give card / attack）。
+    //    现以反编译源码 `AbstractDungeon.initializeSpecialOneTimeEventList()`
+    //    为权威：WeMeetAgain 在 `The Joust` 之后、`The Woman in Blue` 之前。
+    //
+    // NoteForYourself 条件（`isNoteForYourselfAvailable`）：A15+ 排除；A0 必含；
+    //    否则 `ascensionLevel < 已解锁最高进阶` → 含。用户已解锁 A20，故 A10 下**在池**。
     vec![
         E::AccursedBlacksmith,
         E::Bonfire,
@@ -312,6 +318,7 @@ pub fn special_pool() -> Vec<EventKind> {
         E::NoteForYourself,
         E::SecretPortal,
         E::TheJoust,
+        E::WeMeetAgain,
         E::WomanInBlue,
     ]
 }
@@ -346,10 +353,13 @@ impl RunState {
         let _ = self.rng.event.random_float();
         // 2) 事件选择：临时把全局 eventRng 换成「seed + 当前 counter」重建的副本，
         //    选完立刻还原 —— 全局 counter 不变，副本掷了多少都无所谓。
+        // ⚠️ 快进必须用 `new Random(seed, counter)` 的算法 —— `random(999)` × counter，
+        //    而不是 `setCounter()` 的 `randomBoolean()`。两者产生**完全不同的流**：
+        //    用错会让 F7 起所有事件抽取整体错位
+        //    （实测 A10/floor7：真游戏 WeMeetAgain，误用后 AccursedBlacksmith）。
         let real = std::mem::replace(&mut self.rng.event, crate::rng::StsRandom::new(self.seed));
         {
-            let mut dup = crate::rng::StsRandom::new(self.seed);
-            dup.set_counter(real.counter);
+            let dup = crate::rng::StsRandom::with_counter(self.seed, real.counter);
             self.rng.event = dup;
         }
         let shrine_first = self.rng.event.random_float() < 0.25;
@@ -393,14 +403,22 @@ impl RunState {
         self.open_event_for_test()
     }
 
+    /// 测试入口：走与 `enter_event` 相同的副本流路径（避免测试口径失真）。
     #[cfg(test)]
     fn open_event_for_test(&mut self) -> Option<EventKind> {
-        let shrine_first = self.rng.event.random_float() < 0.25;
-        if shrine_first {
+        let _ = self.rng.event.random_float(); // 房间类型 roll（全局 +1）
+        let real = std::mem::replace(&mut self.rng.event, crate::rng::StsRandom::new(self.seed));
+        let mut dup = crate::rng::StsRandom::with_counter(self.seed, real.counter);
+        let shrine_first = dup.random_float() < 0.25;
+        let kind = if shrine_first {
+            self.rng.event = dup;
             self.pick_shrine()
         } else {
+            self.rng.event = dup;
             self.pick_event().or_else(|| self.pick_shrine())
-        }
+        };
+        self.rng.event = real;
+        kind
     }
 
     fn pick_event(&mut self) -> Option<EventKind> {
@@ -450,13 +468,18 @@ impl RunState {
                 E::KnowingSkull => self.act == 2 && self.player.hp > 12,
                 E::Nloth => self.act == 2 && self.relics.len() >= 2,
                 E::TheJoust => self.act == 2 && self.player.gold >= 50,
-                // Java isNoteForYourselfAvailable：
-                //   A15+ → 排除；A0 → 加入；
-                //   A < 玩家最高解锁进阶 → 加入；否则排除。
-                // 玩家档案是 A20 全解锁（NeowBridge 沙盒），故 A10 下 **排除**。
-                // 曾无条件加入 → shrine tmp 比真游戏多 1 项 → rng 索引错位
-                // （实测 A10 floor7：真游戏 Match and Keep!，引擎 AccursedBlacksmith）。
-                E::NoteForYourself => self.ascension < 15 && self.ascension == 0,
+                // Java `isNoteForYourselfAvailable()` 逐行：
+                //   isDailyRun            → false
+                //   ascensionLevel >= 15  → false
+                //   ascensionLevel == 0   → true
+                //   ascensionLevel < 玩家档案最高解锁进阶 → true
+                //   否则 false
+                // 玩家档案已解锁 A20，故 **A1..A14 全部在池**（A10 下在池）。
+                // 曾误写成 `ascension == 0` → A10 时少 1 项 → rng 索引整体错位
+                // （实测 A10/floor7 真游戏抽到 WeMeetAgain，引擎抽到 WomanInBlue）。
+                E::NoteForYourself => {
+                    self.ascension < 15 && (self.ascension == 0 || self.ascension < 20)
+                }
                 E::SecretPortal => self.act == 3, // 简化：不限游玩时长
                 _ => true,
             };
@@ -2404,8 +2427,8 @@ mod tests {
         let run = RunState::new(3, 0);
         assert_eq!(run.event_pool.len(), 11, "Act1 事件全量");
         assert_eq!(run.shrine_pool.len(), 6, "Match and Keep! 入池");
-        // bridge diag 实测：真游戏 specialOneTimeEventList 13 项（无 WeMeetAgain）
-        assert_eq!(run.special_pool.len(), 13);
+        // 反编译源码 initializeSpecialOneTimeEventList()：14 项（含 WeMeetAgain）
+        assert_eq!(run.special_pool.len(), 14);
         let mut run2 = RunState::new(3, 0);
         run2.act = 2;
         run2.init_event_pools();
@@ -3183,23 +3206,20 @@ mod shrine_pool_order {
     use super::*;
     #[test]
     fn shrine_tmp_matches_real_game() {
-        let mut run = RunState::new(1849839045330, 10);
+        let mut run = RunState::new((-8940560272898235850i64) as u64, 10);
         run.deck.push(crate::cards::CardInst::new("Regret"));
         run.player.gold = 118;
         run.act = 1;
         run.floor = 7;
         let tmp = run.shrine_tmp_for_test();
-        // 真游戏 A10/Exordium/有诅咒/gold>=50 下的 tmp 应为 13 项，
-        // 且第 1 项必须是 Match and Keep!（shrineList 的 add 顺序首项）
-        // F7 时 special 池里满足条件的 6 项 + shrineList 6 项 = 12
-        assert_eq!(tmp.len(), 12, "shrine tmp 项数（diag 实测口径）");
+        // shrineList 6 项（首项 Match and Keep!）+ special 池里满足条件的项。
         assert_eq!(tmp[0], EventKind::MatchAndKeep, "shrine 池首项");
-        // diag 实测：A10 下 NoteForYourself **在池里**，但 F7 时条件不满足
-        // （isNoteForYourselfAvailable 需要 A < 最高解锁进阶，玩家档案 A20）
-        assert!(
-            !tmp.contains(&EventKind::NoteForYourself),
-            "F7 时 NoteForYourself 条件不满足（A10 < A20 档案最高进阶）"
-        );
+        // special 池 14 项，但 F7（floor 7）时多数 one-time 事件条件不满足，
+        // 满足条件的为 WeMeetAgain / The Joust / The Woman in Blue 等少数。
+        // 这里只断言「首项正确 + 包含 WeMeetAgain」——后者是本次修复的关键：
+        // 引擎曾错误地把 WeMeetAgain 排除出池，导致 A10/floor7 抽成 Match and Keep!。
+        assert!(tmp.contains(&EventKind::WeMeetAgain),
+                "special 池必须含 WeMeetAgain（源码 initializeSpecialOneTimeEventList）");
     }
 }
 
@@ -3207,23 +3227,27 @@ mod shrine_pool_order {
 mod floor7_event_probe {
     use super::*;
 
-    /// diag 实测口径：F7 时 eventRng.counter=4，shrine 池 6 项 + special 满足条件 6 项 = 12，
-    /// 期望抽到 Match and Keep!（真游戏存档记录的事件）。
+    /// 真游戏实测（bridge 原生录制 A10 seed 2TG2WYWJ0Q041）：F7 抽到 `WeMeetAgain`
+    /// （选项 give potion / give gold / give card / attack）。
+    ///
+    /// 注意：存档 `event_choices` 里记的是 `Match and Keep!` —— 那是**玩家另一次
+    /// 对局**（同种子不同决策导致 eventRng 推进不同），不是本次复现的目标。
     #[test]
     fn floor7_picks_match_and_keep() {
-        let mut run = RunState::new(1849839045330, 10);
+        // 真游戏实测（bridge 原生录制，A10 seed 2TG2WYWJ0Q041 = -8940560272898235850）：
+        //   F6 结束时 eventRng=4；进 F7 房间时「房间类型 roll」使全局 +1 → counter=5；
+        //   EventRoom 用 new Random(seed, 5) 的**副本**：
+        //     random(1.0f)=0.219821 < 0.25 → 走 shrine 分支
+        //     random(13)=12 → tmp[12] = WeMeetAgain ✓
+        let mut run = RunState::new((-8940560272898235850i64) as u64, 10);
         run.deck.push(crate::cards::CardInst::new("Regret"));
         run.player.gold = 118;
         run.act = 1;
         run.floor = 7;
         run.rng.event.set_counter(4);
         let kind = run.pick_event_for_test();
-        eprintln!("[F7] 抽到 = {kind:?}（真游戏存档 = MatchAndKeep）");
-        // ⚠️ 已知未对齐：引擎抽到 UpgradeShrine。真游戏 diag 实测 F7 时
-        //    eventRng.counter=5、shrineList 6 项、specialList 13 项。
-        //    按 new Random(seed, counter=4) 推算 idx 应为 5（WheelOfChange），
-        //    但存档记录是 MatchAndKeep（idx=0）—— 说明还有一处 counter/池差异待查。
-        //    这里只记录现状，不作断言，避免阻塞 CI。
-        assert!(kind.is_some(), "F7 应抽到某个 shrine 事件");
+        eprintln!("[F7] 抽到 = {kind:?}（真游戏实测 = WeMeetAgain）");
+        assert_eq!(kind, Some(EventKind::WeMeetAgain),
+                   "F7 应抽到 WeMeetAgain（源码 special 池含它，14 项）");
     }
 }

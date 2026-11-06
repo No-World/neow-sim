@@ -108,6 +108,21 @@ impl StsRandom {
         }
     }
 
+    /// `new Random(Long seed, int counter)`：**用 random(999) 快进**。
+    ///
+    /// ⚠️ 与 `set_counter()`（`randomBoolean()` 快进）**不是同一条流**：
+    /// 真游戏 `EventRoom.onPlayerEntry()` 走的是
+    ///   `Random eventRngDuplicate = new Random(Settings.seed, eventRng.counter)`
+    /// 即本函数。若误用 set_counter，F7 起事件抽取整体错位
+    /// （实测：真游戏 WeMeetAgain，误用后 AccursedBlacksmith / WomanInBlue）。
+    pub fn with_counter(seed: u64, counter: u32) -> Self {
+        let mut r = Self::new(seed);
+        for _ in 0..counter {
+            r.random_range(999);
+        }
+        r
+    }
+
     /// 快照导出（对应 getState(0)/getState(1) + counter）
     pub fn snapshot(&self) -> (u64, u64, u32) {
         (self.rng.get_state(0), self.rng.get_state(1), self.counter)
